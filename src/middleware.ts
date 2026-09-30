@@ -17,7 +17,7 @@ export async function middleware(req: NextRequest) {
 
   if (pathname.startsWith("/dashboard") || pathname === "/") {
     const token = req.cookies.get(COOKIE_NAME)?.value;
-    const secret = process.env.AUTH_SECRET;
+    const secret = process.env.AUTH_SECRET?.trim();
 
     if (!token || !secret) {
       return NextResponse.redirect(new URL("/login", req.url));

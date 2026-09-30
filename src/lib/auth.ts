@@ -8,7 +8,7 @@ import { users, type User } from "@/db/schema";
 const COOKIE_NAME = "euroansa_session";
 
 function getSecret() {
-  const secret = process.env.AUTH_SECRET;
+  const secret = process.env.AUTH_SECRET?.trim();
   if (!secret) throw new Error("AUTH_SECRET non configurata");
   return new TextEncoder().encode(secret);
 }
