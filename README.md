@@ -66,3 +66,6 @@ In Vercel → Project → Cron Jobs: `/api/cron/check-emails` ogni 5 minuti (gi�
 2. Il cron elabora con Gemini, carica su Drive, aggiorna checklist e pre-scoring.
 3. Se checklist completa e auto-invio ON → email alla segreteria.
 4. In dashboard: sollecito cliente, invio forzato, stati banca.
+
+<!-- deploy trigger 2026-10-01T01:42:26.4758441+02:00 -->
+
