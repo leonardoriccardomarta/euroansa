@@ -110,7 +110,7 @@ Regole:
 File originale: ${params.originalFileName}`;
 
   const response = await ai.models.generateContent({
-    model: "gemini-2.0-flash",
+    model: process.env.GEMINI_MODEL?.trim() || "gemini-2.5-flash",
     contents: [
       {
         role: "user",
@@ -118,7 +118,11 @@ File originale: ${params.originalFileName}`;
           { text: prompt },
           {
             inlineData: {
-              mimeType: params.mimeType,
+              mimeType:
+                params.mimeType === "application/octet-stream" &&
+                params.originalFileName.toLowerCase().endsWith(".pdf")
+                  ? "application/pdf"
+                  : params.mimeType,
               data: base64,
             },
           },

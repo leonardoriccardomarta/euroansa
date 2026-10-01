@@ -68,7 +68,9 @@ export async function processIncomingFiles(
   files: IncomingFile[],
   options?: { applicationId?: string; isTest?: boolean },
 ) {
-  if (files.length === 0) return { processed: 0, applicationIds: [] as string[] };
+  if (files.length === 0) {
+    return { processed: 0, applicationIds: [] as string[], errors: [] as string[] };
+  }
 
   const analyses = await Promise.allSettled(
     files.map((f) =>
@@ -79,6 +81,19 @@ export async function processIncomingFiles(
       }),
     ),
   );
+
+  const errors: string[] = [];
+  for (let i = 0; i < analyses.length; i++) {
+    const result = analyses[i];
+    if (result.status === "rejected") {
+      const reason =
+        result.reason instanceof Error
+          ? result.reason.message
+          : String(result.reason);
+      errors.push(`${files[i].originalFileName}: ${reason}`);
+      console.error("analyze failed", files[i].originalFileName, reason);
+    }
+  }
 
   const applicationIds = new Set<string>();
 
@@ -193,6 +208,7 @@ export async function processIncomingFiles(
   return {
     processed: analyses.filter((a) => a.status === "fulfilled").length,
     applicationIds: [...applicationIds],
+    errors,
   };
 }
 

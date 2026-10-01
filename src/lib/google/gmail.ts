@@ -38,6 +38,7 @@ function collectParts(part: GmailPart, acc: GmailPart[] = []): GmailPart[] {
 
 export async function fetchPendingMortgageEmails(
   maxMessages = 5,
+  includeProcessed = false,
 ): Promise<GmailAttachment[]> {
   const gmail = getGmailClient();
 
@@ -50,7 +51,9 @@ export async function fetchPendingMortgageEmails(
 
   const list = await gmail.users.messages.list({
     userId: "me",
-    q: `has:attachment -label:MUTUO-ELABORATA subject:${searchToken}`,
+    q: includeProcessed
+      ? `has:attachment subject:${searchToken}`
+      : `has:attachment -label:MUTUO-ELABORATA subject:${searchToken}`,
     maxResults: maxMessages,
   });
 
@@ -95,17 +98,24 @@ export async function fetchPendingMortgageEmails(
 
       if (!att.data.data) continue;
 
+      let mimeType = part.mimeType ?? "application/octet-stream";
+      if (lower.endsWith(".pdf")) mimeType = "application/pdf";
+      else if (lower.endsWith(".png")) mimeType = "image/png";
+      else if (lower.endsWith(".jpg") || lower.endsWith(".jpeg"))
+        mimeType = "image/jpeg";
+      else if (lower.endsWith(".webp")) mimeType = "image/webp";
+
       attachments.push({
         messageId: msg.id,
         filename: part.filename,
-        mimeType: part.mimeType ?? "application/octet-stream",
+        mimeType,
         buffer: decodeBase64Url(att.data.data),
         fromEmail,
         subject,
       });
     }
 
-    await markMessageProcessed(msg.id);
+    // NON marcare qui: si marca solo dopo elaborazione riuscita
   }
 
   return attachments;

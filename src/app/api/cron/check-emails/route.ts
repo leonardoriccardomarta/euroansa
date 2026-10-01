@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { fetchPendingMortgageEmails } from "@/lib/google/gmail";
+import {
+  fetchPendingMortgageEmails,
+  markMessageProcessed,
+} from "@/lib/google/gmail";
 import { processIncomingFiles } from "@/lib/pipeline";
 
 export const maxDuration = 60;
@@ -13,7 +16,11 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const attachments = await fetchPendingMortgageEmails(5);
+    const force =
+      req.nextUrl.searchParams.get("force") === "1" ||
+      req.nextUrl.searchParams.get("force") === "true";
+
+    const attachments = await fetchPendingMortgageEmails(5, force);
 
     // Raggruppa per messageId per processare
     const byMessage = new Map<string, typeof attachments>();
@@ -24,7 +31,7 @@ export async function GET(req: NextRequest) {
     }
 
     const results = [];
-    for (const [, group] of byMessage) {
+    for (const [messageId, group] of byMessage) {
       const first = group[0];
       const adminEmail = process.env.ADMIN_EMAIL?.trim().toLowerCase();
       const isTest = Boolean(
@@ -41,11 +48,22 @@ export async function GET(req: NextRequest) {
         })),
         { isTest },
       );
-      results.push(processed);
+
+      // Marca elaborata solo se almeno un allegato è stato processato con successo
+      if (processed.processed > 0) {
+        try {
+          await markMessageProcessed(messageId);
+        } catch (labelError) {
+          console.error("markMessageProcessed failed", messageId, labelError);
+        }
+      }
+
+      results.push({ messageId, ...processed });
     }
 
     return NextResponse.json({
       ok: true,
+      force,
       emails: byMessage.size,
       attachments: attachments.length,
       results,
