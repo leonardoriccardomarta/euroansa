@@ -20,7 +20,8 @@ export async function assignBrokerAction(
   applicationId: string,
   brokerId: string | null,
 ) {
-  await requireAdmin();
+  // Drive condiviso: tutti vedono tutte le pratiche; assegnazione titolare libera
+  await requireSession();
   await db
     .update(applications)
     .set({
@@ -39,6 +40,8 @@ export async function updateApplicationStatusAction(
 ) {
   await requireSession();
   const allowed: ApplicationStatus[] = [
+    "DOCUMENTI_INCOMPLETI",
+    "COMPLETA_DA_INOLTRARE",
     "INVIATA_A_SEGRETERIA",
     "INVIATA_IN_BANCA",
     "PERITO_NOMINATO",

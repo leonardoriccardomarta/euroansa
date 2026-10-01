@@ -1,4 +1,4 @@
-import { desc, eq } from "drizzle-orm";
+import { desc } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import { db } from "@/db";
@@ -60,19 +60,18 @@ export default async function DashboardPage({
       .select({
         id: users.id,
         name: users.name,
+        email: users.email,
+        role: users.role,
       })
       .from(users),
   ]);
 
-  const brokerNameById = new Map(brokerRows.map((b) => [b.id, b.name]));
-
-  // Filippo: ADMIN (senior) vede tutte; broker solo le proprie (niente test admin)
+  // Drive condiviso + CRM condiviso (Filippo): tutti vedono tutte le pratiche.
+  // Nascondi solo le pratiche test agli utenti non-admin.
   const apps =
     session.role === "ADMIN"
       ? appsRaw
-      : appsRaw.filter(
-          (a) => !a.isTest && a.brokerId === session.id,
-        );
+      : appsRaw.filter((a) => !a.isTest);
 
   const docsByApp = new Map<string, typeof docRows>();
   for (const d of docRows) {
@@ -95,6 +94,12 @@ export default async function DashboardPage({
       a.status === "DELIBERATA",
   ).length;
 
+  const brokers = brokerRows.map((b) => ({
+    id: b.id,
+    name: b.name,
+    email: b.email,
+  }));
+
   return (
     <div className="space-y-8">
       <div>
@@ -102,9 +107,8 @@ export default async function DashboardPage({
           Pratiche
         </h1>
         <p className="mt-2 max-w-2xl text-slate-600">
-          {session.role === "ADMIN"
-            ? "Tutte le pratiche dell'agenzia, con broker titolare"
-            : "Le tue pratiche mutuo e avanzamento documenti"}
+          Tutti vedono tutte le pratiche (Drive condiviso). Assegna il broker
+          titolare e aggiorna lo stato direttamente dall&apos;elenco.
         </p>
       </div>
 
@@ -142,9 +146,8 @@ export default async function DashboardPage({
           <div className="rounded-xl border border-dashed border-slate-300 bg-white p-10 text-center">
             <p className="font-medium text-slate-900">Nessuna pratica ancora</p>
             <p className="mt-2 text-sm text-slate-500">
-              {session.role === "ADMIN"
-                ? "Quando arrivano documenti via email, assegna la pratica a un broker."
-                : "Quando l’admin ti assegna una pratica, compare qui."}
+              Quando arrivano documenti sulla Gmail collegata (OAuth Filippo /
+              Drive condiviso), compaiono qui.
             </p>
           </div>
         ) : (
@@ -166,6 +169,7 @@ export default async function DashboardPage({
                 clientName={app.clientName}
                 clientEmail={app.clientEmail}
                 clientFiscalCode={app.clientFiscalCode}
+                status={app.status}
                 statusLabel={
                   APPLICATION_STATUS_LABELS[app.status] ?? app.status
                 }
@@ -179,13 +183,9 @@ export default async function DashboardPage({
                 }
                 driveFolderUrl={app.driveFolderUrl}
                 isTest={app.isTest}
-                brokerLabel={
-                  session.role === "ADMIN"
-                    ? app.brokerId
-                      ? `Broker: ${brokerNameById.get(app.brokerId) ?? "—"}`
-                      : "Non assegnata"
-                    : undefined
-                }
+                brokerId={app.brokerId}
+                brokers={brokers}
+                canAssignBroker
               />
             );
           })

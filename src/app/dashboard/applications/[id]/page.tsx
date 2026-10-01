@@ -48,13 +48,7 @@ export default async function ApplicationDetailPage({
   if (app.isTest && session.role !== "ADMIN") {
     redirect("/dashboard");
   }
-  // Broker: solo pratiche assegnate a lui
-  if (
-    session.role !== "ADMIN" &&
-    app.brokerId !== session.id
-  ) {
-    redirect("/dashboard");
-  }
+  // CRM condiviso (Filippo): tutti vedono tutte le pratiche (tranne test)
 
   await refreshApplicationState(id);
 
@@ -78,17 +72,14 @@ export default async function ApplicationDetailPage({
     .where(eq(systemSettings.id, "global"))
     .limit(1);
 
-  const brokerRows =
-    session.role === "ADMIN"
-      ? await db
-          .select({
-            id: users.id,
-            name: users.name,
-            email: users.email,
-            role: users.role,
-          })
-          .from(users)
-      : [];
+  const brokerRows = await db
+    .select({
+      id: users.id,
+      name: users.name,
+      email: users.email,
+      role: users.role,
+    })
+    .from(users);
 
   const brokerName = current.brokerId
     ? brokerRows.find((b) => b.id === current.brokerId)?.name
@@ -138,14 +129,12 @@ export default async function ApplicationDetailPage({
             >
               {EMPLOYMENT_TYPE_LABELS[employmentType]}
             </Badge>
-            {session.role === "ADMIN" ? (
-              <Badge
-                variant="outline"
-                className="border-slate-200 bg-white text-slate-600"
-              >
-                {brokerName ? `Broker: ${brokerName}` : "Non assegnata"}
-              </Badge>
-            ) : null}
+            <Badge
+              variant="outline"
+              className="border-slate-200 bg-white text-slate-600"
+            >
+              {brokerName ? `Broker: ${brokerName}` : "Non assegnata"}
+            </Badge>
           </div>
         </div>
         <div className="flex w-full flex-col gap-3 sm:w-auto sm:items-end">
@@ -155,17 +144,15 @@ export default async function ApplicationDetailPage({
             isAdmin={session.role === "ADMIN"}
             clientName={current.clientName}
           />
-          {session.role === "ADMIN" ? (
-            <BrokerAssign
-              applicationId={current.id}
-              brokerId={current.brokerId}
-              brokers={brokerRows.map((b) => ({
-                id: b.id,
-                name: b.name,
-                email: b.email,
-              }))}
-            />
-          ) : null}
+          <BrokerAssign
+            applicationId={current.id}
+            brokerId={current.brokerId}
+            brokers={brokerRows.map((b) => ({
+              id: b.id,
+              name: b.name,
+              email: b.email,
+            }))}
+          />
         </div>
       </div>
 

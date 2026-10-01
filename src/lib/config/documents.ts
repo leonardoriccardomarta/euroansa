@@ -4,10 +4,9 @@ import type { DocumentType, EmploymentType } from "@/db/schema";
  * Config documenti Euroansa.
  *
  * Confermato Filippo:
+ * - CRM condiviso: tutti vedono tutte le pratiche; brokerId = titolare (etichetta)
+ * - Drive condiviso: basta OAuth di Filippo (un solo Google collegato)
  * - Checklist NON fissa: ogni pratica/banca richiede documenti diversi.
- *   Il broker seleziona i richiesti per pratica (dashboard) o parte da un preset.
- * - Q1 ownership: ADMIN vede tutte; broker solo le proprie
- * - Multiuser Google: OAuth per utente → casella/Drive propri
  * - Q3 validità documenti (scaduti, illeggibili, CIG, ecc.)
  * - Q5 Drive sottocartelle
  * - Q6 oggetto mail: [EUROANSA-MUTUO]
