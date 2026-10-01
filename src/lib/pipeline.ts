@@ -20,6 +20,7 @@ async function findOrCreateApplication(params: {
   fiscalCode?: string | null;
   email?: string;
   clientName: string;
+  isTest?: boolean;
 }) {
   if (params.fiscalCode) {
     const [byCf] = await db
@@ -56,6 +57,7 @@ async function findOrCreateApplication(params: {
       clientEmail: (params.email ?? "sconosciuto@email.local").toLowerCase(),
       clientFiscalCode: params.fiscalCode?.toUpperCase() ?? null,
       status: "IN_ATTESA_DOCUMENTI",
+      isTest: params.isTest ?? false,
     })
     .returning();
 
@@ -64,7 +66,7 @@ async function findOrCreateApplication(params: {
 
 export async function processIncomingFiles(
   files: IncomingFile[],
-  options?: { applicationId?: string },
+  options?: { applicationId?: string; isTest?: boolean },
 ) {
   if (files.length === 0) return { processed: 0, applicationIds: [] as string[] };
 
@@ -104,10 +106,19 @@ export async function processIncomingFiles(
     }
 
     if (!app) {
+      const adminEmail = process.env.ADMIN_EMAIL?.trim().toLowerCase();
+      const isTest =
+        options?.isTest === true ||
+        Boolean(
+          adminEmail &&
+            file.clientEmail?.toLowerCase() === adminEmail,
+        );
+
       app = await findOrCreateApplication({
         fiscalCode: analysis.extractedData.fiscalCode,
         email: file.clientEmail,
         clientName,
+        isTest,
       });
     }
 

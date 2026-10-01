@@ -26,6 +26,11 @@ export async function GET(req: NextRequest) {
     const results = [];
     for (const [, group] of byMessage) {
       const first = group[0];
+      const adminEmail = process.env.ADMIN_EMAIL?.trim().toLowerCase();
+      const isTest = Boolean(
+        adminEmail && first.fromEmail.toLowerCase() === adminEmail,
+      );
+
       const processed = await processIncomingFiles(
         group.map((g) => ({
           buffer: g.buffer,
@@ -34,6 +39,7 @@ export async function GET(req: NextRequest) {
           clientEmail: first.fromEmail,
           clientNameHint: first.fromEmail.split("@")[0],
         })),
+        { isTest },
       );
       results.push(processed);
     }

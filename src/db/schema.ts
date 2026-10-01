@@ -88,6 +88,7 @@ export const applications = pgTable("applications", {
   driveFolderUrl: text("drive_folder_url"),
   preScoringData: jsonb("pre_scoring_data").$type<PreScoringData>(),
   brokerId: uuid("broker_id").references(() => users.id, { onDelete: "set null" }),
+  isTest: boolean("is_test").notNull().default(false),
   sentToSecretaryAt: timestamp("sent_to_secretary_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),

@@ -52,6 +52,7 @@ const SETUP_STATEMENTS = [
     broker_name varchar(255) NOT NULL,
     auto_send_to_secretary boolean DEFAULT true NOT NULL
   )`,
+  `ALTER TABLE applications ADD COLUMN IF NOT EXISTS is_test boolean DEFAULT false NOT NULL`,
 ];
 
 /**

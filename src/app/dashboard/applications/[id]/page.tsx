@@ -1,6 +1,7 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { eq } from "drizzle-orm";
 import { ExternalLink } from "lucide-react";
+import { getSession } from "@/lib/auth";
 import { db } from "@/db";
 import { applications, documents, systemSettings } from "@/db/schema";
 import { evaluateChecklist } from "@/lib/checklist";
@@ -19,6 +20,9 @@ export default async function ApplicationDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  const session = await getSession();
+  if (!session) redirect("/login");
+
   const { id } = await params;
 
   const [app] = await db
@@ -28,6 +32,11 @@ export default async function ApplicationDetailPage({
     .limit(1);
 
   if (!app) notFound();
+
+  // I broker non vedono le pratiche di test admin
+  if (app.isTest && session.role !== "ADMIN") {
+    redirect("/dashboard");
+  }
 
   const docs = await db
     .select()
@@ -58,7 +67,15 @@ export default async function ApplicationDetailPage({
             {app.clientEmail}
             {app.clientFiscalCode ? ` · CF ${app.clientFiscalCode}` : ""}
           </p>
-          <div className="mt-3">
+          <div className="mt-3 flex flex-wrap gap-2">
+            {app.isTest ? (
+              <Badge
+                variant="outline"
+                className="border-violet-200 bg-violet-50 text-violet-700"
+              >
+                Test
+              </Badge>
+            ) : null}
             <Badge
               variant="outline"
               className="border-primary-200 bg-primary-50 text-primary-700"

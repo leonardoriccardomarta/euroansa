@@ -1,4 +1,6 @@
 import { desc } from "drizzle-orm";
+import { redirect } from "next/navigation";
+import { getSession } from "@/lib/auth";
 import { db } from "@/db";
 import { applications, documents } from "@/db/schema";
 import { evaluateChecklist } from "@/lib/checklist";
@@ -25,9 +27,12 @@ export default async function DashboardPage({
 }: {
   searchParams: Promise<{ status?: string }>;
 }) {
+  const session = await getSession();
+  if (!session) redirect("/login");
+
   const { status } = await searchParams;
 
-  const [apps, docRows] = await Promise.all([
+  const [appsRaw, docRows] = await Promise.all([
     db
       .select({
         id: applications.id,
@@ -38,6 +43,7 @@ export default async function DashboardPage({
         status: applications.status,
         driveFolderUrl: applications.driveFolderUrl,
         sentToSecretaryAt: applications.sentToSecretaryAt,
+        isTest: applications.isTest,
       })
       .from(applications)
       .orderBy(desc(applications.updatedAt)),
@@ -49,6 +55,12 @@ export default async function DashboardPage({
       })
       .from(documents),
   ]);
+
+  // Broker: solo pratiche reali (non i test admin). Admin: vede tutto.
+  const apps =
+    session.role === "ADMIN"
+      ? appsRaw
+      : appsRaw.filter((a) => !a.isTest);
 
   const docsByApp = new Map<string, typeof docRows>();
   for (const d of docRows) {
@@ -148,6 +160,7 @@ export default async function DashboardPage({
                     : "Non inviata"
                 }
                 driveFolderUrl={app.driveFolderUrl}
+                isTest={app.isTest}
               />
             );
           })

@@ -15,6 +15,7 @@ export function ApplicationCard({
   progressPct,
   sentLabel,
   driveFolderUrl,
+  isTest,
 }: {
   id: string;
   clientName: string;
@@ -26,6 +27,7 @@ export function ApplicationCard({
   progressPct: number;
   sentLabel: string;
   driveFolderUrl: string | null;
+  isTest?: boolean;
 }) {
   return (
     <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-primary-200 hover:shadow-md active:scale-[0.99] sm:p-5">
@@ -34,6 +36,14 @@ export function ApplicationCard({
           <h3 className="truncate text-base font-semibold text-slate-900">
             {clientName}
           </h3>
+          {isTest ? (
+            <Badge
+              variant="outline"
+              className="border-violet-200 bg-violet-50 text-violet-700"
+            >
+              Test
+            </Badge>
+          ) : null}
           <Badge variant="outline" className={statusClass}>
             {statusLabel}
           </Badge>
