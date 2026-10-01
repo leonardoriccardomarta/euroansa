@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useOptimistic, useState, useTransition } from "react";
 import {
+  deleteApplicationAction,
   getSollecitoTextAction,
   sendToSecretaryAction,
   updateApplicationStatusAction,
@@ -23,9 +24,13 @@ const BANK_STATUS_OPTIONS: ApplicationStatus[] = [
 export function ApplicationActions({
   applicationId,
   status,
+  isAdmin = false,
+  clientName,
 }: {
   applicationId: string;
   status: ApplicationStatus;
+  isAdmin?: boolean;
+  clientName?: string;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -80,6 +85,39 @@ export function ApplicationActions({
         >
           Copia sollecito
         </Button>
+        {isAdmin ? (
+          <Button
+            variant="outline"
+            disabled={pending}
+            className="min-h-11 flex-1 rounded-lg border-red-200 text-red-700 hover:bg-red-50 active:scale-95 sm:flex-none"
+            onClick={() => {
+              const label = clientName ? `"${clientName}"` : "questa pratica";
+              if (
+                !window.confirm(
+                  `Eliminare ${label}? Documenti collegati e dati scoring verranno rimossi. La cartella Drive resta su Google.`,
+                )
+              ) {
+                return;
+              }
+              startTransition(async () => {
+                try {
+                  const res = await deleteApplicationAction(applicationId);
+                  if (res && "error" in res && res.error) {
+                    toast.error(res.error);
+                    return;
+                  }
+                  toast.success("Pratica eliminata");
+                  router.push("/dashboard");
+                  router.refresh();
+                } catch {
+                  toast.error("Eliminazione fallita");
+                }
+              });
+            }}
+          >
+            Elimina pratica
+          </Button>
+        ) : null}
       </div>
 
       {showBankStatus ? (

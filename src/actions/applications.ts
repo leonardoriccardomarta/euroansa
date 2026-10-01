@@ -63,6 +63,21 @@ export async function sendToSecretaryAction(applicationId: string) {
   return { ok: true };
 }
 
+/** Elimina pratica + documenti collegati (cascade). Solo admin. */
+export async function deleteApplicationAction(applicationId: string) {
+  await requireAdmin();
+  const [app] = await db
+    .select({ id: applications.id })
+    .from(applications)
+    .where(eq(applications.id, applicationId))
+    .limit(1);
+  if (!app) return { error: "Pratica non trovata" };
+
+  await db.delete(applications).where(eq(applications.id, applicationId));
+  revalidatePath("/dashboard");
+  return { ok: true };
+}
+
 export async function uploadDocumentsAction(
   applicationId: string,
   formData: FormData,

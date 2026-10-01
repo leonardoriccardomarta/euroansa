@@ -151,6 +151,8 @@ export default async function ApplicationDetailPage({
           <ApplicationActions
             applicationId={current.id}
             status={current.status}
+            isAdmin={session.role === "ADMIN"}
+            clientName={current.clientName}
           />
           {session.role === "ADMIN" ? (
             <BrokerAssign
