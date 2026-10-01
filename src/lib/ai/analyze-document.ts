@@ -56,11 +56,13 @@ const responseSchema = {
 
 function sanitizeNamePart(value: string | null | undefined): string {
   if (!value) return "NA";
-  return value
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-zA-Z0-9]/g, "")
-    .slice(0, 40) || "NA";
+  return (
+    value
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-zA-Z0-9]/g, "")
+      .slice(0, 40) || "NA"
+  );
 }
 
 function buildStandardizedFileName(
@@ -68,21 +70,45 @@ function buildStandardizedFileName(
   extracted: ExtractedDocumentData,
   originalFileName: string,
 ): string {
-  const ext =
-    originalFileName.includes(".")
-      ? originalFileName.slice(originalFileName.lastIndexOf("."))
-      : ".pdf";
+  const ext = originalFileName.includes(".")
+    ? originalFileName.slice(originalFileName.lastIndexOf("."))
+    : ".pdf";
   const prefix = FILE_NAME_PREFIX[documentType] ?? "99_Doc";
   const last = sanitizeNamePart(extracted.lastName);
   const first = sanitizeNamePart(extracted.firstName);
   const month = extracted.referenceMonth
     ? `_${sanitizeNamePart(extracted.referenceMonth)}`
     : "";
+  return `${prefix}_${last}_${first}${month}${ext}`;
+}
 
-  if (documentType.startsWith("BUSTA_PAGA") || documentType === "CEDOLINO_PENSIONE") {
-    return `${prefix}${month}_${last}${ext}`;
-  }
-  return `${prefix}_${last}_${first}${ext}`;
+function resolveModels(): string[] {
+  const preferred = process.env.GEMINI_MODEL?.trim();
+  const fallbacks = [
+    "gemini-3.8-flash",
+    "gemini-2.0-flash",
+    "gemini-flash-lite-latest",
+    "gemini-2.0-flash-lite",
+  ];
+  const list = preferred ? [preferred, ...fallbacks] : fallbacks;
+  return [...new Set(list)];
+}
+
+function isDailyQuotaError(msg: string): boolean {
+  return (
+    msg.includes("PerDay") ||
+    msg.includes("RequestsPerDay") ||
+    (msg.includes("quotaValue\":\"20\"") && msg.includes("PerDay"))
+  );
+}
+
+function isRetryableTransient(msg: string): boolean {
+  return (
+    msg.includes('"code":503') ||
+    msg.includes("UNAVAILABLE") ||
+    msg.includes("high demand") ||
+    (msg.includes('"code":429') && !isDailyQuotaError(msg))
+  );
 }
 
 export async function analyzeDocument(params: {
@@ -109,82 +135,77 @@ Regole:
 - Numeri in formato numerico (non stringhe con €).
 File originale: ${params.originalFileName}`;
 
-  const model = process.env.GEMINI_MODEL?.trim() || "gemini-3.8-flash";
   const mimeType =
     params.mimeType === "application/octet-stream" &&
     params.originalFileName.toLowerCase().endsWith(".pdf")
       ? "application/pdf"
       : params.mimeType;
 
+  const models = resolveModels();
   let lastError: unknown;
-  for (let attempt = 0; attempt < 2; attempt++) {
-    try {
-      const response = await ai.models.generateContent({
-        model,
-        contents: [
-          {
-            role: "user",
-            parts: [
-              { text: prompt },
-              {
-                inlineData: {
-                  mimeType,
-                  data: base64,
-                },
-              },
-            ],
+
+  for (const model of models) {
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        const response = await ai.models.generateContent({
+          model,
+          contents: [
+            {
+              role: "user",
+              parts: [
+                { text: prompt },
+                { inlineData: { mimeType, data: base64 } },
+              ],
+            },
+          ],
+          config: {
+            responseMimeType: "application/json",
+            responseSchema,
           },
-        ],
-        config: {
-          responseMimeType: "application/json",
-          responseSchema,
-        },
-      });
+        });
 
-      const text = response.text;
-      if (!text) {
-        throw new Error("Risposta Gemini vuota");
-      }
+        const text = response.text;
+        if (!text) throw new Error("Risposta Gemini vuota");
 
-      const parsed = JSON.parse(text) as {
-        documentType: DocumentType;
-        isValid: boolean;
-        extractedData: ExtractedDocumentData;
-        validationIssues: string[];
-      };
+        const parsed = JSON.parse(text) as {
+          documentType: DocumentType;
+          isValid: boolean;
+          extractedData: ExtractedDocumentData;
+          validationIssues: string[];
+        };
 
-      const documentType = DOCUMENT_TYPES.includes(parsed.documentType)
-        ? parsed.documentType
-        : "SCONOSCIUTO";
+        const documentType = DOCUMENT_TYPES.includes(parsed.documentType)
+          ? parsed.documentType
+          : "SCONOSCIUTO";
 
-      return {
-        documentType,
-        isValid: Boolean(parsed.isValid) && documentType !== "SCONOSCIUTO",
-        extractedData: parsed.extractedData ?? {},
-        validationIssues: parsed.validationIssues ?? [],
-        standardizedFileName: buildStandardizedFileName(
+        return {
           documentType,
-          parsed.extractedData ?? {},
-          params.originalFileName,
-        ),
-      };
-    } catch (error) {
-      lastError = error;
-      const msg = error instanceof Error ? error.message : String(error);
-      const retryable =
-        msg.includes('"code":429') ||
-        msg.includes('"code":503') ||
-        msg.includes("RESOURCE_EXHAUSTED") ||
-        msg.includes("UNAVAILABLE") ||
-        msg.includes("high demand") ||
-        msg.includes("quota");
-        if (!retryable || attempt === 1) break;
+          isValid: Boolean(parsed.isValid) && documentType !== "SCONOSCIUTO",
+          extractedData: parsed.extractedData ?? {},
+          validationIssues: parsed.validationIssues ?? [],
+          standardizedFileName: buildStandardizedFileName(
+            documentType,
+            parsed.extractedData ?? {},
+            params.originalFileName,
+          ),
+        };
+      } catch (error) {
+        lastError = error;
+        const msg = error instanceof Error ? error.message : String(error);
 
-      const delayMatch = msg.match(/retry in ([\d.]+)s/i);
-      const delayMs = delayMatch
-        ? Math.min(Math.ceil(Number(delayMatch[1]) * 1000) + 500, 12000)
-        : 4000 * (attempt + 1);
-      await new Promise((r) => setTimeout(r, delayMs));
+        // Quota giornaliera su questo modello → passa al successivo
+        if (isDailyQuotaError(msg) || msg.includes("no longer available")) {
+          break;
+        }
+
+        if (!isRetryableTransient(msg) || attempt === 1) break;
+
+        const delayMatch = msg.match(/retry in ([\d.]+)s/i);
+        const delayMs = delayMatch
+          ? Math.min(Math.ceil(Number(delayMatch[1]) * 1000) + 500, 12000)
+          : 4000 * (attempt + 1);
+        await new Promise((r) => setTimeout(r, delayMs));
+      }
     }
   }
 

@@ -193,6 +193,22 @@ export async function processIncomingFiles(
       console.error("Drive upload failed", err);
     }
 
+    // Evita duplicati sullo stesso raw file name
+    const [existingDoc] = await db
+      .select({ id: documents.id })
+      .from(documents)
+      .where(
+        and(
+          eq(documents.applicationId, app.id),
+          eq(documents.rawFileName, file.originalFileName),
+        ),
+      )
+      .limit(1);
+    if (existingDoc) {
+      applicationIds.add(app.id);
+      continue;
+    }
+
     await db.insert(documents).values({
       applicationId: app.id,
       rawFileName: file.originalFileName,
