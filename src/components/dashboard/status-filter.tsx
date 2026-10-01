@@ -22,10 +22,10 @@ export function StatusFilter({ current }: { current?: string }) {
             key={f.value || "all"}
             href={f.value ? `/dashboard?status=${f.value}` : "/dashboard"}
             className={cn(
-              "inline-flex h-7 items-center rounded-md border px-2.5 text-[0.8rem] font-medium transition",
+              "inline-flex h-8 items-center rounded-lg px-3 text-sm font-medium transition-colors",
               active
-                ? "border-transparent bg-emerald-800 text-white"
-                : "border-border bg-background text-slate-700 hover:bg-muted",
+                ? "bg-primary-600 text-white shadow-sm"
+                : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50",
             )}
           >
             {f.label}

@@ -1,17 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import { ArrowRight, AlertCircle, Building2 } from "lucide-react";
 import { loginAction } from "@/actions/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 
 export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
@@ -28,20 +22,36 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-emerald-950 via-slate-900 to-slate-950 p-4">
-      <Card className="w-full max-w-md border-emerald-900/40 bg-white/95 shadow-xl">
-        <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl tracking-tight text-emerald-950">
-            Euroansa
-          </CardTitle>
-          <CardDescription>
-            Accedi alla dashboard pratiche mutuo
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form action={onSubmit} className="space-y-4">
+    <div className="min-h-screen bg-slate-50">
+      <div className="mx-auto flex max-w-md flex-col justify-center px-4 py-16">
+        <div className="mb-8 flex items-center gap-3">
+          <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary-600 text-white shadow-md">
+            <Building2 className="h-6 w-6" />
+          </span>
+          <div>
+            <p className="text-lg font-bold text-slate-900">Euroansa</p>
+            <p className="text-sm text-slate-500">Pratiche mutuo</p>
+          </div>
+        </div>
+
+        <div className="rounded-xl border border-slate-200 bg-white p-8 shadow-lg">
+          <h1 className="text-2xl font-bold text-slate-900">Accedi</h1>
+          <p className="mt-2 text-slate-600">
+            Entra nella dashboard per gestire le pratiche
+          </p>
+
+          {error && (
+            <div className="mt-4 flex gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">
+              <AlertCircle className="h-5 w-5 shrink-0" />
+              {error}
+            </div>
+          )}
+
+          <form action={onSubmit} className="mt-6 space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email" className="text-sm font-semibold text-slate-700">
+                Email
+              </Label>
               <Input
                 id="email"
                 name="email"
@@ -49,33 +59,33 @@ export default function LoginPage() {
                 required
                 autoComplete="email"
                 placeholder="tuo@email.it"
+                className="h-10 rounded-lg border-slate-300"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password" className="text-sm font-semibold text-slate-700">
+                Password
+              </Label>
               <Input
                 id="password"
                 name="password"
                 type="password"
                 required
                 autoComplete="current-password"
+                className="h-10 rounded-lg border-slate-300"
               />
             </div>
-            {error && (
-              <p className="text-sm text-red-600" role="alert">
-                {error}
-              </p>
-            )}
             <Button
               type="submit"
-              className="w-full bg-emerald-800 hover:bg-emerald-900"
+              className="h-10 w-full gap-2 rounded-lg bg-primary-600 font-semibold shadow-md hover:bg-primary-700"
               disabled={pending}
             >
               {pending ? "Accesso..." : "Accedi"}
+              {!pending && <ArrowRight className="h-4 w-4" />}
             </Button>
           </form>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 }

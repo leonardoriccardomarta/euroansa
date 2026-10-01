@@ -28,7 +28,7 @@ export function DocumentUpload({ applicationId }: { applicationId: string }) {
     <div
       className={`rounded-lg border-2 border-dashed p-6 text-center transition ${
         dragOver
-          ? "border-emerald-600 bg-emerald-50"
+          ? "border-primary-600 bg-primary-50"
           : "border-slate-300 bg-slate-50"
       }`}
       onDragOver={(e) => {

@@ -43,7 +43,7 @@ export function ApplicationActions({
       <div className="flex flex-wrap gap-2">
         <Button
           disabled={pending}
-          className="bg-emerald-800 hover:bg-emerald-900"
+          className="bg-primary-600 hover:bg-primary-700"
           onClick={() => {
             startTransition(async () => {
               try {
