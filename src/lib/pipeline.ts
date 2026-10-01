@@ -72,15 +72,22 @@ export async function processIncomingFiles(
     return { processed: 0, applicationIds: [] as string[], errors: [] as string[] };
   }
 
-  const analyses = await Promise.allSettled(
-    files.map((f) =>
-      analyzeDocument({
+  // Sequenziale (non parallel): free tier Gemini ~5 req/min
+  const analyses: PromiseSettledResult<
+    Awaited<ReturnType<typeof analyzeDocument>>
+  >[] = [];
+  for (const f of files) {
+    try {
+      const value = await analyzeDocument({
         buffer: f.buffer,
         mimeType: f.mimeType,
         originalFileName: f.originalFileName,
-      }),
-    ),
-  );
+      });
+      analyses.push({ status: "fulfilled", value });
+    } catch (reason) {
+      analyses.push({ status: "rejected", reason });
+    }
+  }
 
   const errors: string[] = [];
   for (let i = 0; i < analyses.length; i++) {

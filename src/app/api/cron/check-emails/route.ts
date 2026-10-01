@@ -49,8 +49,8 @@ export async function GET(req: NextRequest) {
         { isTest },
       );
 
-      // Marca elaborata solo se almeno un allegato è stato processato con successo
-      if (processed.processed > 0) {
+      // Marca elaborata solo se tutti gli allegati sono ok (altrimenti force/cron riprovano)
+      if (processed.processed > 0 && processed.errors.length === 0) {
         try {
           await markMessageProcessed(messageId);
         } catch (labelError) {
