@@ -68,8 +68,6 @@ function resolveDocumentType(
   return detected;
 }
 
-const OPEN_STATUSES = ["DOCUMENTI_INCOMPLETI", "COMPLETA_DA_INOLTRARE"] as const;
-
 /**
  * Una sola pratica per cliente (stessa email mittente).
  * 2ª mail con allegati mancanti → riusa quella esistente, anche se già inviata a segreteria.
