@@ -116,8 +116,8 @@ export default async function DashboardPage({
           <div className="rounded-xl border border-dashed border-slate-300 bg-white p-10 text-center">
             <p className="font-medium text-slate-900">Nessuna pratica ancora</p>
             <p className="mt-2 text-sm text-slate-500">
-              Le email con allegati verranno elaborate automaticamente dal
-              polling.
+              Quando arrivano documenti via email o upload, le pratiche
+              compariranno qui.
             </p>
           </div>
         ) : (

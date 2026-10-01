@@ -67,7 +67,7 @@ export const MAX_INSTALLMENT_RATIO = 0.35;
 export const APPLICATION_STATUS_LABELS: Record<string, string> = {
   IN_ATTESA_DOCUMENTI: "In attesa documenti",
   DOCUMENTI_INCOMPLETI: "Documenti incompleti",
-  COMPLETA_DA_INOLTRARE: "Completa — da inoltrare",
+  COMPLETA_DA_INOLTRARE: "Completa da inoltrare",
   INVIATA_A_SEGRETERIA: "Inviata a segreteria",
   ANOMALIA: "Anomalia",
   INVIATA_IN_BANCA: "Inviata in banca",
