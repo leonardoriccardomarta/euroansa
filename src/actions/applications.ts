@@ -15,6 +15,23 @@ import { sendApplicationToSecretary } from "@/lib/google/secretary-sender";
 import { evaluateChecklist, inferEmploymentType } from "@/lib/checklist";
 import { buildSollecitoMessage } from "@/lib/sollecito";
 
+export async function assignBrokerAction(
+  applicationId: string,
+  brokerId: string | null,
+) {
+  await requireAdmin();
+  await db
+    .update(applications)
+    .set({
+      brokerId: brokerId || null,
+      updatedAt: new Date(),
+    })
+    .where(eq(applications.id, applicationId));
+  revalidatePath(`/dashboard/applications/${applicationId}`);
+  revalidatePath("/dashboard");
+  return { ok: true };
+}
+
 export async function updateApplicationStatusAction(
   applicationId: string,
   status: ApplicationStatus,

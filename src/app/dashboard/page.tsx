@@ -1,8 +1,8 @@
-import { desc } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import { db } from "@/db";
-import { applications, documents } from "@/db/schema";
+import { applications, documents, users } from "@/db/schema";
 import { evaluateChecklist, inferEmploymentType } from "@/lib/checklist";
 import { APPLICATION_STATUS_LABELS } from "@/lib/config/documents";
 import { StatusFilter } from "@/components/dashboard/status-filter";
@@ -32,7 +32,7 @@ export default async function DashboardPage({
 
   const { status } = await searchParams;
 
-  const [appsRaw, docRows] = await Promise.all([
+  const [appsRaw, docRows, brokerRows] = await Promise.all([
     db
       .select({
         id: applications.id,
@@ -44,6 +44,7 @@ export default async function DashboardPage({
         driveFolderUrl: applications.driveFolderUrl,
         sentToSecretaryAt: applications.sentToSecretaryAt,
         isTest: applications.isTest,
+        brokerId: applications.brokerId,
       })
       .from(applications)
       .orderBy(desc(applications.updatedAt)),
@@ -54,13 +55,23 @@ export default async function DashboardPage({
         isValid: documents.isValid,
       })
       .from(documents),
+    db
+      .select({
+        id: users.id,
+        name: users.name,
+      })
+      .from(users),
   ]);
 
-  // Broker: solo pratiche reali (non i test admin). Admin: vede tutto.
+  const brokerNameById = new Map(brokerRows.map((b) => [b.id, b.name]));
+
+  // Filippo: ADMIN (senior) vede tutte; broker solo le proprie (niente test admin)
   const apps =
     session.role === "ADMIN"
       ? appsRaw
-      : appsRaw.filter((a) => !a.isTest);
+      : appsRaw.filter(
+          (a) => !a.isTest && a.brokerId === session.id,
+        );
 
   const docsByApp = new Map<string, typeof docRows>();
   for (const d of docRows) {
@@ -90,7 +101,9 @@ export default async function DashboardPage({
           Pratiche
         </h1>
         <p className="mt-2 max-w-2xl text-slate-600">
-          Panoramica pratiche mutuo e avanzamento documenti
+          {session.role === "ADMIN"
+            ? "Panoramica agenzia — tutte le pratiche, con broker titolare"
+            : "Le tue pratiche mutuo e avanzamento documenti"}
         </p>
       </div>
 
@@ -128,8 +141,9 @@ export default async function DashboardPage({
           <div className="rounded-xl border border-dashed border-slate-300 bg-white p-10 text-center">
             <p className="font-medium text-slate-900">Nessuna pratica ancora</p>
             <p className="mt-2 text-sm text-slate-500">
-              Quando arrivano documenti via email o upload, le pratiche
-              compariranno qui.
+              {session.role === "ADMIN"
+                ? "Quando arrivano documenti via email, assegna la pratica a un broker."
+                : "Quando l’admin ti assegna una pratica, compare qui."}
             </p>
           </div>
         ) : (
@@ -164,6 +178,13 @@ export default async function DashboardPage({
                 }
                 driveFolderUrl={app.driveFolderUrl}
                 isTest={app.isTest}
+                brokerLabel={
+                  session.role === "ADMIN"
+                    ? app.brokerId
+                      ? `Broker: ${brokerNameById.get(app.brokerId) ?? "—"}`
+                      : "Non assegnata"
+                    : undefined
+                }
               />
             );
           })

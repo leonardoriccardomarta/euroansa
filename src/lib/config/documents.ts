@@ -1,6 +1,18 @@
 import type { DocumentType, EmploymentType } from "@/db/schema";
 
-/** Default provvisori — da raffinare con Filippo in lib/config/documents.ts */
+/**
+ * Config documenti Euroansa.
+ *
+ * PENDING venerdì (Filippo):
+ * - lista obbligatoria/opzionale definitiva per profilo
+ * - template nomi file precisi (es. "NOME CLIENTE_bp 08.07.06", "NOME CLIENTE_ci ts pds", "NOME CLIENTE_cud_26")
+ *
+ * Confermato Filippo (01/10/2026):
+ * - Q1 ownership: senior (ADMIN) vede tutte + titolare; broker solo le proprie
+ * - Q3 validità: illeggibili, scaduti, errati, movimenti bancari sospetti, CIG/cessione quinto
+ * - Q5 Drive sottocartelle: doc clienti / banca / immobile / euroansa
+ * - Q6 oggetto mail: [EUROANSA-MUTUO]
+ */
 
 export const DOCUMENT_TYPE_LABELS: Record<DocumentType, string> = {
   CARTA_IDENTITA: "Carta d'identità",
@@ -17,6 +29,7 @@ export const DOCUMENT_TYPE_LABELS: Record<DocumentType, string> = {
   SCONOSCIUTO: "Documento non riconosciuto",
 };
 
+/** Provvisorio — Filippo fornisce lista completa venerdì */
 export const REQUIRED_DOCS_BY_EMPLOYMENT: Record<EmploymentType, DocumentType[]> = {
   DIPENDENTE_INDETERMINATO: [
     "CARTA_IDENTITA",
@@ -44,9 +57,26 @@ export const REQUIRED_DOCS_BY_EMPLOYMENT: Record<EmploymentType, DocumentType[]>
 
 export const OPTIONAL_DOCS: DocumentType[] = ["ATTO_IMMOBILE", "VISURA_CAMERALE"];
 
-/** Template cartella Drive — flat, senza sottocartelle in v1 */
+/** Cartella root cliente: "{Nome} - Mutuo ({id8})" */
 export const DRIVE_FOLDER_TEMPLATE = "{CognomeNome} - Mutuo";
 
+/** Sottocartelle Drive (Filippo) — con numerazione */
+export const DRIVE_SUBFOLDERS = [
+  "01_doc clienti",
+  "02_banca",
+  "03_immobile",
+  "04_euroansa",
+] as const;
+
+export type DriveSubfolder = (typeof DRIVE_SUBFOLDERS)[number];
+
+export function driveSubfolderForDocument(type: DocumentType): DriveSubfolder {
+  if (type === "ATTO_IMMOBILE") return "03_immobile";
+  // Estratti conto / lista movimenti (quando tipizzati) → 02_banca
+  return "01_doc clienti";
+}
+
+/** Provvisorio — template finali venerdì da Filippo */
 export const FILE_NAME_PREFIX: Record<DocumentType, string> = {
   CARTA_IDENTITA: "01_DocIdentita",
   TESSERA_SANITARIA: "02_TesseraSanitaria",

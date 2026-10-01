@@ -503,6 +503,7 @@ export async function processIncomingFiles(
         fileName: analysis.standardizedFileName,
         mimeType: file.mimeType,
         buffer: file.buffer,
+        documentType: analysis.documentType,
       });
       driveFileId = uploaded.driveFileId;
       driveFileUrl = uploaded.driveFileUrl;

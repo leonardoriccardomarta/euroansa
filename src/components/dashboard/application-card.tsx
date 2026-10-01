@@ -16,6 +16,7 @@ export function ApplicationCard({
   sentLabel,
   driveFolderUrl,
   isTest,
+  brokerLabel,
 }: {
   id: string;
   clientName: string;
@@ -28,6 +29,7 @@ export function ApplicationCard({
   sentLabel: string;
   driveFolderUrl: string | null;
   isTest?: boolean;
+  brokerLabel?: string;
 }) {
   return (
     <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-primary-200 hover:shadow-md active:scale-[0.99] sm:p-5">
@@ -52,6 +54,9 @@ export function ApplicationCard({
           {clientEmail}
           {clientFiscalCode ? ` · ${clientFiscalCode}` : ""}
         </p>
+        {brokerLabel ? (
+          <p className="mt-1 text-xs font-medium text-slate-500">{brokerLabel}</p>
+        ) : null}
         <div className="mt-3 max-w-xs">
           <div className="mb-1 flex justify-between text-xs text-slate-500">
             <span>Checklist</span>

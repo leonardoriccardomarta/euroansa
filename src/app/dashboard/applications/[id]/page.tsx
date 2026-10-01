@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 import { getSession } from "@/lib/auth";
 import { db } from "@/db";
-import { applications, documents, systemSettings } from "@/db/schema";
+import { applications, documents, systemSettings, users } from "@/db/schema";
 import {
   evaluateChecklist,
   inferEmploymentType,
@@ -21,6 +21,7 @@ import {
 import { refreshApplicationState } from "@/lib/pipeline";
 import { Badge } from "@/components/ui/badge";
 import { ApplicationActions } from "@/components/dashboard/application-actions";
+import { BrokerAssign } from "@/components/dashboard/broker-assign";
 import { DocumentUpload } from "@/components/dashboard/document-upload";
 
 export const dynamic = "force-dynamic";
@@ -46,6 +47,13 @@ export default async function ApplicationDetailPage({
   if (app.isTest && session.role !== "ADMIN") {
     redirect("/dashboard");
   }
+  // Broker: solo pratiche assegnate a lui
+  if (
+    session.role !== "ADMIN" &&
+    app.brokerId !== session.id
+  ) {
+    redirect("/dashboard");
+  }
 
   await refreshApplicationState(id);
 
@@ -68,6 +76,22 @@ export default async function ApplicationDetailPage({
     .from(systemSettings)
     .where(eq(systemSettings.id, "global"))
     .limit(1);
+
+  const brokerRows =
+    session.role === "ADMIN"
+      ? await db
+          .select({
+            id: users.id,
+            name: users.name,
+            email: users.email,
+            role: users.role,
+          })
+          .from(users)
+      : [];
+
+  const brokerName = current.brokerId
+    ? brokerRows.find((b) => b.id === current.brokerId)?.name
+    : null;
 
   const employmentType = inferEmploymentType(docs);
   const checklist = evaluateChecklist(employmentType, docs);
@@ -113,9 +137,33 @@ export default async function ApplicationDetailPage({
             >
               {EMPLOYMENT_TYPE_LABELS[employmentType]}
             </Badge>
+            {session.role === "ADMIN" ? (
+              <Badge
+                variant="outline"
+                className="border-slate-200 bg-white text-slate-600"
+              >
+                {brokerName ? `Broker: ${brokerName}` : "Non assegnata"}
+              </Badge>
+            ) : null}
           </div>
         </div>
-        <ApplicationActions applicationId={current.id} status={current.status} />
+        <div className="flex w-full flex-col gap-3 sm:w-auto sm:items-end">
+          <ApplicationActions
+            applicationId={current.id}
+            status={current.status}
+          />
+          {session.role === "ADMIN" ? (
+            <BrokerAssign
+              applicationId={current.id}
+              brokerId={current.brokerId}
+              brokers={brokerRows.map((b) => ({
+                id: b.id,
+                name: b.name,
+                email: b.email,
+              }))}
+            />
+          ) : null}
+        </div>
       </div>
 
       <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">

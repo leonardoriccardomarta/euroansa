@@ -124,15 +124,26 @@ export async function analyzeDocument(params: {
   const ai = new GoogleGenAI({ apiKey });
   const base64 = params.buffer.toString("base64");
 
-  const prompt = `Sei un esperto di istruttoria mutui in Italia (Euroansa).
+  const prompt = `Sei un esperto di istruttoria mutui in Italia (Euroansa / mediatore creditizio).
 Analizza questo documento (PDF o immagine) e restituisci JSON strutturato.
 
-Regole:
-- documentType: identifica il tipo tra quelli ammessi. Per buste paga usa BUSTA_PAGA_1/2/3 in base al mese (più recente = 1) se non chiaro usa BUSTA_PAGA_1.
-- isValid: true SOLO se leggibile, non tagliato, non sfuocato; per carta d'identità non scaduta; dati anagrafici presenti quando attesi.
-- validationIssues: elenca problemi in italiano (es. "Carta d'identità scaduta il 10/2025", "Busta paga sfuocata").
-- Estrai: nome, cognome, codice fiscale, data scadenza (CI), mese riferimento (buste), stipendio netto, trattenute finanziamenti/cessioni, reddito lordo annuale (CUD/Unico).
-- Numeri in formato numerico (non stringhe con €).
+documentType: identifica il tipo tra quelli ammessi.
+- Per buste paga usa BUSTA_PAGA_1/2/3 in base al mese (più recente = 1); se non chiaro usa BUSTA_PAGA_1.
+- Estratti conto / lista movimenti bancari (se presenti) → SCONOSCIUTO per ora, ma segnala comunque i problemi in validationIssues.
+
+isValid = true SOLO se il documento è utilizzabile in istruttoria. Imposta false e popola validationIssues se:
+1) Foto/scansione non leggibile, sfuocata, tagliata, troppo scura o con riflessi
+2) Documento scaduto (es. carta d'identità / permesso oltre data scadenza)
+3) Documento errato rispetto a quello atteso / tipo non coerente col contenuto
+4) Lista movimenti / estratto conto: senza saldo, date sbagliate o incoerenti, periodo incompleto
+5) Estratto conto con movimenti sospetti: grossi prelievi, grossi versamenti, bonifici ad amici/terzi non giustificati
+6) Busta paga con trattenute critiche da segnalare: cassa integrazione (CIG), cessione del quinto, pignoramenti, altre trattenute finanziamenti rilevanti (indica anche l'importo in loanDeductions se possibile)
+7) Dati anagrafici assenti quando attesi (nome/cognome/CF)
+
+Nota: trattenute/cessione del quinto → documento può restare "valido" per tipo ma DEVI elencare il problema in validationIssues e valorizzare loanDeductions. isValid=false se il documento è illeggibile o chiaramente inutilizzabile.
+
+Estrai: nome, cognome, codice fiscale, data scadenza (CI), mese riferimento (buste), stipendio netto, trattenute finanziamenti/cessioni/CIG, reddito lordo annuale (CUD/Unico).
+Numeri in formato numerico (non stringhe con €). validationIssues in italiano, frasi chiare per il broker.
 File originale: ${params.originalFileName}`;
 
   const mimeType =
