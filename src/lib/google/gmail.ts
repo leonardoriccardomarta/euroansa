@@ -41,10 +41,16 @@ export async function fetchPendingMortgageEmails(
 ): Promise<GmailAttachment[]> {
   const gmail = getGmailClient();
 
-  // Email non ancora etichettate come elaborate, con allegati
+  // Oggetto preciso (conferma con Filippo). Default: [EUROANSA-MUTUO]
+  // In Gmail cerchiamo il tag senza parentesi per match affidabile.
+  const subjectTag = (
+    process.env.GMAIL_SUBJECT_TAG ?? "[EUROANSA-MUTUO]"
+  ).trim();
+  const searchToken = subjectTag.replace(/[\[\]]/g, "").trim() || "EUROANSA-MUTUO";
+
   const list = await gmail.users.messages.list({
     userId: "me",
-    q: "has:attachment -label:MUTUO-ELABORATA (subject:[MUTUO] OR subject:mutuo OR subject:documenti)",
+    q: `has:attachment -label:MUTUO-ELABORATA subject:${searchToken}`,
     maxResults: maxMessages,
   });
 

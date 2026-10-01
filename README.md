@@ -25,7 +25,8 @@ Crea un database su [console.neon.tech](https://console.neon.tech) e copia la co
 | `GEMINI_API_KEY` | [Google AI Studio](https://aistudio.google.com/) |
 | `GOOGLE_CLIENT_ID` | Google Cloud OAuth |
 | `GOOGLE_CLIENT_SECRET` | Google Cloud OAuth |
-| `GOOGLE_REFRESH_TOKEN` | OAuth offline (Gmail+Drive) |
+| `GOOGLE_REFRESH_TOKEN` | OAuth offline (Gmail+Drive) sull'account di Filippo |
+| `GMAIL_SUBJECT_TAG` | Tag oggetto mail clienti (default `[EUROANSA-MUTUO]`) |
 | `CRON_SECRET` | Stringa random lunga |
 | `AUTH_SECRET` | Stringa random ≥32 caratteri |
 | `ADMIN_EMAIL` | Email login admin |
@@ -58,6 +59,17 @@ Hobby Vercel non permette cron più frequenti di 1×/giorno. Per controllare le 
 Se con tanti documenti il job va in timeout (~30s su cron-job.org), si abbassa il carico per chiamata (meno email/allegati per run).
 
 Backup: su Vercel resta anche un cron giornaliero alle 06:00 UTC (`0 6 * * *`).
+
+### Oggetto email clienti (da confermare con Filippo)
+
+Il sistema elabora **solo** le email con allegati il cui oggetto contiene il tag:
+
+**`[EUROANSA-MUTUO]`**
+
+Esempio oggetto cliente:  
+`[EUROANSA-MUTUO] Documenti Rossi Mario`
+
+Se Filippo vuole un altro testo, basta cambiare su Vercel la env `GMAIL_SUBJECT_TAG` (es. `[MUTUO FILIPPO]`) e ridistribuire / riprovare.
 
 ## Google OAuth (Gmail + Drive)
 
