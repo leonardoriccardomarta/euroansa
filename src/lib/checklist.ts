@@ -20,11 +20,18 @@ export function inferEmploymentType(
 ): EmploymentType {
   const types = new Set(docs.map((d) => d.documentType));
 
-  if (types.has("CEDOLINO_PENSIONE")) return "PENSIONATO";
+  if (types.has("CEDOLINO_PENSIONE") || types.has("MODELLO_OBIS_M")) {
+    return "PENSIONATO";
+  }
   if (
     types.has("MODELLO_UNICO") ||
+    types.has("MODELLO_UNICO_1") ||
+    types.has("MODELLO_UNICO_2") ||
     types.has("F24") ||
-    types.has("VISURA_CAMERALE")
+    types.has("VISURA_CAMERALE") ||
+    types.has("CERTIFICATO_PIVA") ||
+    types.has("BILANCINO") ||
+    types.has("FATTURE_EMESSE")
   ) {
     return "PARTITA_IVA";
   }

@@ -13,15 +13,43 @@ export type AnalyzeDocumentResult = {
 const DOCUMENT_TYPES: DocumentType[] = [
   "CARTA_IDENTITA",
   "TESSERA_SANITARIA",
+  "PERMESSO_SOGGIORNO",
+  "PASSAPORTO",
+  "CERTIFICATO_RESIDENZA",
+  "STATO_FAMIGLIA",
+  "CERTIFICATO_STATO_LIBERO",
+  "ATTO_MATRIMONIO",
+  "CERTIFICATO_VEDOVANZA",
+  "OMOLOGA_SEPARAZIONE",
+  "SENTENZA_DIVORZIO",
   "BUSTA_PAGA_1",
   "BUSTA_PAGA_2",
   "BUSTA_PAGA_3",
+  "MODELLO_CUD",
+  "MODELLO_730",
   "CUD_730",
-  "ATTO_IMMOBILE",
-  "CEDOLINO_PENSIONE",
+  "CONTRATTO_LAVORO",
+  "ESTRATTO_CONTRIBUTIVO_INPS",
+  "ISEE",
   "MODELLO_UNICO",
-  "F24",
+  "MODELLO_UNICO_1",
+  "MODELLO_UNICO_2",
   "VISURA_CAMERALE",
+  "CERTIFICATO_PIVA",
+  "BILANCINO",
+  "FATTURE_EMESSE",
+  "F24",
+  "CEDOLINO_PENSIONE",
+  "MODELLO_OBIS_M",
+  "ESTRATTO_CONTO",
+  "LISTA_MOVIMENTI_3_MESI",
+  "CONTRATTO_AFFITTO",
+  "PRELIMINARE_COMPRAVENDITA",
+  "ATTO_IMMOBILE",
+  "SCHEDE_CATASTALI",
+  "POLIZZE_RISPARMIO",
+  "CONTRATTI_FINANZIAMENTO",
+  "QUIETANZA_RATA_MUTUO",
   "SCONOSCIUTO",
 ];
 
@@ -127,9 +155,13 @@ export async function analyzeDocument(params: {
   const prompt = `Sei un esperto di istruttoria mutui in Italia (Euroansa / mediatore creditizio).
 Analizza questo documento (PDF o immagine) e restituisci JSON strutturato.
 
-documentType: identifica il tipo tra quelli ammessi.
-- Per buste paga usa BUSTA_PAGA_1/2/3 in base al mese (più recente = 1); se non chiaro usa BUSTA_PAGA_1.
-- Estratti conto / lista movimenti bancari (se presenti) → SCONOSCIUTO per ora, ma segnala comunque i problemi in validationIssues.
+documentType: identifica il tipo tra quelli ammessi (lista Filippo).
+- Buste paga: BUSTA_PAGA_1/2/3 (più recente = 1); se non chiaro BUSTA_PAGA_1.
+- CUD → MODELLO_CUD; 730 → MODELLO_730 (non usare CUD_730 se puoi distinguere).
+- Modello Unico: MODELLO_UNICO_1 (più recente) o MODELLO_UNICO_2; se un solo file senza anno → MODELLO_UNICO_1.
+- Estratto conto ufficiale → ESTRATTO_CONTO; lista movimenti 3 mesi → LISTA_MOVIMENTI_3_MESI.
+- OBIS M pensionati → MODELLO_OBIS_M.
+- Atto provenienza immobile → ATTO_IMMOBILE; preliminare/proposta → PRELIMINARE_COMPRAVENDITA.
 
 isValid = true SOLO se il documento è utilizzabile in istruttoria. Imposta false e popola validationIssues se:
 1) Foto/scansione non leggibile, sfuocata, tagliata, troppo scura o con riflessi

@@ -31,17 +31,51 @@ export const applicationStatusEnum = pgEnum("application_status", [
 ]);
 
 export const documentTypeEnum = pgEnum("document_type", [
+  // Anagrafica
   "CARTA_IDENTITA",
   "TESSERA_SANITARIA",
+  "PERMESSO_SOGGIORNO",
+  "PASSAPORTO",
+  "CERTIFICATO_RESIDENZA",
+  "STATO_FAMIGLIA",
+  "CERTIFICATO_STATO_LIBERO",
+  "ATTO_MATRIMONIO",
+  "CERTIFICATO_VEDOVANZA",
+  "OMOLOGA_SEPARAZIONE",
+  "SENTENZA_DIVORZIO",
+  // Reddito dipendenti
   "BUSTA_PAGA_1",
   "BUSTA_PAGA_2",
   "BUSTA_PAGA_3",
-  "CUD_730",
-  "ATTO_IMMOBILE",
-  "CEDOLINO_PENSIONE",
+  "MODELLO_CUD",
+  "MODELLO_730",
+  "CUD_730", // legacy (CUD o 730)
+  "CONTRATTO_LAVORO",
+  "ESTRATTO_CONTRIBUTIVO_INPS",
+  "ISEE",
+  // Reddito autonomi
   "MODELLO_UNICO",
-  "F24",
+  "MODELLO_UNICO_1",
+  "MODELLO_UNICO_2",
   "VISURA_CAMERALE",
+  "CERTIFICATO_PIVA",
+  "BILANCINO",
+  "FATTURE_EMESSE",
+  "F24",
+  // Pensionati
+  "CEDOLINO_PENSIONE",
+  "MODELLO_OBIS_M",
+  // Banca
+  "ESTRATTO_CONTO",
+  "LISTA_MOVIMENTI_3_MESI",
+  // Ulteriore / immobile
+  "CONTRATTO_AFFITTO",
+  "PRELIMINARE_COMPRAVENDITA",
+  "ATTO_IMMOBILE",
+  "SCHEDE_CATASTALI",
+  "POLIZZE_RISPARMIO",
+  "CONTRATTI_FINANZIAMENTO",
+  "QUIETANZA_RATA_MUTUO",
   "SCONOSCIUTO",
 ]);
 

@@ -27,7 +27,12 @@ export function computePreScoring(
   const cud = docs.find(
     (d) =>
       d.isValid &&
-      (d.documentType === "CUD_730" || d.documentType === "MODELLO_UNICO") &&
+      (d.documentType === "CUD_730" ||
+        d.documentType === "MODELLO_CUD" ||
+        d.documentType === "MODELLO_730" ||
+        d.documentType === "MODELLO_UNICO" ||
+        d.documentType === "MODELLO_UNICO_1" ||
+        d.documentType === "MODELLO_UNICO_2") &&
       typeof d.extractedData?.grossIncomeAnnual === "number",
   );
 
