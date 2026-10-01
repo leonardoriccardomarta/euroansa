@@ -39,7 +39,6 @@ async function findOrCreateApplication(params: {
         and(
           eq(applications.clientEmail, params.email.toLowerCase()),
           or(
-            eq(applications.status, "IN_ATTESA_DOCUMENTI"),
             eq(applications.status, "DOCUMENTI_INCOMPLETI"),
             eq(applications.status, "COMPLETA_DA_INOLTRARE"),
           ),
@@ -55,7 +54,7 @@ async function findOrCreateApplication(params: {
       clientName: params.clientName,
       clientEmail: (params.email ?? "sconosciuto@email.local").toLowerCase(),
       clientFiscalCode: params.fiscalCode?.toUpperCase() ?? null,
-      status: "IN_ATTESA_DOCUMENTI",
+      status: "DOCUMENTI_INCOMPLETI",
       isTest: params.isTest ?? false,
     })
     .returning();
@@ -63,7 +62,7 @@ async function findOrCreateApplication(params: {
   return created;
 }
 
-/** Crea pratica "In attesa documenti" da mail con oggetto giusto ma senza allegati. */
+/** Crea pratica da mail con oggetto giusto (anche senza allegati). */
 export async function ensureWaitingApplication(params: {
   email: string;
   clientNameHint?: string;

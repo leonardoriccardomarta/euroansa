@@ -48,11 +48,7 @@ export function deriveApplicationStatus(
   employmentType: EmploymentType,
   docs: Pick<Document, "documentType" | "isValid">[],
   currentStatus: string,
-):
-  | "IN_ATTESA_DOCUMENTI"
-  | "DOCUMENTI_INCOMPLETI"
-  | "COMPLETA_DA_INOLTRARE"
-  | null {
+): "DOCUMENTI_INCOMPLETI" | "COMPLETA_DA_INOLTRARE" | null {
   // Non sovrascrivere stati post-segreteria / banca
   if (
     [
@@ -66,10 +62,6 @@ export function deriveApplicationStatus(
   }
 
   const checklist = evaluateChecklist(employmentType, docs);
-  // Completa solo se tutti i doc richiesti sono presenti E validi
   if (checklist.isComplete) return "COMPLETA_DA_INOLTRARE";
-  // Nessun documento caricato (es. mail con oggetto giusto ma senza allegati)
-  if (docs.length === 0) return "IN_ATTESA_DOCUMENTI";
-  // Mancanti, non leggibili, incoerenti, ecc. → stessa categoria
   return "DOCUMENTI_INCOMPLETI";
 }

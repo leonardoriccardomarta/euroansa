@@ -72,10 +72,8 @@ export default async function DashboardPage({
   const filtered = status ? apps.filter((a) => a.status === status) : apps;
 
   const total = apps.length;
-  const waiting = apps.filter(
-    (a) =>
-      a.status === "IN_ATTESA_DOCUMENTI" ||
-      a.status === "DOCUMENTI_INCOMPLETI",
+  const sentToSecretary = apps.filter(
+    (a) => a.status === "INVIATA_A_SEGRETERIA",
   ).length;
   const sent = apps.filter(
     (a) =>
@@ -105,9 +103,11 @@ export default async function DashboardPage({
         </div>
         <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
           <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-            In attesa documenti
+            Inviate a segreteria
           </p>
-          <p className="mt-2 text-3xl font-bold text-amber-600">{waiting}</p>
+          <p className="mt-2 text-3xl font-bold text-emerald-600">
+            {sentToSecretary}
+          </p>
         </div>
         <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
           <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">

@@ -23,7 +23,6 @@ async function alreadyProcessedFileNames(
       and(
         eq(applications.clientEmail, fromEmail.toLowerCase()),
         or(
-          eq(applications.status, "IN_ATTESA_DOCUMENTI"),
           eq(applications.status, "DOCUMENTI_INCOMPLETI"),
           eq(applications.status, "COMPLETA_DA_INOLTRARE"),
         ),
@@ -62,7 +61,7 @@ export async function GET(req: NextRequest) {
         adminEmail && email.fromEmail.toLowerCase() === adminEmail,
       );
 
-      // Mail corretta senza allegati utili → pratica "In attesa documenti"
+      // Mail corretta senza allegati → pratica documenti incompleti (0/n)
       if (email.attachments.length === 0) {
         const app = await ensureWaitingApplication({
           email: email.fromEmail,
@@ -80,7 +79,7 @@ export async function GET(req: NextRequest) {
         }
         results.push({
           messageId: email.messageId,
-          waitingOnly: true,
+          noAttachments: true,
           processed: 0,
           applicationIds: [app.id],
           errors: [] as string[],

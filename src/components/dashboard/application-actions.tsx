@@ -21,7 +21,6 @@ const EMPLOYMENT_OPTIONS: { value: EmploymentType; label: string }[] = [
 ];
 
 const STATUS_OPTIONS: { value: ApplicationStatus; label: string }[] = [
-  { value: "IN_ATTESA_DOCUMENTI", label: "In attesa documenti" },
   { value: "DOCUMENTI_INCOMPLETI", label: "Documenti incompleti" },
   { value: "COMPLETA_DA_INOLTRARE", label: "Completa da inoltrare" },
   { value: "INVIATA_A_SEGRETERIA", label: "Inviata a segreteria" },

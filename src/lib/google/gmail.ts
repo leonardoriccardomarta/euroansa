@@ -49,7 +49,7 @@ function collectParts(part: GmailPart, acc: GmailPart[] = []): GmailPart[] {
 
 /**
  * Trova email con oggetto corretto (tag EUROANSA-MUTUO).
- * Include anche mail SENZA allegati → pratica "In attesa documenti".
+ * Include anche mail SENZA allegati → pratica "Documenti incompleti".
  */
 export async function fetchPendingMortgageEmails(
   maxMessages = 5,

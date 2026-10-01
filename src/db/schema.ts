@@ -83,7 +83,7 @@ export const applications = pgTable("applications", {
     .default("DIPENDENTE_INDETERMINATO"),
   status: applicationStatusEnum("status")
     .notNull()
-    .default("IN_ATTESA_DOCUMENTI"),
+    .default("DOCUMENTI_INCOMPLETI"),
   driveFolderId: text("drive_folder_id"),
   driveFolderUrl: text("drive_folder_url"),
   preScoringData: jsonb("pre_scoring_data").$type<PreScoringData>(),

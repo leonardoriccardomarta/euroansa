@@ -65,7 +65,6 @@ export const FILE_NAME_PREFIX: Record<DocumentType, string> = {
 export const MAX_INSTALLMENT_RATIO = 0.35;
 
 export const APPLICATION_STATUS_LABELS: Record<string, string> = {
-  IN_ATTESA_DOCUMENTI: "In attesa documenti",
   DOCUMENTI_INCOMPLETI: "Documenti incompleti",
   COMPLETA_DA_INOLTRARE: "Completa da inoltrare",
   INVIATA_A_SEGRETERIA: "Inviata a segreteria",

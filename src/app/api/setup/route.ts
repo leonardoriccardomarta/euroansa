@@ -24,7 +24,7 @@ const SETUP_STATEMENTS = [
     client_email varchar(255) NOT NULL,
     client_fiscal_code varchar(16),
     employment_type employment_type DEFAULT 'DIPENDENTE_INDETERMINATO' NOT NULL,
-    status application_status DEFAULT 'IN_ATTESA_DOCUMENTI' NOT NULL,
+    status application_status DEFAULT 'DOCUMENTI_INCOMPLETI' NOT NULL,
     drive_folder_id text,
     drive_folder_url text,
     pre_scoring_data jsonb,
@@ -53,8 +53,9 @@ const SETUP_STATEMENTS = [
     auto_send_to_secretary boolean DEFAULT true NOT NULL
   )`,
   `ALTER TABLE applications ADD COLUMN IF NOT EXISTS is_test boolean DEFAULT false NOT NULL`,
-  // Anomalia deprecata: stessa cosa di documenti incompleti
-  `UPDATE applications SET status = 'DOCUMENTI_INCOMPLETI' WHERE status = 'ANOMALIA'`,
+  // Stati deprecati → documenti incompleti
+  `UPDATE applications SET status = 'DOCUMENTI_INCOMPLETI' WHERE status IN ('ANOMALIA', 'IN_ATTESA_DOCUMENTI')`,
+  `ALTER TABLE applications ALTER COLUMN status SET DEFAULT 'DOCUMENTI_INCOMPLETI'`,
 ];
 
 /**
