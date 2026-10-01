@@ -11,7 +11,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Euroansa — Pratiche Mutuo",
+  title: "Euroansa Pratiche Mutuo",
   description: "Gestione automatica pratiche mutuo Euroansa",
 };
 

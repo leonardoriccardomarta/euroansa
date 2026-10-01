@@ -102,7 +102,7 @@ export default async function DashboardPage({
         </h1>
         <p className="mt-2 max-w-2xl text-slate-600">
           {session.role === "ADMIN"
-            ? "Panoramica agenzia — tutte le pratiche, con broker titolare"
+            ? "Panoramica agenzia: tutte le pratiche, con broker titolare"
             : "Le tue pratiche mutuo e avanzamento documenti"}
         </p>
       </div>
