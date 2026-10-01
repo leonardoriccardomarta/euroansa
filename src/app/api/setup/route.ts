@@ -89,7 +89,10 @@ export async function POST(req: NextRequest) {
     await sql`
       INSERT INTO users (email, password_hash, name, role)
       VALUES (${email}, ${passwordHash}, ${"Admin"}, ${"ADMIN"}::user_role)
-      ON CONFLICT (email) DO NOTHING
+      ON CONFLICT (email) DO UPDATE SET
+        password_hash = EXCLUDED.password_hash,
+        role = ${"ADMIN"}::user_role,
+        name = COALESCE(users.name, EXCLUDED.name)
     `;
 
     await sql`
