@@ -38,8 +38,11 @@ export async function GET(req: NextRequest) {
         adminEmail && first.fromEmail.toLowerCase() === adminEmail,
       );
 
+      // Free tier Gemini ~5 req/min: max 3 allegati per email per run
+      const batch = group.slice(0, 3);
+
       const processed = await processIncomingFiles(
-        group.map((g) => ({
+        batch.map((g) => ({
           buffer: g.buffer,
           mimeType: g.mimeType,
           originalFileName: g.filename,
@@ -49,8 +52,12 @@ export async function GET(req: NextRequest) {
         { isTest },
       );
 
-      // Marca elaborata solo se tutti gli allegati sono ok (altrimenti force/cron riprovano)
-      if (processed.processed > 0 && processed.errors.length === 0) {
+      const fullyDone =
+        processed.errors.length === 0 &&
+        processed.processed === batch.length &&
+        batch.length === group.length;
+
+      if (fullyDone) {
         try {
           await markMessageProcessed(messageId);
         } catch (labelError) {
@@ -58,7 +65,12 @@ export async function GET(req: NextRequest) {
         }
       }
 
-      results.push({ messageId, ...processed });
+      results.push({
+        messageId,
+        batchSize: batch.length,
+        totalAttachments: group.length,
+        ...processed,
+      });
     }
 
     return NextResponse.json({

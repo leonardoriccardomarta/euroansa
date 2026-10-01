@@ -117,7 +117,7 @@ File originale: ${params.originalFileName}`;
       : params.mimeType;
 
   let lastError: unknown;
-  for (let attempt = 0; attempt < 3; attempt++) {
+  for (let attempt = 0; attempt < 2; attempt++) {
     try {
       const response = await ai.models.generateContent({
         model,
@@ -178,12 +178,12 @@ File originale: ${params.originalFileName}`;
         msg.includes("UNAVAILABLE") ||
         msg.includes("high demand") ||
         msg.includes("quota");
-      if (!retryable || attempt === 2) break;
+        if (!retryable || attempt === 1) break;
 
       const delayMatch = msg.match(/retry in ([\d.]+)s/i);
       const delayMs = delayMatch
-        ? Math.min(Math.ceil(Number(delayMatch[1]) * 1000) + 1000, 55000)
-        : 12000 * (attempt + 1);
+        ? Math.min(Math.ceil(Number(delayMatch[1]) * 1000) + 500, 12000)
+        : 4000 * (attempt + 1);
       await new Promise((r) => setTimeout(r, delayMs));
     }
   }
