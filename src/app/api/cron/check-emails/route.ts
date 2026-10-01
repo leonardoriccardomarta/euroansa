@@ -225,3 +225,6 @@ export async function GET(req: NextRequest) {
     );
   }
 }
+
+/** cron-job.org / curl possono usare GET o POST */
+export const POST = GET;
