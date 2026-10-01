@@ -25,7 +25,6 @@ const STATUS_OPTIONS: { value: ApplicationStatus; label: string }[] = [
   { value: "DOCUMENTI_INCOMPLETI", label: "Documenti incompleti" },
   { value: "COMPLETA_DA_INOLTRARE", label: "Completa da inoltrare" },
   { value: "INVIATA_A_SEGRETERIA", label: "Inviata a segreteria" },
-  { value: "ANOMALIA", label: "Anomalia" },
   ...BANK_MANUAL_STATUSES.map((s) => ({
     value: s as ApplicationStatus,
     label:

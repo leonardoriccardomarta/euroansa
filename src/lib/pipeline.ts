@@ -42,7 +42,6 @@ async function findOrCreateApplication(params: {
             eq(applications.status, "IN_ATTESA_DOCUMENTI"),
             eq(applications.status, "DOCUMENTI_INCOMPLETI"),
             eq(applications.status, "COMPLETA_DA_INOLTRARE"),
-            eq(applications.status, "ANOMALIA"),
           ),
         ),
       )
@@ -62,6 +61,19 @@ async function findOrCreateApplication(params: {
     .returning();
 
   return created;
+}
+
+/** Crea pratica "In attesa documenti" da mail con oggetto giusto ma senza allegati. */
+export async function ensureWaitingApplication(params: {
+  email: string;
+  clientNameHint?: string;
+  isTest?: boolean;
+}) {
+  return findOrCreateApplication({
+    email: params.email,
+    clientName: params.clientNameHint || params.email.split("@")[0] || "Cliente",
+    isTest: params.isTest,
+  });
 }
 
 export async function processIncomingFiles(
@@ -260,8 +272,9 @@ export async function refreshApplicationState(applicationId: string) {
     app.status,
   );
 
+  // Coerenza anagrafica fallita: resta "documenti incompleti" (niente stato Anomalia)
   if (coherenceIssues.length && nextStatus === "COMPLETA_DA_INOLTRARE") {
-    nextStatus = "ANOMALIA";
+    nextStatus = "DOCUMENTI_INCOMPLETI";
   }
 
   await db

@@ -69,7 +69,6 @@ export const APPLICATION_STATUS_LABELS: Record<string, string> = {
   DOCUMENTI_INCOMPLETI: "Documenti incompleti",
   COMPLETA_DA_INOLTRARE: "Completa da inoltrare",
   INVIATA_A_SEGRETERIA: "Inviata a segreteria",
-  ANOMALIA: "Anomalia",
   INVIATA_IN_BANCA: "Inviata in banca",
   PERITO_NOMINATO: "Perito nominato",
   DELIBERATA: "Deliberata",

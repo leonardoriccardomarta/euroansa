@@ -53,6 +53,8 @@ const SETUP_STATEMENTS = [
     auto_send_to_secretary boolean DEFAULT true NOT NULL
   )`,
   `ALTER TABLE applications ADD COLUMN IF NOT EXISTS is_test boolean DEFAULT false NOT NULL`,
+  // Anomalia deprecata: stessa cosa di documenti incompleti
+  `UPDATE applications SET status = 'DOCUMENTI_INCOMPLETI' WHERE status = 'ANOMALIA'`,
 ];
 
 /**

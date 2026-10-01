@@ -4,13 +4,18 @@ import {
   fetchPendingMortgageEmails,
   markMessageProcessed,
 } from "@/lib/google/gmail";
-import { processIncomingFiles } from "@/lib/pipeline";
+import {
+  ensureWaitingApplication,
+  processIncomingFiles,
+} from "@/lib/pipeline";
 import { db } from "@/db";
 import { applications, documents } from "@/db/schema";
 
 export const maxDuration = 60;
 
-async function alreadyProcessedFileNames(fromEmail: string): Promise<Set<string>> {
+async function alreadyProcessedFileNames(
+  fromEmail: string,
+): Promise<Set<string>> {
   const openApps = await db
     .select({ id: applications.id })
     .from(applications)
@@ -21,7 +26,6 @@ async function alreadyProcessedFileNames(fromEmail: string): Promise<Set<string>
           eq(applications.status, "IN_ATTESA_DOCUMENTI"),
           eq(applications.status, "DOCUMENTI_INCOMPLETI"),
           eq(applications.status, "COMPLETA_DA_INOLTRARE"),
-          eq(applications.status, "ANOMALIA"),
         ),
       ),
     );
@@ -31,9 +35,7 @@ async function alreadyProcessedFileNames(fromEmail: string): Promise<Set<string>
   const rows = await db
     .select({ rawFileName: documents.rawFileName })
     .from(documents)
-    .where(
-      or(...openApps.map((a) => eq(documents.applicationId, a.id))),
-    );
+    .where(or(...openApps.map((a) => eq(documents.applicationId, a.id))));
 
   return new Set(rows.map((r) => r.rawFileName));
 }
@@ -51,40 +53,60 @@ export async function GET(req: NextRequest) {
       req.nextUrl.searchParams.get("force") === "1" ||
       req.nextUrl.searchParams.get("force") === "true";
 
-    const attachments = await fetchPendingMortgageEmails(5, force);
-
-    const byMessage = new Map<string, typeof attachments>();
-    for (const att of attachments) {
-      const list = byMessage.get(att.messageId) ?? [];
-      list.push(att);
-      byMessage.set(att.messageId, list);
-    }
-
+    const emails = await fetchPendingMortgageEmails(5, force);
     const results = [];
-    for (const [messageId, group] of byMessage) {
-      const first = group[0];
+
+    for (const email of emails) {
       const adminEmail = process.env.ADMIN_EMAIL?.trim().toLowerCase();
       const isTest = Boolean(
-        adminEmail && first.fromEmail.toLowerCase() === adminEmail,
+        adminEmail && email.fromEmail.toLowerCase() === adminEmail,
       );
 
-      const done = await alreadyProcessedFileNames(first.fromEmail);
-      const pending = group.filter((g) => !done.has(g.filename));
+      // Mail corretta senza allegati utili → pratica "In attesa documenti"
+      if (email.attachments.length === 0) {
+        const app = await ensureWaitingApplication({
+          email: email.fromEmail,
+          clientNameHint: email.fromEmail.split("@")[0],
+          isTest,
+        });
+        try {
+          await markMessageProcessed(email.messageId);
+        } catch (labelError) {
+          console.error(
+            "markMessageProcessed failed",
+            email.messageId,
+            labelError,
+          );
+        }
+        results.push({
+          messageId: email.messageId,
+          waitingOnly: true,
+          processed: 0,
+          applicationIds: [app.id],
+          errors: [] as string[],
+        });
+        continue;
+      }
 
-      // Free tier: max 3 allegati nuovi per email per run
+      const done = await alreadyProcessedFileNames(email.fromEmail);
+      const pending = email.attachments.filter((g) => !done.has(g.filename));
       const batch = pending.slice(0, 3);
 
       if (batch.length === 0) {
-        if (pending.length === 0 && group.length > 0) {
+        if (pending.length === 0) {
           try {
-            await markMessageProcessed(messageId);
+            await markMessageProcessed(email.messageId);
           } catch (labelError) {
-            console.error("markMessageProcessed failed", messageId, labelError);
+            console.error(
+              "markMessageProcessed failed",
+              email.messageId,
+              labelError,
+            );
           }
         }
         results.push({
-          messageId,
-          skipped: group.length,
+          messageId: email.messageId,
+          skipped: email.attachments.length,
           pending: 0,
           processed: 0,
           applicationIds: [] as string[],
@@ -98,8 +120,8 @@ export async function GET(req: NextRequest) {
           buffer: g.buffer,
           mimeType: g.mimeType,
           originalFileName: g.filename,
-          clientEmail: first.fromEmail,
-          clientNameHint: first.fromEmail.split("@")[0],
+          clientEmail: email.fromEmail,
+          clientNameHint: email.fromEmail.split("@")[0],
         })),
         { isTest },
       );
@@ -111,17 +133,21 @@ export async function GET(req: NextRequest) {
 
       if (fullyDone) {
         try {
-          await markMessageProcessed(messageId);
+          await markMessageProcessed(email.messageId);
         } catch (labelError) {
-          console.error("markMessageProcessed failed", messageId, labelError);
+          console.error(
+            "markMessageProcessed failed",
+            email.messageId,
+            labelError,
+          );
         }
       }
 
       results.push({
-        messageId,
+        messageId: email.messageId,
         batchSize: batch.length,
         pendingBefore: pending.length,
-        totalAttachments: group.length,
+        totalAttachments: email.attachments.length,
         ...processed,
       });
     }
@@ -129,8 +155,8 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({
       ok: true,
       force,
-      emails: byMessage.size,
-      attachments: attachments.length,
+      emails: emails.length,
+      attachments: emails.reduce((n, e) => n + e.attachments.length, 0),
       results,
     });
   } catch (error) {

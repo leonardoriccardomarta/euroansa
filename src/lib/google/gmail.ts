@@ -1,10 +1,21 @@
 import { getGmailClient } from "./auth";
 
-export type GmailAttachment = {
-  messageId: string;
+export type GmailAttachmentFile = {
   filename: string;
   mimeType: string;
   buffer: Buffer;
+};
+
+export type PendingMortgageEmail = {
+  messageId: string;
+  fromEmail: string;
+  subject: string;
+  attachments: GmailAttachmentFile[];
+};
+
+/** @deprecated use PendingMortgageEmail */
+export type GmailAttachment = GmailAttachmentFile & {
+  messageId: string;
   fromEmail: string;
   subject: string;
 };
@@ -36,14 +47,16 @@ function collectParts(part: GmailPart, acc: GmailPart[] = []): GmailPart[] {
   return acc;
 }
 
+/**
+ * Trova email con oggetto corretto (tag EUROANSA-MUTUO).
+ * Include anche mail SENZA allegati → pratica "In attesa documenti".
+ */
 export async function fetchPendingMortgageEmails(
   maxMessages = 5,
   includeProcessed = false,
-): Promise<GmailAttachment[]> {
+): Promise<PendingMortgageEmail[]> {
   const gmail = getGmailClient();
 
-  // Oggetto preciso (conferma con Filippo). Default: [EUROANSA-MUTUO]
-  // In Gmail cerchiamo il tag senza parentesi per match affidabile.
   const subjectTag = (
     process.env.GMAIL_SUBJECT_TAG ?? "[EUROANSA-MUTUO]"
   ).trim();
@@ -52,13 +65,13 @@ export async function fetchPendingMortgageEmails(
   const list = await gmail.users.messages.list({
     userId: "me",
     q: includeProcessed
-      ? `has:attachment subject:${searchToken}`
-      : `has:attachment -label:MUTUO-ELABORATA subject:${searchToken}`,
+      ? `subject:${searchToken}`
+      : `-label:MUTUO-ELABORATA subject:${searchToken}`,
     maxResults: maxMessages,
   });
 
   const messages = list.data.messages ?? [];
-  const attachments: GmailAttachment[] = [];
+  const emails: PendingMortgageEmail[] = [];
 
   for (const msg of messages) {
     if (!msg.id) continue;
@@ -76,6 +89,7 @@ export async function fetchPendingMortgageEmails(
       headers.find((h) => h.name?.toLowerCase() === "subject")?.value ?? "";
     const fromEmail = extractEmail(from);
 
+    const attachments: GmailAttachmentFile[] = [];
     const parts = collectParts(full.data.payload as GmailPart);
     for (const part of parts) {
       if (!part.body?.attachmentId || !part.filename) continue;
@@ -106,25 +120,26 @@ export async function fetchPendingMortgageEmails(
       else if (lower.endsWith(".webp")) mimeType = "image/webp";
 
       attachments.push({
-        messageId: msg.id,
         filename: part.filename,
         mimeType,
         buffer: decodeBase64Url(att.data.data),
-        fromEmail,
-        subject,
       });
     }
 
-    // NON marcare qui: si marca solo dopo elaborazione riuscita
+    emails.push({
+      messageId: msg.id,
+      fromEmail,
+      subject,
+      attachments,
+    });
   }
 
-  return attachments;
+  return emails;
 }
 
 export async function markMessageProcessed(messageId: string) {
   const gmail = getGmailClient();
 
-  // Crea label se manca
   const labels = await gmail.users.labels.list({ userId: "me" });
   let labelId = labels.data.labels?.find((l) => l.name === "MUTUO-ELABORATA")?.id;
 
