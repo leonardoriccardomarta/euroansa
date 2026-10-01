@@ -12,6 +12,30 @@ export type ChecklistResult = {
   progressLabel: string;
 };
 
+/** Deduce il profilo lavorativo dai tipi documento presenti. */
+export function inferEmploymentType(
+  docs: Pick<Document, "documentType">[],
+): EmploymentType {
+  const types = new Set(docs.map((d) => d.documentType));
+
+  if (types.has("CEDOLINO_PENSIONE")) return "PENSIONATO";
+  if (
+    types.has("MODELLO_UNICO") ||
+    types.has("F24") ||
+    types.has("VISURA_CAMERALE")
+  ) {
+    return "PARTITA_IVA";
+  }
+  if (
+    types.has("BUSTA_PAGA_1") ||
+    types.has("BUSTA_PAGA_2") ||
+    types.has("BUSTA_PAGA_3")
+  ) {
+    return "DIPENDENTE_INDETERMINATO";
+  }
+  return "DIPENDENTE_INDETERMINATO";
+}
+
 export function evaluateChecklist(
   employmentType: EmploymentType,
   docs: Pick<Document, "documentType" | "isValid">[],
@@ -49,7 +73,6 @@ export function deriveApplicationStatus(
   docs: Pick<Document, "documentType" | "isValid">[],
   currentStatus: string,
 ): "DOCUMENTI_INCOMPLETI" | "COMPLETA_DA_INOLTRARE" | null {
-  // Non sovrascrivere stati post-segreteria / banca
   if (
     [
       "INVIATA_A_SEGRETERIA",

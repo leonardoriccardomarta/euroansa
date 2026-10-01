@@ -28,7 +28,7 @@ export function computePreScoring(
     (d) =>
       d.isValid &&
       (d.documentType === "CUD_730" || d.documentType === "MODELLO_UNICO") &&
-      d.extractedData?.grossIncomeAnnual,
+      typeof d.extractedData?.grossIncomeAnnual === "number",
   );
 
   const avgNet =
@@ -37,9 +37,17 @@ export function computePreScoring(
       : 0;
 
   const monthlyObligations =
-    obligations.length > 0
-      ? Math.max(...obligations)
-      : 0;
+    obligations.length > 0 ? Math.max(...obligations) : 0;
+
+  if (payslips.length > 0) {
+    const months = payslips
+      .map((d) => d.extractedData?.referenceMonth)
+      .filter(Boolean);
+    notes.push(
+      `Calcolo su ${payslips.length} cedolino/busta paga` +
+        (months.length ? ` (${months.join(", ")})` : ""),
+    );
+  }
 
   if (monthlyObligations > 0) {
     notes.push(
@@ -48,10 +56,27 @@ export function computePreScoring(
   }
 
   const available = Math.max(avgNet - monthlyObligations, 0);
-  const estimatedMax = Math.round(available * MAX_INSTALLMENT_RATIO * 100) / 100;
+  const estimatedMax =
+    Math.round(available * MAX_INSTALLMENT_RATIO * 100) / 100;
 
   if (netSalaries.length === 0) {
-    notes.push("Nessuna busta paga/cedolino valido per il calcolo del netto");
+    notes.push(
+      "Nessuna busta paga/cedolino valido: netto e rata max non calcolabili",
+    );
+  } else if (netSalaries.length < 3 && payslips.some((d) => d.documentType.startsWith("BUSTA"))) {
+    notes.push(
+      `Solo ${netSalaries.length}/3 buste paga con netto leggibile: stima provvisoria`,
+    );
+  }
+
+  if (!cud) {
+    notes.push("CUD/Unico assente o senza reddito lordo: verifica reddito annuo");
+  }
+
+  if (avgNet > 0) {
+    notes.push(
+      `Disponibilità stimata dopo obblighi: €${available.toFixed(2)}/mese → rata max 35% = €${estimatedMax.toFixed(2)}`,
+    );
   }
 
   return {

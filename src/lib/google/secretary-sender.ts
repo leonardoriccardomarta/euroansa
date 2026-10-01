@@ -1,8 +1,11 @@
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { applications, documents, systemSettings } from "@/db/schema";
-import { DOCUMENT_TYPE_LABELS } from "@/lib/config/documents";
-import { evaluateChecklist } from "@/lib/checklist";
+import {
+  DOCUMENT_TYPE_LABELS,
+  EMPLOYMENT_TYPE_LABELS,
+} from "@/lib/config/documents";
+import { evaluateChecklist, inferEmploymentType } from "@/lib/checklist";
 import { sendGmailHtml } from "./gmail";
 
 export async function sendApplicationToSecretary(applicationId: string) {
@@ -35,12 +38,13 @@ export async function sendApplicationToSecretary(applicationId: string) {
     };
   }
 
-  const checklist = evaluateChecklist(app.employmentType, docs);
+  const employmentType = inferEmploymentType(docs);
+  const checklist = evaluateChecklist(employmentType, docs);
   const scoring = app.preScoringData;
   const checklistHtml = checklist.required
     .map((type) => {
       const ok = checklist.presentValid.includes(type);
-      return `<li style="margin:4px 0">${ok ? "✅" : "❌"} ${DOCUMENT_TYPE_LABELS[type]}</li>`;
+      return `<li style="margin:4px 0;list-style:none">${ok ? "[OK]" : "[Manca]"} ${DOCUMENT_TYPE_LABELS[type]}</li>`;
     })
     .join("");
 
@@ -53,7 +57,7 @@ export async function sendApplicationToSecretary(applicationId: string) {
         <li><strong>Nome:</strong> ${app.clientName}</li>
         <li><strong>Email:</strong> ${app.clientEmail}</li>
         <li><strong>CF:</strong> ${app.clientFiscalCode ?? "—"}</li>
-        <li><strong>Profilo:</strong> ${app.employmentType}</li>
+        <li><strong>Profilo:</strong> ${EMPLOYMENT_TYPE_LABELS[employmentType]}</li>
       </ul>
       <h3>Sintesi economica</h3>
       <ul>

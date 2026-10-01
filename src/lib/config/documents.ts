@@ -73,6 +73,13 @@ export const APPLICATION_STATUS_LABELS: Record<string, string> = {
   DELIBERATA: "Deliberata",
 };
 
+export const EMPLOYMENT_TYPE_LABELS: Record<EmploymentType, string> = {
+  DIPENDENTE_INDETERMINATO: "Dipendente indeterminato",
+  PARTITA_IVA: "Partita IVA",
+  PENSIONATO: "Pensionato",
+  ALTRO: "Altro",
+};
+
 export const BANK_MANUAL_STATUSES = [
   "INVIATA_IN_BANCA",
   "PERITO_NOMINATO",

@@ -1,9 +1,13 @@
-import { and, eq, or } from "drizzle-orm";
+import { and, desc, eq, inArray, or } from "drizzle-orm";
 import { db } from "@/db";
 import { applications, documents, systemSettings } from "@/db/schema";
 import { analyzeDocument } from "@/lib/ai/analyze-document";
 import { checkAnagraphicCoherence } from "@/lib/ai/coherence";
-import { deriveApplicationStatus, evaluateChecklist } from "@/lib/checklist";
+import {
+  deriveApplicationStatus,
+  evaluateChecklist,
+  inferEmploymentType,
+} from "@/lib/checklist";
 import { computePreScoring } from "@/lib/prescoring";
 import { getOrCreateClientFolder, uploadFileToDrive } from "@/lib/google/drive";
 import { sendApplicationToSecretary } from "@/lib/google/secretary-sender";
@@ -75,6 +79,42 @@ export async function ensureWaitingApplication(params: {
   });
 }
 
+/** Elimina duplicati: stesso file grezzo o stesso tipo documento (tiene il più recente). */
+export async function dedupeApplicationDocuments(applicationId: string) {
+  const docs = await db
+    .select()
+    .from(documents)
+    .where(eq(documents.applicationId, applicationId))
+    .orderBy(desc(documents.createdAt));
+
+  const seenRaw = new Set<string>();
+  const seenType = new Set<string>();
+  const toDelete: string[] = [];
+
+  for (const doc of docs) {
+    const rawKey = doc.rawFileName.trim().toLowerCase();
+    const typeDup =
+      doc.documentType !== "SCONOSCIUTO" && seenType.has(doc.documentType);
+    const rawDup = seenRaw.has(rawKey);
+
+    if (rawDup || typeDup) {
+      toDelete.push(doc.id);
+      continue;
+    }
+
+    seenRaw.add(rawKey);
+    if (doc.documentType !== "SCONOSCIUTO") {
+      seenType.add(doc.documentType);
+    }
+  }
+
+  if (toDelete.length > 0) {
+    await db.delete(documents).where(inArray(documents.id, toDelete));
+  }
+
+  return toDelete.length;
+}
+
 export async function processIncomingFiles(
   files: IncomingFile[],
   options?: { applicationId?: string; isTest?: boolean },
@@ -83,44 +123,60 @@ export async function processIncomingFiles(
     return { processed: 0, applicationIds: [] as string[], errors: [] as string[] };
   }
 
-  // Sequenziale (non parallel): free tier Gemini ~5 req/min
-  const analyses: PromiseSettledResult<
-    Awaited<ReturnType<typeof analyzeDocument>>
-  >[] = [];
-  for (const f of files) {
-    try {
-      const value = await analyzeDocument({
-        buffer: f.buffer,
-        mimeType: f.mimeType,
-        originalFileName: f.originalFileName,
-      });
-      analyses.push({ status: "fulfilled", value });
-    } catch (reason) {
-      analyses.push({ status: "rejected", reason });
-    }
+  // Se applicationId noto: salta file già presenti (niente Gemini inutile)
+  let knownRaw = new Set<string>();
+  let knownTypes = new Set<string>();
+  if (options?.applicationId) {
+    await dedupeApplicationDocuments(options.applicationId);
+    const existing = await db
+      .select({
+        rawFileName: documents.rawFileName,
+        documentType: documents.documentType,
+      })
+      .from(documents)
+      .where(eq(documents.applicationId, options.applicationId));
+    knownRaw = new Set(existing.map((d) => d.rawFileName.trim().toLowerCase()));
+    knownTypes = new Set(
+      existing
+        .filter((d) => d.documentType !== "SCONOSCIUTO")
+        .map((d) => d.documentType),
+    );
   }
 
   const errors: string[] = [];
-  for (let i = 0; i < analyses.length; i++) {
-    const result = analyses[i];
-    if (result.status === "rejected") {
-      const reason =
-        result.reason instanceof Error
-          ? result.reason.message
-          : String(result.reason);
-      errors.push(`${files[i].originalFileName}: ${reason}`);
-      console.error("analyze failed", files[i].originalFileName, reason);
-    }
-  }
-
   const applicationIds = new Set<string>();
+  let processed = 0;
 
-  for (let i = 0; i < files.length; i++) {
-    const file = files[i];
-    const result = analyses[i];
-    if (result.status !== "fulfilled") continue;
+  for (const file of files) {
+    const rawKey = file.originalFileName.trim().toLowerCase();
+    if (knownRaw.has(rawKey)) {
+      continue;
+    }
 
-    const analysis = result.value;
+    let analysis;
+    try {
+      analysis = await analyzeDocument({
+        buffer: file.buffer,
+        mimeType: file.mimeType,
+        originalFileName: file.originalFileName,
+      });
+    } catch (reason) {
+      const msg =
+        reason instanceof Error ? reason.message : String(reason);
+      errors.push(`${file.originalFileName}: ${msg}`);
+      console.error("analyze failed", file.originalFileName, msg);
+      continue;
+    }
+
+    // Se quel tipo c'è già, non ricreare (es. seconda CI)
+    if (
+      analysis.documentType !== "SCONOSCIUTO" &&
+      knownTypes.has(analysis.documentType) &&
+      options?.applicationId
+    ) {
+      continue;
+    }
+
     const clientName =
       [analysis.extractedData.lastName, analysis.extractedData.firstName]
         .filter(Boolean)
@@ -153,9 +209,38 @@ export async function processIncomingFiles(
         clientName,
         isTest,
       });
+
+      // Dopo aver trovato la pratica, ricarica i già presenti
+      await dedupeApplicationDocuments(app.id);
+      const existing = await db
+        .select({
+          rawFileName: documents.rawFileName,
+          documentType: documents.documentType,
+        })
+        .from(documents)
+        .where(eq(documents.applicationId, app.id));
+      knownRaw = new Set(
+        existing.map((d) => d.rawFileName.trim().toLowerCase()),
+      );
+      knownTypes = new Set(
+        existing
+          .filter((d) => d.documentType !== "SCONOSCIUTO")
+          .map((d) => d.documentType),
+      );
+
+      if (knownRaw.has(rawKey)) {
+        applicationIds.add(app.id);
+        continue;
+      }
+      if (
+        analysis.documentType !== "SCONOSCIUTO" &&
+        knownTypes.has(analysis.documentType)
+      ) {
+        applicationIds.add(app.id);
+        continue;
+      }
     }
 
-    // Aggiorna anagrafica se mancante
     const updates: Partial<typeof applications.$inferInsert> = {
       updatedAt: new Date(),
     };
@@ -204,22 +289,6 @@ export async function processIncomingFiles(
       console.error("Drive upload failed", err);
     }
 
-    // Evita duplicati sullo stesso raw file name
-    const [existingDoc] = await db
-      .select({ id: documents.id })
-      .from(documents)
-      .where(
-        and(
-          eq(documents.applicationId, app.id),
-          eq(documents.rawFileName, file.originalFileName),
-        ),
-      )
-      .limit(1);
-    if (existingDoc) {
-      applicationIds.add(app.id);
-      continue;
-    }
-
     await db.insert(documents).values({
       applicationId: app.id,
       rawFileName: file.originalFileName,
@@ -232,6 +301,11 @@ export async function processIncomingFiles(
       validationIssues: analysis.validationIssues,
     });
 
+    knownRaw.add(rawKey);
+    if (analysis.documentType !== "SCONOSCIUTO") {
+      knownTypes.add(analysis.documentType);
+    }
+    processed += 1;
     applicationIds.add(app.id);
   }
 
@@ -240,13 +314,15 @@ export async function processIncomingFiles(
   }
 
   return {
-    processed: analyses.filter((a) => a.status === "fulfilled").length,
+    processed,
     applicationIds: [...applicationIds],
     errors,
   };
 }
 
 export async function refreshApplicationState(applicationId: string) {
+  await dedupeApplicationDocuments(applicationId);
+
   const [app] = await db
     .select()
     .from(applications)
@@ -259,6 +335,7 @@ export async function refreshApplicationState(applicationId: string) {
     .from(documents)
     .where(eq(documents.applicationId, applicationId));
 
+  const employmentType = inferEmploymentType(docs);
   const coherenceIssues = checkAnagraphicCoherence(docs);
   const preScoring = computePreScoring(docs);
   if (coherenceIssues.length) {
@@ -266,12 +343,11 @@ export async function refreshApplicationState(applicationId: string) {
   }
 
   let nextStatus = deriveApplicationStatus(
-    app.employmentType,
+    employmentType,
     docs,
     app.status,
   );
 
-  // Coerenza anagrafica fallita: resta "documenti incompleti" (niente stato Anomalia)
   if (coherenceIssues.length && nextStatus === "COMPLETA_DA_INOLTRARE") {
     nextStatus = "DOCUMENTI_INCOMPLETI";
   }
@@ -279,13 +355,14 @@ export async function refreshApplicationState(applicationId: string) {
   await db
     .update(applications)
     .set({
+      employmentType,
       preScoringData: preScoring,
       ...(nextStatus ? { status: nextStatus } : {}),
       updatedAt: new Date(),
     })
     .where(eq(applications.id, applicationId));
 
-  const checklist = evaluateChecklist(app.employmentType, docs);
+  const checklist = evaluateChecklist(employmentType, docs);
   if (checklist.isComplete && !coherenceIssues.length) {
     const [settings] = await db
       .select()
@@ -300,17 +377,8 @@ export async function refreshApplicationState(applicationId: string) {
       try {
         await sendApplicationToSecretary(applicationId);
       } catch (err) {
-        console.error("Secretary send failed", err);
-        await db
-          .update(applications)
-          .set({ status: "COMPLETA_DA_INOLTRARE", updatedAt: new Date() })
-          .where(eq(applications.id, applicationId));
+        console.error("auto send secretary failed", err);
       }
-    } else if (!alreadySent) {
-      await db
-        .update(applications)
-        .set({ status: "COMPLETA_DA_INOLTRARE", updatedAt: new Date() })
-        .where(eq(applications.id, applicationId));
     }
   }
 }

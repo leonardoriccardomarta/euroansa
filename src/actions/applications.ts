@@ -8,12 +8,11 @@ import {
   documents,
   systemSettings,
   type ApplicationStatus,
-  type EmploymentType,
 } from "@/db/schema";
 import { requireAdmin, requireSession } from "@/lib/auth";
-import { processIncomingFiles, refreshApplicationState } from "@/lib/pipeline";
+import { processIncomingFiles } from "@/lib/pipeline";
 import { sendApplicationToSecretary } from "@/lib/google/secretary-sender";
-import { evaluateChecklist } from "@/lib/checklist";
+import { evaluateChecklist, inferEmploymentType } from "@/lib/checklist";
 import { buildSollecitoMessage } from "@/lib/sollecito";
 
 export async function updateApplicationStatusAction(
@@ -26,21 +25,6 @@ export async function updateApplicationStatusAction(
     .set({ status, updatedAt: new Date() })
     .where(eq(applications.id, applicationId));
   revalidatePath(`/dashboard/applications/${applicationId}`);
-  return { ok: true };
-}
-
-export async function updateEmploymentTypeAction(
-  applicationId: string,
-  employmentType: EmploymentType,
-) {
-  await requireSession();
-  await db
-    .update(applications)
-    .set({ employmentType, updatedAt: new Date() })
-    .where(eq(applications.id, applicationId));
-  await refreshApplicationState(applicationId);
-  revalidatePath(`/dashboard/applications/${applicationId}`);
-  revalidatePath("/dashboard");
   return { ok: true };
 }
 
@@ -94,7 +78,7 @@ export async function getSollecitoTextAction(applicationId: string) {
     .where(eq(systemSettings.id, "global"))
     .limit(1);
 
-  const checklist = evaluateChecklist(app.employmentType, docs);
+  const checklist = evaluateChecklist(inferEmploymentType(docs), docs);
   const text = buildSollecitoMessage({
     clientName: app.clientName,
     brokerName: settings?.brokerName ?? "Euroansa",
