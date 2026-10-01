@@ -168,18 +168,63 @@ export async function sendGmailHtml(params: {
   to: string;
   subject: string;
   html: string;
+  attachments?: Array<{
+    filename: string;
+    mimeType: string;
+    buffer: Buffer;
+  }>;
 }) {
   const gmail = getGmailClient();
-  const raw = [
-    `To: ${params.to}`,
-    `Subject: ${params.subject}`,
-    "MIME-Version: 1.0",
-    "Content-Type: text/html; charset=utf-8",
-    "",
-    params.html,
-  ].join("\r\n");
+  const attachments = params.attachments ?? [];
+  const boundary = `euroansa_${Date.now().toString(36)}`;
 
-  const encoded = Buffer.from(raw)
+  const encodeSubject = (subject: string) => {
+    // RFC 2047 per caratteri non-ASCII
+    if (/^[\x20-\x7E]*$/.test(subject)) return subject;
+    return `=?UTF-8?B?${Buffer.from(subject, "utf8").toString("base64")}?=`;
+  };
+
+  const lines: string[] = [
+    `To: ${params.to}`,
+    `Subject: ${encodeSubject(params.subject)}`,
+    "MIME-Version: 1.0",
+  ];
+
+  if (attachments.length === 0) {
+    lines.push(
+      "Content-Type: text/html; charset=utf-8",
+      "",
+      params.html,
+    );
+  } else {
+    lines.push(`Content-Type: multipart/mixed; boundary="${boundary}"`, "");
+    lines.push(`--${boundary}`);
+    lines.push("Content-Type: text/html; charset=utf-8");
+    lines.push("Content-Transfer-Encoding: 7bit");
+    lines.push("");
+    lines.push(params.html);
+
+    for (const att of attachments) {
+      const safeName = att.filename.replace(/"/g, "");
+      lines.push(`--${boundary}`);
+      lines.push(
+        `Content-Type: ${att.mimeType}; name="${safeName}"`,
+      );
+      lines.push(
+        `Content-Disposition: attachment; filename="${safeName}"`,
+      );
+      lines.push("Content-Transfer-Encoding: base64");
+      lines.push("");
+      // Righe base64 da 76 caratteri
+      const b64 = att.buffer.toString("base64");
+      for (let i = 0; i < b64.length; i += 76) {
+        lines.push(b64.slice(i, i + 76));
+      }
+    }
+    lines.push(`--${boundary}--`);
+  }
+
+  const encoded = Buffer.from(lines.join("\r\n"))
     .toString("base64")
     .replace(/\+/g, "-")
     .replace(/\//g, "_")

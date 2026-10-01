@@ -94,3 +94,21 @@ export async function uploadFileToDrive(params: {
       `https://drive.google.com/file/d/${driveFileId}/view`,
   };
 }
+
+export async function downloadFileFromDrive(
+  fileId: string,
+): Promise<{ buffer: Buffer; mimeType: string }> {
+  const drive = getDriveClient();
+  const meta = await drive.files.get({
+    fileId,
+    fields: "mimeType",
+  });
+  const res = await drive.files.get(
+    { fileId, alt: "media" },
+    { responseType: "arraybuffer" },
+  );
+  return {
+    buffer: Buffer.from(res.data as ArrayBuffer),
+    mimeType: meta.data.mimeType ?? "application/octet-stream",
+  };
+}
