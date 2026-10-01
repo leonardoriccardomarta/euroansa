@@ -7,10 +7,25 @@ Web app full-stack per mediatori creditizi: email clienti → OCR/AI → Google 
 - Next.js (App Router) + TypeScript + Tailwind + shadcn/ui
 - Neon PostgreSQL + Drizzle ORM
 - Google Gemini Flash (OCR / structured JSON)
-- Gmail + Drive API (OAuth2)
+- Gmail + Drive API (OAuth2 **per utente**)
 - Deploy: Vercel Hobby + polling email via [cron-job.org](https://cron-job.org) (gratis)
 
-## Produzione su Vercel (senza locale)
+## Multiuser (Filippo admin + broker)
+
+1. Crea utenti in **Utenti** (Filippo = ADMIN, socio = BROKER).
+2. Ogni persona entra in **Impostazioni → Collega Google** e autorizza **la propria** Gmail + Drive.
+3. Il cron legge **tutte** le caselle collegate:
+   - mail su casella Filippo → pratica di Filippo → Drive di Filippo
+   - mail su casella socio → pratica del socio → Drive del socio
+4. ADMIN vede tutte le pratiche; BROKER solo le proprie.
+
+In Google Cloud Console registra il redirect:
+
+`https://TUO-PROGETTO.vercel.app/api/google/callback`
+
+(e metti la stessa URL in `GOOGLE_REDIRECT_URI` + `NEXT_PUBLIC_APP_URL` su Vercel).
+
+## Produzione su Vercel
 
 ### 1. Neon
 Crea un database su [console.neon.tech](https://console.neon.tech) e copia la connection string.
@@ -25,7 +40,8 @@ Crea un database su [console.neon.tech](https://console.neon.tech) e copia la co
 | `GEMINI_API_KEY` | [Google AI Studio](https://aistudio.google.com/) |
 | `GOOGLE_CLIENT_ID` | Google Cloud OAuth |
 | `GOOGLE_CLIENT_SECRET` | Google Cloud OAuth |
-| `GOOGLE_REFRESH_TOKEN` | OAuth offline (Gmail+Drive) sull'account di Filippo |
+| `GOOGLE_REDIRECT_URI` | `https://….vercel.app/api/google/callback` |
+| `NEXT_PUBLIC_APP_URL` | `https://….vercel.app` |
 | `GMAIL_SUBJECT_TAG` | Tag oggetto mail clienti (default `[EUROANSA-MUTUO]`) |
 | `CRON_SECRET` | Stringa random lunga |
 | `AUTH_SECRET` | Stringa random ≥32 caratteri |
@@ -33,60 +49,33 @@ Crea un database su [console.neon.tech](https://console.neon.tech) e copia la co
 | `ADMIN_PASSWORD` | Password login admin |
 | `SECRETARY_EMAIL_DEFAULT` | Email segreteria iniziale |
 
-3. Deploy (Hobby ok: il cron Vercel interno è 1×/giorno; il polling frequente è esterno).
+`GOOGLE_REFRESH_TOKEN` globale non serve più (resta solo fallback legacy). Ogni utente collega Google dalla dashboard.
 
-### 3. Inizializza DB (una sola volta)
-Dopo il deploy:
+3. Deploy.
 
+### 3. Inizializza DB (una sola volta / dopo update schema)
 ```bash
 curl -X POST "https://TUO-PROGETTO.vercel.app/api/setup" -H "Authorization: Bearer TUO_CRON_SECRET"
 ```
 
-Poi login su `/login` con `ADMIN_EMAIL` / `ADMIN_PASSWORD`.
+Poi login su `/login` → **Impostazioni → Collega Google**.
 
-### 4. Polling email ogni 5 minuti — cron-job.org (gratis)
+### 4. Polling email ogni 5 minuti — cron-job.org
 
-Hobby Vercel non permette cron più frequenti di 1×/giorno. Per controllare le mail spesso:
-
-1. Registrati su [cron-job.org](https://cron-job.org)
-2. Crea un job:
+1. [cron-job.org](https://cron-job.org)
+2. Job:
    - **URL:** `https://TUO-PROGETTO.vercel.app/api/cron/check-emails`
    - **Schedule:** ogni 5 minuti
-   - **Request method:** `GET`
-   - **Header:** `Authorization` = `Bearer TUO_CRON_SECRET`
-3. Salva e fai un **Test run**
+   - **GET** + header `Authorization: Bearer TUO_CRON_SECRET`
 
-Se con tanti documenti il job va in timeout (~30s su cron-job.org), si abbassa il carico per chiamata (meno email/allegati per run).
+### Oggetto email clienti
 
-Backup: su Vercel resta anche un cron giornaliero alle 06:00 UTC (`0 6 * * *`).
+**`[EUROANSA-MUTUO]`** nell'oggetto (o il valore di `GMAIL_SUBJECT_TAG`).
 
-### Oggetto email clienti (da confermare con Filippo)
+I clienti devono scrivere **alla Gmail del broker** di riferimento.
 
-Il sistema elabora **solo** le email con allegati il cui oggetto contiene il tag:
+## Google OAuth scopes
 
-**`[EUROANSA-MUTUO]`**
-
-Esempio oggetto cliente:  
-`[EUROANSA-MUTUO] Documenti Rossi Mario`
-
-Se Filippo vuole un altro testo, basta cambiare su Vercel la env `GMAIL_SUBJECT_TAG` (es. `[MUTUO FILIPPO]`) e ridistribuire / riprovare.
-
-## Google OAuth (Gmail + Drive)
-
-1. Google Cloud Console → OAuth Client (Web).
-2. Abilita Gmail API e Google Drive API.
-3. Refresh token offline con scopes:
-   - `https://www.googleapis.com/auth/gmail.modify`
-   - `https://www.googleapis.com/auth/gmail.send`
-   - `https://www.googleapis.com/auth/drive.file`
-
-## Config documenti (da raffinare con Filippo)
-
-`src/lib/config/documents.ts` — checklist, nomi file, cartella Drive.
-
-## Flusso
-
-1. Il cliente invia email con allegati (soggetto con `mutuo` / `documenti` / `[MUTUO]`).
-2. cron-job.org chiama l’API → Gemini → Drive → checklist → pre-scoring.
-3. Se checklist completa e auto-invio ON → email alla segreteria.
-4. In dashboard: sollecito cliente, invio forzato, stati banca.
+- `gmail.modify` / `gmail.send`
+- `drive.file`
+- `userinfo.email`

@@ -11,6 +11,10 @@ import {
 } from "@/lib/checklist";
 import { FILE_NAME_PREFIX } from "@/lib/config/documents";
 import { computePreScoring } from "@/lib/prescoring";
+import {
+  getGoogleAuthForUser,
+  type GoogleOAuthClient,
+} from "@/lib/google/auth";
 import { getOrCreateClientFolder, uploadFileToDrive } from "@/lib/google/drive";
 import { sendApplicationToSecretary } from "@/lib/google/secretary-sender";
 
@@ -73,11 +77,25 @@ function resolveDocumentType(
  * 2ª mail con allegati mancanti → riusa quella esistente, anche se già inviata a segreteria.
  * Nuova pratica solo se non esiste nulla per quell'email/CF (o solo pratiche DELIBERATA).
  */
+async function ensureBrokerOnApp(
+  app: typeof applications.$inferSelect,
+  brokerId?: string | null,
+) {
+  if (!brokerId || app.brokerId) return app;
+  const [updated] = await db
+    .update(applications)
+    .set({ brokerId, updatedAt: new Date() })
+    .where(eq(applications.id, app.id))
+    .returning();
+  return updated ?? { ...app, brokerId };
+}
+
 async function findOrCreateApplication(params: {
   fiscalCode?: string | null;
   email?: string;
   clientName: string;
   isTest?: boolean;
+  brokerId?: string | null;
 }) {
   const email = params.email?.trim().toLowerCase() || null;
   const fiscalCode = params.fiscalCode?.trim().toUpperCase() || null;
@@ -96,15 +114,16 @@ async function findOrCreateApplication(params: {
       .orderBy(desc(applications.updatedAt))
       .limit(1);
     if (byEmailOpen) {
-      if (fiscalCode && !byEmailOpen.clientFiscalCode) {
+      let app = byEmailOpen;
+      if (fiscalCode && !app.clientFiscalCode) {
         const [updated] = await db
           .update(applications)
           .set({ clientFiscalCode: fiscalCode, updatedAt: new Date() })
-          .where(eq(applications.id, byEmailOpen.id))
+          .where(eq(applications.id, app.id))
           .returning();
-        return updated ?? byEmailOpen;
+        app = updated ?? app;
       }
-      return byEmailOpen;
+      return ensureBrokerOnApp(app, params.brokerId);
     }
 
     // 2) Qualsiasi pratica recente stessa email (evita doppioni dopo invio segreteria / force)
@@ -126,15 +145,16 @@ async function findOrCreateApplication(params: {
       .orderBy(desc(applications.updatedAt))
       .limit(1);
     if (byEmailAny) {
-      if (fiscalCode && !byEmailAny.clientFiscalCode) {
+      let app = byEmailAny;
+      if (fiscalCode && !app.clientFiscalCode) {
         const [updated] = await db
           .update(applications)
           .set({ clientFiscalCode: fiscalCode, updatedAt: new Date() })
-          .where(eq(applications.id, byEmailAny.id))
+          .where(eq(applications.id, app.id))
           .returning();
-        return updated ?? byEmailAny;
+        app = updated ?? app;
       }
-      return byEmailAny;
+      return ensureBrokerOnApp(app, params.brokerId);
     }
   }
 
@@ -156,7 +176,7 @@ async function findOrCreateApplication(params: {
       )
       .orderBy(desc(applications.updatedAt))
       .limit(1);
-    if (byCf) return byCf;
+    if (byCf) return ensureBrokerOnApp(byCf, params.brokerId);
   }
 
   const [created] = await db
@@ -167,6 +187,7 @@ async function findOrCreateApplication(params: {
       clientFiscalCode: fiscalCode,
       status: "DOCUMENTI_INCOMPLETI",
       isTest: params.isTest ?? false,
+      brokerId: params.brokerId ?? null,
     })
     .returning();
 
@@ -178,11 +199,13 @@ export async function ensureWaitingApplication(params: {
   email: string;
   clientNameHint?: string;
   isTest?: boolean;
+  brokerId?: string | null;
 }) {
   return findOrCreateApplication({
     email: params.email,
     clientName: params.clientNameHint || params.email.split("@")[0] || "Cliente",
     isTest: params.isTest,
+    brokerId: params.brokerId,
   });
 }
 
@@ -325,7 +348,13 @@ export async function dedupeApplicationDocuments(applicationId: string) {
 
 export async function processIncomingFiles(
   files: IncomingFile[],
-  options?: { applicationId?: string; isTest?: boolean },
+  options?: {
+    applicationId?: string;
+    isTest?: boolean;
+    /** Titolare pratica + Drive (casella da cui è arrivata la mail). */
+    brokerId?: string | null;
+    googleAuth?: GoogleOAuthClient;
+  },
 ) {
   if (files.length === 0) {
     return { processed: 0, applicationIds: [] as string[], errors: [] as string[] };
@@ -354,6 +383,20 @@ export async function processIncomingFiles(
   const errors: string[] = [];
   const applicationIds = new Set<string>();
   let processed = 0;
+
+  async function resolveDriveAuth(
+    brokerId: string | null | undefined,
+  ): Promise<GoogleOAuthClient | undefined> {
+    if (options?.googleAuth) return options.googleAuth;
+    if (brokerId) {
+      try {
+        return await getGoogleAuthForUser(brokerId);
+      } catch {
+        return undefined;
+      }
+    }
+    return undefined;
+  }
 
   for (const file of files) {
     const rawKey = file.originalFileName.trim().toLowerCase();
@@ -425,6 +468,7 @@ export async function processIncomingFiles(
         email: file.clientEmail,
         clientName,
         isTest,
+        brokerId: options?.brokerId,
       });
 
       // Dopo aver trovato la pratica, ricarica i già presenti
@@ -479,10 +523,18 @@ export async function processIncomingFiles(
       app = { ...app, ...updates } as typeof app;
     }
 
+    const driveAuth = await resolveDriveAuth(
+      app.brokerId ?? options?.brokerId,
+    );
+
     let folderId = app.driveFolderId;
     let folderUrl = app.driveFolderUrl;
     if (!folderId) {
-      const folder = await getOrCreateClientFolder(app.clientName, app.id);
+      const folder = await getOrCreateClientFolder(
+        app.clientName,
+        app.id,
+        driveAuth,
+      );
       folderId = folder.folderId;
       folderUrl = folder.folderUrl;
       await db
@@ -504,6 +556,7 @@ export async function processIncomingFiles(
         mimeType: file.mimeType,
         buffer: file.buffer,
         documentType: analysis.documentType,
+        auth: driveAuth,
       });
       driveFileId = uploaded.driveFileId;
       driveFileUrl = uploaded.driveFileUrl;

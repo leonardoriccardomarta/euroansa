@@ -9,6 +9,8 @@ import type { DocumentType, EmploymentType } from "@/db/schema";
  *
  * Confermato Filippo (01/10/2026):
  * - Q1 ownership: senior (ADMIN) vede tutte + titolare; broker solo le proprie
+ * - Multiuser Google: ogni utente collega la propria Gmail+Drive; cron legge
+ *   tutte le caselle e assegna brokerId + Drive al titolare della casella
  * - Q3 validità: illeggibili, scaduti, errati, movimenti bancari sospetti, CIG/cessione quinto
  * - Q5 Drive sottocartelle: doc clienti / banca / immobile / euroansa
  * - Q6 oggetto mail: [EUROANSA-MUTUO]

@@ -5,6 +5,7 @@ import {
   type DriveSubfolder,
 } from "@/lib/config/documents";
 import type { DocumentType } from "@/db/schema";
+import type { GoogleOAuthClient } from "./auth";
 import { getDriveClient } from "./auth";
 
 function folderName(clientName: string, applicationId: string): string {
@@ -15,8 +16,9 @@ function folderName(clientName: string, applicationId: string): string {
 async function findChildFolder(
   parentId: string,
   name: string,
+  auth?: GoogleOAuthClient,
 ): Promise<{ id: string; webViewLink?: string | null } | null> {
-  const drive = getDriveClient();
+  const drive = getDriveClient(auth);
   const existing = await drive.files.list({
     q: `'${parentId}' in parents and mimeType='application/vnd.google-apps.folder' and name='${name.replace(/'/g, "\\'")}' and trashed=false`,
     fields: "files(id, name, webViewLink)",
@@ -31,11 +33,12 @@ async function findChildFolder(
 async function ensureChildFolder(
   parentId: string,
   name: string,
+  auth?: GoogleOAuthClient,
 ): Promise<string> {
-  const found = await findChildFolder(parentId, name);
+  const found = await findChildFolder(parentId, name, auth);
   if (found?.id) return found.id;
 
-  const drive = getDriveClient();
+  const drive = getDriveClient(auth);
   const created = await drive.files.create({
     requestBody: {
       name,
@@ -50,8 +53,9 @@ async function ensureChildFolder(
 export async function getOrCreateClientFolder(
   clientName: string,
   applicationId: string,
+  auth?: GoogleOAuthClient,
 ): Promise<{ folderId: string; folderUrl: string }> {
-  const drive = getDriveClient();
+  const drive = getDriveClient(auth);
   const name = folderName(clientName, applicationId);
 
   const existing = await drive.files.list({
@@ -83,9 +87,8 @@ export async function getOrCreateClientFolder(
       `https://drive.google.com/drive/folders/${folderId}`;
   }
 
-  // Sottocartelle Filippo: doc clienti / banca / immobile / euroansa
   for (const sub of DRIVE_SUBFOLDERS) {
-    await ensureChildFolder(folderId, sub);
+    await ensureChildFolder(folderId, sub, auth);
   }
 
   return { folderId, folderUrl };
@@ -94,9 +97,10 @@ export async function getOrCreateClientFolder(
 export async function resolveUploadFolderId(
   rootFolderId: string,
   documentType: DocumentType,
+  auth?: GoogleOAuthClient,
 ): Promise<string> {
   const sub = driveSubfolderForDocument(documentType);
-  return ensureChildFolder(rootFolderId, sub as DriveSubfolder);
+  return ensureChildFolder(rootFolderId, sub as DriveSubfolder, auth);
 }
 
 export async function uploadFileToDrive(params: {
@@ -105,10 +109,15 @@ export async function uploadFileToDrive(params: {
   mimeType: string;
   buffer: Buffer;
   documentType?: DocumentType;
+  auth?: GoogleOAuthClient;
 }): Promise<{ driveFileId: string; driveFileUrl: string }> {
-  const drive = getDriveClient();
+  const drive = getDriveClient(params.auth);
   const parentId = params.documentType
-    ? await resolveUploadFolderId(params.folderId, params.documentType)
+    ? await resolveUploadFolderId(
+        params.folderId,
+        params.documentType,
+        params.auth,
+      )
     : params.folderId;
 
   const stream = Readable.from(params.buffer);
@@ -154,8 +163,9 @@ export async function uploadFileToDrive(params: {
 
 export async function downloadFileFromDrive(
   fileId: string,
+  auth?: GoogleOAuthClient,
 ): Promise<{ buffer: Buffer; mimeType: string }> {
-  const drive = getDriveClient();
+  const drive = getDriveClient(auth);
   const meta = await drive.files.get({
     fileId,
     fields: "mimeType",

@@ -10,8 +10,12 @@ import {
   mergeDuplicateOpenApplicationsByEmail,
   processIncomingFiles,
 } from "@/lib/pipeline";
+import {
+  listConnectedGoogleUsers,
+  oauthClientFromRefreshToken,
+} from "@/lib/google/auth";
 import { db } from "@/db";
-import { applications, documents } from "@/db/schema";
+import { applications, documents, users } from "@/db/schema";
 
 export const maxDuration = 60;
 
@@ -20,7 +24,6 @@ const OPEN_STATUSES = ["DOCUMENTI_INCOMPLETI", "COMPLETA_DA_INOLTRARE"] as const
 async function alreadyProcessedFileNames(
   fromEmail: string,
 ): Promise<Set<string>> {
-  // Unisci eventuali doppioni aperti prima di leggere i file già presenti
   await mergeDuplicateOpenApplicationsByEmail(fromEmail);
 
   const openApps = await db
@@ -43,11 +46,29 @@ async function alreadyProcessedFileNames(
   return new Set(rows.map((r) => r.rawFileName));
 }
 
+async function isTestSender(fromEmail: string): Promise<boolean> {
+  const normalized = fromEmail.toLowerCase();
+  const adminEnv = process.env.ADMIN_EMAIL?.trim().toLowerCase();
+  if (adminEnv && normalized === adminEnv) return true;
+
+  const [admin] = await db
+    .select({ email: users.email, googleEmail: users.googleEmail })
+    .from(users)
+    .where(eq(users.role, "ADMIN"))
+    .limit(1);
+
+  if (!admin) return false;
+  return (
+    admin.email.toLowerCase() === normalized ||
+    admin.googleEmail?.toLowerCase() === normalized
+  );
+}
+
 export async function GET(req: NextRequest) {
-  const auth = req.headers.get("authorization");
+  const authHeader = req.headers.get("authorization");
   const secret = process.env.CRON_SECRET?.trim();
 
-  if (!secret || auth !== `Bearer ${secret}`) {
+  if (!secret || authHeader !== `Bearer ${secret}`) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -56,59 +77,109 @@ export async function GET(req: NextRequest) {
       req.nextUrl.searchParams.get("force") === "1" ||
       req.nextUrl.searchParams.get("force") === "true";
 
-    const emails = await fetchPendingMortgageEmails(5, force);
+    const connectedUsers = await listConnectedGoogleUsers();
+    if (connectedUsers.length === 0) {
+      return NextResponse.json({
+        ok: false,
+        error:
+          "Nessun utente con Google collegato. Impostazioni → Collega Google (o GOOGLE_REFRESH_TOKEN legacy).",
+      });
+    }
 
-    // Cleanup doppioni residui (es. test / force)
     try {
       await mergeAllDuplicateApplications();
     } catch (mergeErr) {
       console.error("mergeAllDuplicateApplications", mergeErr);
     }
 
-    const results = [];
+    const accountResults = [];
 
-    for (const email of emails) {
-      const adminEmail = process.env.ADMIN_EMAIL?.trim().toLowerCase();
-      const isTest = Boolean(
-        adminEmail && email.fromEmail.toLowerCase() === adminEmail,
-      );
+    for (const owner of connectedUsers) {
+      const googleAuth = oauthClientFromRefreshToken(owner.googleRefreshToken);
+      const emails = await fetchPendingMortgageEmails(5, force, googleAuth);
+      const results = [];
 
-      // Sempre riusa la pratica aperta dello stesso mittente
-      await mergeDuplicateOpenApplicationsByEmail(email.fromEmail);
+      for (const email of emails) {
+        const isTest = await isTestSender(email.fromEmail);
 
-      if (email.attachments.length === 0) {
-        const app = await ensureWaitingApplication({
-          email: email.fromEmail,
-          clientNameHint: email.fromEmail.split("@")[0],
-          isTest,
-        });
-        try {
-          await markMessageProcessed(email.messageId);
-        } catch (labelError) {
-          console.error(
-            "markMessageProcessed failed",
-            email.messageId,
-            labelError,
-          );
-        }
-        results.push({
-          messageId: email.messageId,
-          noAttachments: true,
-          processed: 0,
-          applicationIds: [app.id],
-          errors: [] as string[],
-        });
-        continue;
-      }
+        await mergeDuplicateOpenApplicationsByEmail(email.fromEmail);
 
-      const done = await alreadyProcessedFileNames(email.fromEmail);
-      const pending = email.attachments.filter((g) => !done.has(g.filename));
-      const batch = pending.slice(0, 3);
-
-      if (batch.length === 0) {
-        if (pending.length === 0) {
+        if (email.attachments.length === 0) {
+          const app = await ensureWaitingApplication({
+            email: email.fromEmail,
+            clientNameHint: email.fromEmail.split("@")[0],
+            isTest,
+            brokerId: owner.id,
+          });
           try {
-            await markMessageProcessed(email.messageId);
+            await markMessageProcessed(email.messageId, googleAuth);
+          } catch (labelError) {
+            console.error(
+              "markMessageProcessed failed",
+              email.messageId,
+              labelError,
+            );
+          }
+          results.push({
+            messageId: email.messageId,
+            noAttachments: true,
+            processed: 0,
+            applicationIds: [app.id],
+            errors: [] as string[],
+          });
+          continue;
+        }
+
+        const done = await alreadyProcessedFileNames(email.fromEmail);
+        const pending = email.attachments.filter((g) => !done.has(g.filename));
+        const batch = pending.slice(0, 3);
+
+        if (batch.length === 0) {
+          if (pending.length === 0) {
+            try {
+              await markMessageProcessed(email.messageId, googleAuth);
+            } catch (labelError) {
+              console.error(
+                "markMessageProcessed failed",
+                email.messageId,
+                labelError,
+              );
+            }
+          }
+          results.push({
+            messageId: email.messageId,
+            skipped: email.attachments.length,
+            pending: 0,
+            processed: 0,
+            applicationIds: [] as string[],
+            errors: [] as string[],
+          });
+          continue;
+        }
+
+        const processed = await processIncomingFiles(
+          batch.map((g) => ({
+            buffer: g.buffer,
+            mimeType: g.mimeType,
+            originalFileName: g.filename,
+            clientEmail: email.fromEmail,
+            clientNameHint: email.fromEmail.split("@")[0],
+          })),
+          {
+            isTest,
+            brokerId: owner.id,
+            googleAuth,
+          },
+        );
+
+        const remainingAfter =
+          pending.length - processed.processed + processed.errors.length;
+        const fullyDone =
+          processed.errors.length === 0 && remainingAfter <= 0;
+
+        if (fullyDone) {
+          try {
+            await markMessageProcessed(email.messageId, googleAuth);
           } catch (labelError) {
             console.error(
               "markMessageProcessed failed",
@@ -117,60 +188,31 @@ export async function GET(req: NextRequest) {
             );
           }
         }
+
         results.push({
           messageId: email.messageId,
-          skipped: email.attachments.length,
-          pending: 0,
-          processed: 0,
-          applicationIds: [] as string[],
-          errors: [] as string[],
+          batchSize: batch.length,
+          pendingBefore: pending.length,
+          totalAttachments: email.attachments.length,
+          ...processed,
         });
-        continue;
       }
 
-      const processed = await processIncomingFiles(
-        batch.map((g) => ({
-          buffer: g.buffer,
-          mimeType: g.mimeType,
-          originalFileName: g.filename,
-          clientEmail: email.fromEmail,
-          clientNameHint: email.fromEmail.split("@")[0],
-        })),
-        { isTest },
-      );
-
-      const remainingAfter =
-        pending.length - processed.processed + processed.errors.length;
-      const fullyDone =
-        processed.errors.length === 0 && remainingAfter <= 0;
-
-      if (fullyDone) {
-        try {
-          await markMessageProcessed(email.messageId);
-        } catch (labelError) {
-          console.error(
-            "markMessageProcessed failed",
-            email.messageId,
-            labelError,
-          );
-        }
-      }
-
-      results.push({
-        messageId: email.messageId,
-        batchSize: batch.length,
-        pendingBefore: pending.length,
-        totalAttachments: email.attachments.length,
-        ...processed,
+      accountResults.push({
+        userId: owner.id,
+        userEmail: owner.email,
+        googleEmail: owner.googleEmail,
+        emails: emails.length,
+        attachments: emails.reduce((n, e) => n + e.attachments.length, 0),
+        results,
       });
     }
 
     return NextResponse.json({
       ok: true,
       force,
-      emails: emails.length,
-      attachments: emails.reduce((n, e) => n + e.attachments.length, 0),
-      results,
+      accounts: accountResults.length,
+      accountResults,
     });
   } catch (error) {
     console.error("cron check-emails error", error);

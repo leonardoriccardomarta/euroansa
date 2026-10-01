@@ -70,6 +70,11 @@ export const users = pgTable("users", {
   passwordHash: text("password_hash").notNull(),
   name: varchar("name", { length: 255 }).notNull(),
   role: userRoleEnum("role").notNull().default("BROKER"),
+  /** Refresh token OAuth Gmail+Drive di questo utente (casella propria). */
+  googleRefreshToken: text("google_refresh_token"),
+  /** Email Gmail collegata (può differire dal login CRM). */
+  googleEmail: varchar("google_email", { length: 255 }),
+  googleConnectedAt: timestamp("google_connected_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
 

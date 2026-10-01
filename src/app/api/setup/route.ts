@@ -53,6 +53,9 @@ const SETUP_STATEMENTS = [
     auto_send_to_secretary boolean DEFAULT true NOT NULL
   )`,
   `ALTER TABLE applications ADD COLUMN IF NOT EXISTS is_test boolean DEFAULT false NOT NULL`,
+  `ALTER TABLE users ADD COLUMN IF NOT EXISTS google_refresh_token text`,
+  `ALTER TABLE users ADD COLUMN IF NOT EXISTS google_email varchar(255)`,
+  `ALTER TABLE users ADD COLUMN IF NOT EXISTS google_connected_at timestamptz`,
   // Stati deprecati → documenti incompleti
   `UPDATE applications SET status = 'DOCUMENTI_INCOMPLETI' WHERE status IN ('ANOMALIA', 'IN_ATTESA_DOCUMENTI')`,
   `ALTER TABLE applications ALTER COLUMN status SET DEFAULT 'DOCUMENTI_INCOMPLETI'`,

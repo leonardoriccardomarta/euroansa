@@ -82,7 +82,7 @@ export async function uploadDocumentsAction(
   applicationId: string,
   formData: FormData,
 ) {
-  await requireSession();
+  const session = await requireSession();
   const files = formData.getAll("files") as File[];
   const incoming = await Promise.all(
     files
@@ -94,7 +94,26 @@ export async function uploadDocumentsAction(
       })),
   );
 
-  await processIncomingFiles(incoming, { applicationId });
+  const [app] = await db
+    .select({ brokerId: applications.brokerId })
+    .from(applications)
+    .where(eq(applications.id, applicationId))
+    .limit(1);
+
+  const brokerId = app?.brokerId ?? session.id;
+
+  // Se pratica senza titolare, assegna chi sta caricando
+  if (app && !app.brokerId) {
+    await db
+      .update(applications)
+      .set({ brokerId: session.id, updatedAt: new Date() })
+      .where(eq(applications.id, applicationId));
+  }
+
+  await processIncomingFiles(incoming, {
+    applicationId,
+    brokerId,
+  });
   revalidatePath(`/dashboard/applications/${applicationId}`);
   revalidatePath("/dashboard");
   return { ok: true, count: incoming.length };

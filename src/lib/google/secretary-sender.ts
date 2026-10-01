@@ -3,8 +3,33 @@ import { db } from "@/db";
 import { applications, documents, systemSettings } from "@/db/schema";
 import { EMPLOYMENT_TYPE_LABELS } from "@/lib/config/documents";
 import { inferEmploymentType } from "@/lib/checklist";
+import {
+  getGoogleAuthForUser,
+  listConnectedGoogleUsers,
+  oauthClientFromRefreshToken,
+  type GoogleOAuthClient,
+} from "./auth";
 import { downloadFileFromDrive } from "./drive";
 import { sendGmailHtml } from "./gmail";
+
+async function resolveAuthForApplication(
+  brokerId: string | null,
+): Promise<GoogleOAuthClient> {
+  if (brokerId) {
+    try {
+      return await getGoogleAuthForUser(brokerId);
+    } catch {
+      // fall through
+    }
+  }
+  const connected = await listConnectedGoogleUsers();
+  if (connected[0]) {
+    return oauthClientFromRefreshToken(connected[0].googleRefreshToken);
+  }
+  throw new Error(
+    "Nessun Google collegato: Impostazioni → Collega Google (titolare pratica)",
+  );
+}
 
 export async function sendApplicationToSecretary(applicationId: string) {
   const [app] = await db
@@ -14,6 +39,8 @@ export async function sendApplicationToSecretary(applicationId: string) {
     .limit(1);
 
   if (!app) throw new Error("Pratica non trovata");
+
+  const auth = await resolveAuthForApplication(app.brokerId);
 
   const docs = await db
     .select()
@@ -39,7 +66,6 @@ export async function sendApplicationToSecretary(applicationId: string) {
   const employmentType = inferEmploymentType(docs);
   const scoring = app.preScoringData;
 
-  // Allegati reali da Drive (nome rinominato post-controllo)
   const validDocs = docs.filter(
     (d) => d.isValid && d.driveFileId && d.renamedFileName,
   );
@@ -51,7 +77,7 @@ export async function sendApplicationToSecretary(applicationId: string) {
 
   for (const doc of validDocs) {
     try {
-      const downloaded = await downloadFileFromDrive(doc.driveFileId!);
+      const downloaded = await downloadFileFromDrive(doc.driveFileId!, auth);
       attachments.push({
         filename: doc.renamedFileName,
         mimeType: downloaded.mimeType,
@@ -106,12 +132,15 @@ export async function sendApplicationToSecretary(applicationId: string) {
     </div>
   `;
 
-  await sendGmailHtml({
-    to: settings.secretaryEmail,
-    subject: `[PRATICA COMPLETA] ${app.clientName} - Pratica Mutuo`,
-    html,
-    attachments,
-  });
+  await sendGmailHtml(
+    {
+      to: settings.secretaryEmail,
+      subject: `[PRATICA COMPLETA] ${app.clientName} - Pratica Mutuo`,
+      html,
+      attachments,
+    },
+    auth,
+  );
 
   await db
     .update(applications)

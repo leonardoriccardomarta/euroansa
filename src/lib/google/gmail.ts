@@ -1,3 +1,4 @@
+import type { GoogleOAuthClient } from "./auth";
 import { getGmailClient } from "./auth";
 
 export type GmailAttachmentFile = {
@@ -54,8 +55,9 @@ function collectParts(part: GmailPart, acc: GmailPart[] = []): GmailPart[] {
 export async function fetchPendingMortgageEmails(
   maxMessages = 5,
   includeProcessed = false,
+  auth?: GoogleOAuthClient,
 ): Promise<PendingMortgageEmail[]> {
-  const gmail = getGmailClient();
+  const gmail = getGmailClient(auth);
 
   const subjectTag = (
     process.env.GMAIL_SUBJECT_TAG ?? "[EUROANSA-MUTUO]"
@@ -137,8 +139,11 @@ export async function fetchPendingMortgageEmails(
   return emails;
 }
 
-export async function markMessageProcessed(messageId: string) {
-  const gmail = getGmailClient();
+export async function markMessageProcessed(
+  messageId: string,
+  auth?: GoogleOAuthClient,
+) {
+  const gmail = getGmailClient(auth);
 
   const labels = await gmail.users.labels.list({ userId: "me" });
   let labelId = labels.data.labels?.find((l) => l.name === "MUTUO-ELABORATA")?.id;
@@ -164,22 +169,24 @@ export async function markMessageProcessed(messageId: string) {
   });
 }
 
-export async function sendGmailHtml(params: {
-  to: string;
-  subject: string;
-  html: string;
-  attachments?: Array<{
-    filename: string;
-    mimeType: string;
-    buffer: Buffer;
-  }>;
-}) {
-  const gmail = getGmailClient();
+export async function sendGmailHtml(
+  params: {
+    to: string;
+    subject: string;
+    html: string;
+    attachments?: Array<{
+      filename: string;
+      mimeType: string;
+      buffer: Buffer;
+    }>;
+  },
+  auth?: GoogleOAuthClient,
+) {
+  const gmail = getGmailClient(auth);
   const attachments = params.attachments ?? [];
   const boundary = `euroansa_${Date.now().toString(36)}`;
 
   const encodeSubject = (subject: string) => {
-    // RFC 2047 per caratteri non-ASCII
     if (/^[\x20-\x7E]*$/.test(subject)) return subject;
     return `=?UTF-8?B?${Buffer.from(subject, "utf8").toString("base64")}?=`;
   };
@@ -215,7 +222,6 @@ export async function sendGmailHtml(params: {
       );
       lines.push("Content-Transfer-Encoding: base64");
       lines.push("");
-      // Righe base64 da 76 caratteri
       const b64 = att.buffer.toString("base64");
       for (let i = 0; i < b64.length; i += 76) {
         lines.push(b64.slice(i, i + 76));
