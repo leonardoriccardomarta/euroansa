@@ -100,12 +100,8 @@ export default async function UsersPage() {
               </p>
             </div>
             {u.id !== session.id && (
-              <form
-                action={async () => {
-                  "use server";
-                  await deleteUserAction(u.id);
-                }}
-              >
+              <form action={deleteUserAction}>
+                <input type="hidden" name="userId" value={u.id} />
                 <Button type="submit" variant="outline" size="sm">
                   Elimina
                 </Button>

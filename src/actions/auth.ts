@@ -59,11 +59,17 @@ export async function createUserAction(formData: FormData): Promise<void> {
   revalidatePath("/dashboard/users");
 }
 
-export async function deleteUserAction(userId: string) {
+export async function deleteUserAction(formData: FormData) {
   const session = await requireAdmin();
+  const userId = String(formData.get("userId") ?? "");
+  if (!userId) return;
+
   if (session.id === userId) {
-    return { error: "Non puoi eliminare te stesso" };
+    return;
   }
+
   await db.delete(users).where(eq(users.id, userId));
-  return { ok: true };
+
+  const { revalidatePath } = await import("next/cache");
+  revalidatePath("/dashboard/users");
 }
