@@ -1,4 +1,6 @@
+import { redirect } from "next/navigation";
 import { eq } from "drizzle-orm";
+import { getSession } from "@/lib/auth";
 import { db } from "@/db";
 import { systemSettings } from "@/db/schema";
 import { updateSettingsAction } from "@/actions/applications";
@@ -9,6 +11,9 @@ import { Button } from "@/components/ui/button";
 export const dynamic = "force-dynamic";
 
 export default async function SettingsPage() {
+  const session = await getSession();
+  if (!session || session.role !== "ADMIN") redirect("/dashboard");
+
   const [settings] = await db
     .select()
     .from(systemSettings)

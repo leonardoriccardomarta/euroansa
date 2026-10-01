@@ -10,7 +10,7 @@ import {
   type ApplicationStatus,
   type EmploymentType,
 } from "@/db/schema";
-import { requireSession } from "@/lib/auth";
+import { requireAdmin, requireSession } from "@/lib/auth";
 import { processIncomingFiles, refreshApplicationState } from "@/lib/pipeline";
 import { sendApplicationToSecretary } from "@/lib/google/secretary-sender";
 import { evaluateChecklist } from "@/lib/checklist";
@@ -105,7 +105,7 @@ export async function getSollecitoTextAction(applicationId: string) {
 }
 
 export async function updateSettingsAction(formData: FormData): Promise<void> {
-  await requireSession();
+  await requireAdmin();
   const secretaryEmail = String(formData.get("secretaryEmail") ?? "").trim();
   const brokerName = String(formData.get("brokerName") ?? "").trim();
   const autoSendToSecretary = formData.get("autoSendToSecretary") === "on";
