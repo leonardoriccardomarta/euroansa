@@ -20,11 +20,21 @@ export async function updateApplicationStatusAction(
   status: ApplicationStatus,
 ) {
   await requireSession();
+  const allowed: ApplicationStatus[] = [
+    "INVIATA_A_SEGRETERIA",
+    "INVIATA_IN_BANCA",
+    "PERITO_NOMINATO",
+    "DELIBERATA",
+  ];
+  if (!allowed.includes(status)) {
+    return { error: "Stato non consentito" };
+  }
   await db
     .update(applications)
     .set({ status, updatedAt: new Date() })
     .where(eq(applications.id, applicationId));
   revalidatePath(`/dashboard/applications/${applicationId}`);
+  revalidatePath("/dashboard");
   return { ok: true };
 }
 

@@ -115,7 +115,7 @@ export default async function ApplicationDetailPage({
             </Badge>
           </div>
         </div>
-        <ApplicationActions applicationId={current.id} />
+        <ApplicationActions applicationId={current.id} status={current.status} />
       </div>
 
       <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">

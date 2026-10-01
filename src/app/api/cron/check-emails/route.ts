@@ -6,6 +6,7 @@ import {
 } from "@/lib/google/gmail";
 import {
   ensureWaitingApplication,
+  mergeAllDuplicateApplications,
   mergeDuplicateOpenApplicationsByEmail,
   processIncomingFiles,
 } from "@/lib/pipeline";
@@ -56,6 +57,14 @@ export async function GET(req: NextRequest) {
       req.nextUrl.searchParams.get("force") === "true";
 
     const emails = await fetchPendingMortgageEmails(5, force);
+
+    // Cleanup doppioni residui (es. test / force)
+    try {
+      await mergeAllDuplicateApplications();
+    } catch (mergeErr) {
+      console.error("mergeAllDuplicateApplications", mergeErr);
+    }
+
     const results = [];
 
     for (const email of emails) {

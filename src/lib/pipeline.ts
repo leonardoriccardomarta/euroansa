@@ -187,12 +187,12 @@ export async function ensureWaitingApplication(params: {
 }
 
 /**
- * Se per errore esistono più pratiche (aperte o già inviate) con la stessa email, le fonde:
- * tiene la più aggiornata e sposta i documenti delle altre.
+ * Se per errore esistono più pratiche con la stessa email, le fonde:
+ * tiene quella con più documenti (o la più aggiornata) e sposta i doc delle altre.
  */
 export async function mergeDuplicateOpenApplicationsByEmail(email: string) {
   const normalized = email.trim().toLowerCase();
-  const open = await db
+  const candidates = await db
     .select()
     .from(applications)
     .where(
@@ -205,12 +205,29 @@ export async function mergeDuplicateOpenApplicationsByEmail(email: string) {
           "PERITO_NOMINATO",
         ]),
       ),
-    )
-    .orderBy(desc(applications.updatedAt));
+    );
 
-  if (open.length <= 1) return open[0] ?? null;
+  if (candidates.length <= 1) return candidates[0] ?? null;
 
-  const [keep, ...dupes] = open;
+  const ranked = await Promise.all(
+    candidates.map(async (app) => {
+      const docs = await db
+        .select({ id: documents.id })
+        .from(documents)
+        .where(eq(documents.applicationId, app.id));
+      return { app, docCount: docs.length };
+    }),
+  );
+  ranked.sort((a, b) => {
+    if (b.docCount !== a.docCount) return b.docCount - a.docCount;
+    return (
+      new Date(b.app.updatedAt).getTime() - new Date(a.app.updatedAt).getTime()
+    );
+  });
+
+  const keep = ranked[0].app;
+  const dupes = ranked.slice(1).map((r) => r.app);
+
   for (const dupe of dupes) {
     await db
       .update(documents)
@@ -230,6 +247,10 @@ export async function mergeDuplicateOpenApplicationsByEmail(email: string) {
       patch.driveFolderId = dupe.driveFolderId;
       patch.driveFolderUrl = dupe.driveFolderUrl;
     }
+    if (!keep.sentToSecretaryAt && dupe.sentToSecretaryAt) {
+      patch.sentToSecretaryAt = dupe.sentToSecretaryAt;
+      patch.status = dupe.status;
+    }
     if (Object.keys(patch).length > 1) {
       await db
         .update(applications)
@@ -242,6 +263,28 @@ export async function mergeDuplicateOpenApplicationsByEmail(email: string) {
 
   await dedupeApplicationDocuments(keep.id);
   return keep;
+}
+
+/** Fusiona tutti i doppioni per email (cleanup one-shot / cron). */
+export async function mergeAllDuplicateApplications() {
+  const rows = await db
+    .select({ email: applications.clientEmail })
+    .from(applications);
+  const emails = [
+    ...new Set(rows.map((r) => r.email.trim().toLowerCase()).filter(Boolean)),
+  ];
+  let mergedGroups = 0;
+  for (const email of emails) {
+    const before = await db
+      .select({ id: applications.id })
+      .from(applications)
+      .where(eq(applications.clientEmail, email));
+    if (before.length > 1) {
+      await mergeDuplicateOpenApplicationsByEmail(email);
+      mergedGroups += 1;
+    }
+  }
+  return { emailsChecked: emails.length, mergedGroups };
 }
 
 /** Elimina duplicati: stesso file grezzo o stesso tipo documento (tiene il più recente). */
