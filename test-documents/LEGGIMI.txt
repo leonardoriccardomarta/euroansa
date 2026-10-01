@@ -1,0 +1,21 @@
+Documenti di test Euroansa
+========================
+
+Persona finta:
+- Nome: Mario Rossi
+- CF: RSSMRA85M01H501Z
+- CI scadenza: 15/03/2031
+
+Come usare:
+1. Allega questi PDF a una email
+2. Destinatario: la TUA Gmail collegata a Google OAuth
+3. Oggetto: [EUROANSA-MUTUO] Documenti Rossi Mario
+4. Aspetta cron-job.org oppure chiama /api/cron/check-emails
+5. In dashboard deve comparire la pratica con badge Test
+   (se il mittente = ADMIN_EMAIL)
+
+File:
+- 01_carta_identita.pdf
+- 02_tessera_sanitaria.pdf
+- 03/04/05_busta_paga_*.pdf (netto ~1850, trattenute 120)
+- 06_cud_2025.pdf (lordo annuo 29400)
