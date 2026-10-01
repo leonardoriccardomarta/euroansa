@@ -1,6 +1,7 @@
 import { and, desc, eq, inArray } from "drizzle-orm";
 import { db } from "@/db";
 import { applications, documents, systemSettings } from "@/db/schema";
+import type { DocumentType } from "@/db/schema";
 import { analyzeDocument } from "@/lib/ai/analyze-document";
 import { checkAnagraphicCoherence } from "@/lib/ai/coherence";
 import {
@@ -8,6 +9,7 @@ import {
   evaluateChecklist,
   inferEmploymentType,
 } from "@/lib/checklist";
+import { FILE_NAME_PREFIX } from "@/lib/config/documents";
 import { computePreScoring } from "@/lib/prescoring";
 import { getOrCreateClientFolder, uploadFileToDrive } from "@/lib/google/drive";
 import { sendApplicationToSecretary } from "@/lib/google/secretary-sender";
@@ -21,6 +23,50 @@ export type IncomingFile = {
 };
 
 const OPEN_STATUSES = ["DOCUMENTI_INCOMPLETI", "COMPLETA_DA_INOLTRARE"] as const;
+const PAYSLIP_SLOTS: DocumentType[] = [
+  "BUSTA_PAGA_1",
+  "BUSTA_PAGA_2",
+  "BUSTA_PAGA_3",
+];
+
+function withResolvedType<
+  T extends { documentType: DocumentType; standardizedFileName: string },
+>(analysis: T, resolved: DocumentType, originalFileName: string): T {
+  if (analysis.documentType === resolved) return analysis;
+  const ext = originalFileName.includes(".")
+    ? originalFileName.slice(originalFileName.lastIndexOf("."))
+    : ".pdf";
+  const prefix = FILE_NAME_PREFIX[resolved] ?? "99_Doc";
+  // sostituisce solo il prefisso tipo nel nome già standardizzato
+  const rest = analysis.standardizedFileName.replace(/^\d+_[^_]+/, prefix);
+  return {
+    ...analysis,
+    documentType: resolved,
+    standardizedFileName: rest.includes(".")
+      ? rest
+      : `${prefix}_${Date.now()}${ext}`,
+  };
+}
+
+/**
+ * Se Gemini classifica una busta già presente, la mette nel primo slot libero.
+ * Tipi non-busta già presenti → null (skip).
+ */
+function resolveDocumentType(
+  detected: DocumentType,
+  knownTypes: Set<string>,
+): DocumentType | null {
+  if (detected === "SCONOSCIUTO") return detected;
+
+  if (PAYSLIP_SLOTS.includes(detected)) {
+    if (!knownTypes.has(detected)) return detected;
+    const free = PAYSLIP_SLOTS.find((slot) => !knownTypes.has(slot));
+    return free ?? null;
+  }
+
+  if (knownTypes.has(detected)) return null;
+  return detected;
+}
 
 /**
  * Una sola pratica aperta per cliente.
@@ -257,13 +303,18 @@ export async function processIncomingFiles(
       continue;
     }
 
-    // Se quel tipo c'è già, non ricreare (es. seconda CI)
-    if (
-      analysis.documentType !== "SCONOSCIUTO" &&
-      knownTypes.has(analysis.documentType) &&
-      options?.applicationId
-    ) {
-      continue;
+    // Se quel tipo c'è già, prova remap buste / altrimenti skip
+    if (options?.applicationId) {
+      const resolved = resolveDocumentType(analysis.documentType, knownTypes);
+      if (!resolved) {
+        applicationIds.add(options.applicationId);
+        continue;
+      }
+      analysis = withResolvedType(
+        analysis,
+        resolved,
+        file.originalFileName,
+      );
     }
 
     const clientName =
@@ -325,13 +376,17 @@ export async function processIncomingFiles(
         applicationIds.add(app.id);
         continue;
       }
-      if (
-        analysis.documentType !== "SCONOSCIUTO" &&
-        knownTypes.has(analysis.documentType)
-      ) {
+
+      const resolved = resolveDocumentType(analysis.documentType, knownTypes);
+      if (!resolved) {
         applicationIds.add(app.id);
         continue;
       }
+      analysis = withResolvedType(
+        analysis,
+        resolved,
+        file.originalFileName,
+      );
     }
 
     const updates: Partial<typeof applications.$inferInsert> = {
