@@ -76,7 +76,7 @@ export default async function ApplicationDetailPage({
 
       <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
         <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-          Checklist — {checklist.progressLabel}
+          Checklist {checklist.progressLabel}
         </p>
         <div className="mt-3 h-2 rounded-full bg-slate-100">
           <div

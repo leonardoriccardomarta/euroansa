@@ -26,7 +26,6 @@ export async function updateApplicationStatusAction(
     .set({ status, updatedAt: new Date() })
     .where(eq(applications.id, applicationId));
   revalidatePath(`/dashboard/applications/${applicationId}`);
-  revalidatePath("/dashboard");
   return { ok: true };
 }
 

@@ -40,7 +40,7 @@ export function evaluateChecklist(
     completedCount,
     totalRequired,
     isComplete,
-    progressLabel: `${completedCount}/${totalRequired}${isComplete ? " — Completa" : ""}`,
+    progressLabel: `${completedCount}/${totalRequired}${isComplete ? " Completa" : ""}`,
   };
 }
 

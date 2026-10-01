@@ -19,7 +19,7 @@ export function DocumentUpload({ applicationId }: { applicationId: string }) {
         const res = await uploadDocumentsAction(applicationId, formData);
         toast.success(`${res.count} file elaborati`);
       } catch {
-        toast.error("Upload/analisi fallita — verifica Gemini e Drive");
+        toast.error("Upload o analisi fallita. Verifica Gemini e Drive");
       }
     });
   }
@@ -57,6 +57,7 @@ export function DocumentUpload({ applicationId }: { applicationId: string }) {
         type="button"
         variant="outline"
         disabled={pending}
+        className="min-h-11 rounded-lg active:scale-95"
         onClick={() => document.getElementById("file-upload")?.click()}
       >
         {pending ? "Elaborazione AI..." : "Carica documenti"}

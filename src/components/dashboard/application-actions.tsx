@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { useOptimistic, useState, useTransition } from "react";
 import {
   getSollecitoTextAction,
   sendToSecretaryAction,
@@ -10,13 +11,6 @@ import {
 import type { ApplicationStatus, EmploymentType } from "@/db/schema";
 import { BANK_MANUAL_STATUSES } from "@/lib/config/documents";
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { toast } from "sonner";
 
 const EMPLOYMENT_OPTIONS: { value: EmploymentType; label: string }[] = [
@@ -24,6 +18,23 @@ const EMPLOYMENT_OPTIONS: { value: EmploymentType; label: string }[] = [
   { value: "PARTITA_IVA", label: "Partita IVA" },
   { value: "PENSIONATO", label: "Pensionato" },
   { value: "ALTRO", label: "Altro" },
+];
+
+const STATUS_OPTIONS: { value: ApplicationStatus; label: string }[] = [
+  { value: "IN_ATTESA_DOCUMENTI", label: "In attesa documenti" },
+  { value: "DOCUMENTI_INCOMPLETI", label: "Documenti incompleti" },
+  { value: "COMPLETA_DA_INOLTRARE", label: "Completa da inoltrare" },
+  { value: "INVIATA_A_SEGRETERIA", label: "Inviata a segreteria" },
+  { value: "ANOMALIA", label: "Anomalia" },
+  ...BANK_MANUAL_STATUSES.map((s) => ({
+    value: s as ApplicationStatus,
+    label:
+      s === "INVIATA_IN_BANCA"
+        ? "Inviata in banca"
+        : s === "PERITO_NOMINATO"
+          ? "Perito nominato"
+          : "Deliberata",
+  })),
 ];
 
 export function ApplicationActions({
@@ -35,109 +46,97 @@ export function ApplicationActions({
   status: ApplicationStatus;
   employmentType: EmploymentType;
 }) {
+  const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [sollecito, setSollecito] = useState<string | null>(null);
+  const [optStatus, setOptStatus] = useOptimistic(status);
+  const [optEmployment, setOptEmployment] = useOptimistic(employmentType);
 
   return (
     <div className="flex w-full flex-col gap-2 sm:w-auto sm:items-end">
-      <div className="flex flex-wrap gap-2">
+      <div className="flex w-full flex-wrap gap-2 sm:w-auto">
         <Button
           disabled={pending}
-          className="bg-primary-600 hover:bg-primary-700"
+          className="min-h-11 flex-1 rounded-lg bg-primary-600 font-semibold shadow-md active:scale-95 hover:bg-primary-700 sm:flex-none"
           onClick={() => {
             startTransition(async () => {
               try {
                 await sendToSecretaryAction(applicationId);
                 toast.success("Inviata a segreteria");
+                router.refresh();
               } catch {
-                toast.error("Invio fallito — verifica Google OAuth");
+                toast.error("Invio fallito. Verifica Google OAuth");
               }
             });
           }}
         >
-          Invia ora a segreteria
+          {pending ? "Invio..." : "Invia ora a segreteria"}
         </Button>
         <Button
           variant="outline"
           disabled={pending}
+          className="min-h-11 flex-1 rounded-lg active:scale-95 sm:flex-none"
           onClick={() => {
             startTransition(async () => {
               const res = await getSollecitoTextAction(applicationId);
               if ("text" in res && res.text) {
                 setSollecito(res.text);
                 await navigator.clipboard.writeText(res.text);
-                toast.success("Sollecito copiato negli appunti");
+                toast.success("Sollecito copiato");
               }
             });
           }}
         >
-          Copia sollecito cliente
+          Copia sollecito
         </Button>
       </div>
 
-      <div className="flex flex-wrap gap-2">
-        <Select
-          value={employmentType}
-          onValueChange={(v) => {
-            if (!v) return;
+      <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+        <select
+          value={optEmployment}
+          disabled={pending}
+          className="min-h-11 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm font-medium text-slate-800 sm:w-[220px]"
+          onChange={(e) => {
+            const next = e.target.value as EmploymentType;
             startTransition(async () => {
-              await updateEmploymentTypeAction(
-                applicationId,
-                v as EmploymentType,
-              );
+              setOptEmployment(next);
+              await updateEmploymentTypeAction(applicationId, next);
               toast.success("Profilo aggiornato");
+              router.refresh();
             });
           }}
         >
-          <SelectTrigger className="w-[220px]">
-            <SelectValue placeholder="Profilo lavorativo" />
-          </SelectTrigger>
-          <SelectContent>
-            {EMPLOYMENT_OPTIONS.map((o) => (
-              <SelectItem key={o.value} value={o.value}>
-                {o.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          {EMPLOYMENT_OPTIONS.map((o) => (
+            <option key={o.value} value={o.value}>
+              {o.label}
+            </option>
+          ))}
+        </select>
 
-        <Select
-          value={status}
-          onValueChange={(v) => {
-            if (!v) return;
+        <select
+          value={optStatus}
+          disabled={pending}
+          className="min-h-11 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm font-medium text-slate-800 sm:w-[220px]"
+          onChange={(e) => {
+            const next = e.target.value as ApplicationStatus;
             startTransition(async () => {
-              await updateApplicationStatusAction(
-                applicationId,
-                v as ApplicationStatus,
-              );
+              setOptStatus(next);
+              await updateApplicationStatusAction(applicationId, next);
               toast.success("Stato aggiornato");
+              router.refresh();
             });
           }}
         >
-          <SelectTrigger className="w-[220px]">
-            <SelectValue placeholder="Stato pratica" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="IN_ATTESA_DOCUMENTI">In attesa documenti</SelectItem>
-            <SelectItem value="DOCUMENTI_INCOMPLETI">Documenti incompleti</SelectItem>
-            <SelectItem value="COMPLETA_DA_INOLTRARE">Completa da inoltrare</SelectItem>
-            <SelectItem value="INVIATA_A_SEGRETERIA">Inviata a segreteria</SelectItem>
-            <SelectItem value="ANOMALIA">Anomalia</SelectItem>
-            {BANK_MANUAL_STATUSES.map((s) => (
-              <SelectItem key={s} value={s}>
-                {s === "INVIATA_IN_BANCA"
-                  ? "Inviata in banca"
-                  : s === "PERITO_NOMINATO"
-                    ? "Perito nominato"
-                    : "Deliberata"}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          {STATUS_OPTIONS.map((o) => (
+            <option key={o.value} value={o.value}>
+              {o.label}
+            </option>
+          ))}
+        </select>
       </div>
 
       {sollecito && (
-        <pre className="mt-2 max-w-md whitespace-pre-wrap rounded-md border bg-slate-50 p-3 text-xs text-slate-700">
+        <pre className="mt-2 max-w-md whitespace-pre-wrap rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs text-slate-700">
           {sollecito}
         </pre>
       )}
