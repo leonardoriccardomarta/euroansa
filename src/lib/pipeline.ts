@@ -68,10 +68,12 @@ function resolveDocumentType(
   return detected;
 }
 
+const OPEN_STATUSES = ["DOCUMENTI_INCOMPLETI", "COMPLETA_DA_INOLTRARE"] as const;
+
 /**
- * Una sola pratica aperta per cliente.
- * Stessa email (anche 2ª mail con stessi oggetti/allegati mancanti) → riusa quella esistente.
- * Match anche per CF se già noto.
+ * Una sola pratica per cliente (stessa email mittente).
+ * 2ª mail con allegati mancanti → riusa quella esistente, anche se già inviata a segreteria.
+ * Nuova pratica solo se non esiste nulla per quell'email/CF (o solo pratiche DELIBERATA).
  */
 async function findOrCreateApplication(params: {
   fiscalCode?: string | null;
@@ -82,9 +84,9 @@ async function findOrCreateApplication(params: {
   const email = params.email?.trim().toLowerCase() || null;
   const fiscalCode = params.fiscalCode?.trim().toUpperCase() || null;
 
-  // 1) Pratica aperta con stessa email mittente (caso tipico: seconda mail)
+  // 1) Pratica aperta con stessa email
   if (email) {
-    const [byEmail] = await db
+    const [byEmailOpen] = await db
       .select()
       .from(applications)
       .where(
@@ -95,24 +97,50 @@ async function findOrCreateApplication(params: {
       )
       .orderBy(desc(applications.updatedAt))
       .limit(1);
-    if (byEmail) {
-      // Aggiorna CF se mancava e ora lo leggiamo dai nuovi doc
-      if (fiscalCode && !byEmail.clientFiscalCode) {
+    if (byEmailOpen) {
+      if (fiscalCode && !byEmailOpen.clientFiscalCode) {
         const [updated] = await db
           .update(applications)
-          .set({
-            clientFiscalCode: fiscalCode,
-            updatedAt: new Date(),
-          })
-          .where(eq(applications.id, byEmail.id))
+          .set({ clientFiscalCode: fiscalCode, updatedAt: new Date() })
+          .where(eq(applications.id, byEmailOpen.id))
           .returning();
-        return updated ?? byEmail;
+        return updated ?? byEmailOpen;
       }
-      return byEmail;
+      return byEmailOpen;
+    }
+
+    // 2) Qualsiasi pratica recente stessa email (evita doppioni dopo invio segreteria / force)
+    const [byEmailAny] = await db
+      .select()
+      .from(applications)
+      .where(
+        and(
+          eq(applications.clientEmail, email),
+          // non riaprire una deliberata chiusa
+          inArray(applications.status, [
+            ...OPEN_STATUSES,
+            "INVIATA_A_SEGRETERIA",
+            "INVIATA_IN_BANCA",
+            "PERITO_NOMINATO",
+          ]),
+        ),
+      )
+      .orderBy(desc(applications.updatedAt))
+      .limit(1);
+    if (byEmailAny) {
+      if (fiscalCode && !byEmailAny.clientFiscalCode) {
+        const [updated] = await db
+          .update(applications)
+          .set({ clientFiscalCode: fiscalCode, updatedAt: new Date() })
+          .where(eq(applications.id, byEmailAny.id))
+          .returning();
+        return updated ?? byEmailAny;
+      }
+      return byEmailAny;
     }
   }
 
-  // 2) Pratica aperta con stesso CF (doc OCR, email diversa/alias)
+  // 3) Pratica aperta con stesso CF
   if (fiscalCode) {
     const [byCf] = await db
       .select()
@@ -120,17 +148,17 @@ async function findOrCreateApplication(params: {
       .where(
         and(
           eq(applications.clientFiscalCode, fiscalCode),
-          inArray(applications.status, [...OPEN_STATUSES]),
+          inArray(applications.status, [
+            ...OPEN_STATUSES,
+            "INVIATA_A_SEGRETERIA",
+            "INVIATA_IN_BANCA",
+            "PERITO_NOMINATO",
+          ]),
         ),
       )
       .orderBy(desc(applications.updatedAt))
       .limit(1);
-    if (byCf) {
-      if (email && byCf.clientEmail !== email) {
-        // Conserva email già nota; non sovrascrivere
-      }
-      return byCf;
-    }
+    if (byCf) return byCf;
   }
 
   const [created] = await db
@@ -161,8 +189,8 @@ export async function ensureWaitingApplication(params: {
 }
 
 /**
- * Se per errore esistono più pratiche aperte con la stessa email, le fonde:
- * tiene la più recente e sposta i documenti delle altre.
+ * Se per errore esistono più pratiche (aperte o già inviate) con la stessa email, le fonde:
+ * tiene la più aggiornata e sposta i documenti delle altre.
  */
 export async function mergeDuplicateOpenApplicationsByEmail(email: string) {
   const normalized = email.trim().toLowerCase();
@@ -172,7 +200,12 @@ export async function mergeDuplicateOpenApplicationsByEmail(email: string) {
     .where(
       and(
         eq(applications.clientEmail, normalized),
-        inArray(applications.status, [...OPEN_STATUSES]),
+        inArray(applications.status, [
+          ...OPEN_STATUSES,
+          "INVIATA_A_SEGRETERIA",
+          "INVIATA_IN_BANCA",
+          "PERITO_NOMINATO",
+        ]),
       ),
     )
     .orderBy(desc(applications.updatedAt));
@@ -186,7 +219,6 @@ export async function mergeDuplicateOpenApplicationsByEmail(email: string) {
       .set({ applicationId: keep.id })
       .where(eq(documents.applicationId, dupe.id));
 
-    // Preferisci CF/nome dalla pratica più completa
     const patch: Partial<typeof applications.$inferInsert> = {
       updatedAt: new Date(),
     };
