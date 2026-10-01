@@ -3,16 +3,13 @@ import type { DocumentType, EmploymentType } from "@/db/schema";
 /**
  * Config documenti Euroansa.
  *
- * PENDING venerdì (Filippo):
- * - lista obbligatoria/opzionale definitiva per profilo
- * - template nomi file precisi (es. "NOME CLIENTE_bp 08.07.06", "NOME CLIENTE_ci ts pds", "NOME CLIENTE_cud_26")
- *
- * Confermato Filippo (01/10/2026):
- * - Q1 ownership: senior (ADMIN) vede tutte + titolare; broker solo le proprie
- * - Multiuser Google: ogni utente collega la propria Gmail+Drive; cron legge
- *   tutte le caselle e assegna brokerId + Drive al titolare della casella
- * - Q3 validità: illeggibili, scaduti, errati, movimenti bancari sospetti, CIG/cessione quinto
- * - Q5 Drive sottocartelle: doc clienti / banca / immobile / euroansa
+ * Confermato Filippo:
+ * - Checklist NON fissa: ogni pratica/banca richiede documenti diversi.
+ *   Il broker seleziona i richiesti per pratica (dashboard) o parte da un preset.
+ * - Q1 ownership: ADMIN vede tutte; broker solo le proprie
+ * - Multiuser Google: OAuth per utente → casella/Drive propri
+ * - Q3 validità documenti (scaduti, illeggibili, CIG, ecc.)
+ * - Q5 Drive sottocartelle
  * - Q6 oggetto mail: [EUROANSA-MUTUO]
  */
 
@@ -31,8 +28,26 @@ export const DOCUMENT_TYPE_LABELS: Record<DocumentType, string> = {
   SCONOSCIUTO: "Documento non riconosciuto",
 };
 
-/** Provvisorio — Filippo fornisce lista completa venerdì */
-export const REQUIRED_DOCS_BY_EMPLOYMENT: Record<EmploymentType, DocumentType[]> = {
+/** Tipi selezionabili in checklist (escluso SCONOSCIUTO). */
+export const CHECKLIST_DOCUMENT_TYPES: DocumentType[] = [
+  "CARTA_IDENTITA",
+  "TESSERA_SANITARIA",
+  "BUSTA_PAGA_1",
+  "BUSTA_PAGA_2",
+  "BUSTA_PAGA_3",
+  "CUD_730",
+  "CEDOLINO_PENSIONE",
+  "MODELLO_UNICO",
+  "F24",
+  "ATTO_IMMOBILE",
+  "VISURA_CAMERALE",
+];
+
+/**
+ * Solo preset di partenza (opzionali).
+ * NON sono la verità automatica: ogni pratica ha la sua lista.
+ */
+export const CHECKLIST_PRESETS: Record<EmploymentType, DocumentType[]> = {
   DIPENDENTE_INDETERMINATO: [
     "CARTA_IDENTITA",
     "TESSERA_SANITARIA",
@@ -57,7 +72,8 @@ export const REQUIRED_DOCS_BY_EMPLOYMENT: Record<EmploymentType, DocumentType[]>
   ALTRO: ["CARTA_IDENTITA", "TESSERA_SANITARIA"],
 };
 
-export const OPTIONAL_DOCS: DocumentType[] = ["ATTO_IMMOBILE", "VISURA_CAMERALE"];
+/** @deprecated usa CHECKLIST_PRESETS */
+export const REQUIRED_DOCS_BY_EMPLOYMENT = CHECKLIST_PRESETS;
 
 /** Cartella root cliente: "{Nome} - Mutuo ({id8})" */
 export const DRIVE_FOLDER_TEMPLATE = "{CognomeNome} - Mutuo";

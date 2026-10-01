@@ -92,6 +92,15 @@ export const applications = pgTable("applications", {
   driveFolderId: text("drive_folder_id"),
   driveFolderUrl: text("drive_folder_url"),
   preScoringData: jsonb("pre_scoring_data").$type<PreScoringData>(),
+  /**
+   * Documenti richiesti PER QUESTA pratica (Filippo: ogni banca/pratica è diversa).
+   * Vuoto = checklist non ancora impostata dal broker → pratica incompleta.
+   */
+  requiredDocumentTypes: text("required_document_types")
+    .array()
+    .$type<DocumentType[]>()
+    .notNull()
+    .default([]),
   brokerId: uuid("broker_id").references(() => users.id, { onDelete: "set null" }),
   isTest: boolean("is_test").notNull().default(false),
   sentToSecretaryAt: timestamp("sent_to_secretary_at", { withTimezone: true }),

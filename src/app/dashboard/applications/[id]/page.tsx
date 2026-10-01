@@ -23,6 +23,7 @@ import { Badge } from "@/components/ui/badge";
 import { ApplicationActions } from "@/components/dashboard/application-actions";
 import { BrokerAssign } from "@/components/dashboard/broker-assign";
 import { DocumentUpload } from "@/components/dashboard/document-upload";
+import { RequiredDocsEditor } from "@/components/dashboard/required-docs-editor";
 
 export const dynamic = "force-dynamic";
 
@@ -94,7 +95,7 @@ export default async function ApplicationDetailPage({
     : null;
 
   const employmentType = inferEmploymentType(docs);
-  const checklist = evaluateChecklist(employmentType, docs);
+  const checklist = evaluateChecklist(current.requiredDocumentTypes, docs);
   const progressPct =
     checklist.totalRequired > 0
       ? (checklist.completedCount / checklist.totalRequired) * 100
@@ -169,61 +170,78 @@ export default async function ApplicationDetailPage({
       </div>
 
       <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+        <RequiredDocsEditor
+          applicationId={current.id}
+          requiredDocumentTypes={current.requiredDocumentTypes ?? []}
+          suggestedPreset={employmentType}
+        />
+      </div>
+
+      <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
         <div className="flex items-center justify-between gap-3">
           <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-            Checklist
+            Stato documenti
           </p>
           <p className="text-sm font-semibold text-slate-700">
             {checklist.progressLabel}
           </p>
         </div>
-        <div className="mt-3 h-2 rounded-full bg-slate-100">
-          <div
-            className="h-2 rounded-full bg-primary-600 transition-all"
-            style={{ width: `${progressPct}%` }}
-          />
-        </div>
-        <ul className="mt-4 grid gap-2 sm:grid-cols-2">
-          {checklist.required.map((type) => {
-            const ok = checklist.presentValid.includes(type);
-            const invalid = checklist.invalid.includes(type);
-            return (
-              <li
-                key={type}
-                className="flex items-center gap-2.5 rounded-lg bg-slate-50 px-3 py-2.5 text-sm text-slate-700"
-              >
-                {ok ? (
-                  <CheckCircle2
-                    className="h-4 w-4 shrink-0 text-emerald-600"
-                    aria-label="Presente e valido"
-                  />
-                ) : invalid ? (
-                  <AlertCircle
-                    className="h-4 w-4 shrink-0 text-amber-500"
-                    aria-label="Presente ma non valido"
-                  />
-                ) : (
-                  <Circle
-                    className="h-4 w-4 shrink-0 text-slate-300"
-                    aria-label="Mancante"
-                  />
-                )}
-                <span className={ok ? "text-slate-800" : "text-slate-600"}>
-                  {DOCUMENT_TYPE_LABELS[type]}
-                </span>
-              </li>
-            );
-          })}
-        </ul>
-        {(checklist.missing.length > 0 || checklist.invalid.length > 0) && (
-          <p className="mt-4 text-sm text-slate-500">
-            {checklist.missing.length > 0
-              ? `Mancano: ${checklist.missing.map((t) => DOCUMENT_TYPE_LABELS[t]).join(", ")}.`
-              : null}{" "}
-            {checklist.invalid.length > 0
-              ? `Da rifare: ${checklist.invalid.map((t) => DOCUMENT_TYPE_LABELS[t]).join(", ")}.`
-              : null}
+        {checklist.isUnset ? (
+          <p className="mt-3 text-sm text-amber-700">
+            Imposta sopra i documenti richiesti per questa pratica: senza
+            checklist non può risultare completa.
           </p>
+        ) : (
+          <>
+            <div className="mt-3 h-2 rounded-full bg-slate-100">
+              <div
+                className="h-2 rounded-full bg-primary-600 transition-all"
+                style={{ width: `${progressPct}%` }}
+              />
+            </div>
+            <ul className="mt-4 grid gap-2 sm:grid-cols-2">
+              {checklist.required.map((type) => {
+                const ok = checklist.presentValid.includes(type);
+                const invalid = checklist.invalid.includes(type);
+                return (
+                  <li
+                    key={type}
+                    className="flex items-center gap-2.5 rounded-lg bg-slate-50 px-3 py-2.5 text-sm text-slate-700"
+                  >
+                    {ok ? (
+                      <CheckCircle2
+                        className="h-4 w-4 shrink-0 text-emerald-600"
+                        aria-label="Presente e valido"
+                      />
+                    ) : invalid ? (
+                      <AlertCircle
+                        className="h-4 w-4 shrink-0 text-amber-500"
+                        aria-label="Presente ma non valido"
+                      />
+                    ) : (
+                      <Circle
+                        className="h-4 w-4 shrink-0 text-slate-300"
+                        aria-label="Mancante"
+                      />
+                    )}
+                    <span className={ok ? "text-slate-800" : "text-slate-600"}>
+                      {DOCUMENT_TYPE_LABELS[type]}
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+            {(checklist.missing.length > 0 || checklist.invalid.length > 0) && (
+              <p className="mt-4 text-sm text-slate-500">
+                {checklist.missing.length > 0
+                  ? `Mancano: ${checklist.missing.map((t) => DOCUMENT_TYPE_LABELS[t]).join(", ")}.`
+                  : null}{" "}
+                {checklist.invalid.length > 0
+                  ? `Da rifare: ${checklist.invalid.map((t) => DOCUMENT_TYPE_LABELS[t]).join(", ")}.`
+                  : null}
+              </p>
+            )}
+          </>
         )}
       </div>
 

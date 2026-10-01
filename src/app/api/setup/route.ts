@@ -56,6 +56,7 @@ const SETUP_STATEMENTS = [
   `ALTER TABLE users ADD COLUMN IF NOT EXISTS google_refresh_token text`,
   `ALTER TABLE users ADD COLUMN IF NOT EXISTS google_email varchar(255)`,
   `ALTER TABLE users ADD COLUMN IF NOT EXISTS google_connected_at timestamptz`,
+  `ALTER TABLE applications ADD COLUMN IF NOT EXISTS required_document_types text[] DEFAULT '{}' NOT NULL`,
   // Stati deprecati → documenti incompleti
   `UPDATE applications SET status = 'DOCUMENTI_INCOMPLETI' WHERE status IN ('ANOMALIA', 'IN_ATTESA_DOCUMENTI')`,
   `ALTER TABLE applications ALTER COLUMN status SET DEFAULT 'DOCUMENTI_INCOMPLETI'`,

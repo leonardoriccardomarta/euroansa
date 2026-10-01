@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import { db } from "@/db";
 import { applications, documents, users } from "@/db/schema";
-import { evaluateChecklist, inferEmploymentType } from "@/lib/checklist";
+import { evaluateChecklist } from "@/lib/checklist";
 import { APPLICATION_STATUS_LABELS } from "@/lib/config/documents";
 import { StatusFilter } from "@/components/dashboard/status-filter";
 import { ApplicationCard } from "@/components/dashboard/application-card";
@@ -45,6 +45,7 @@ export default async function DashboardPage({
         sentToSecretaryAt: applications.sentToSecretaryAt,
         isTest: applications.isTest,
         brokerId: applications.brokerId,
+        requiredDocumentTypes: applications.requiredDocumentTypes,
       })
       .from(applications)
       .orderBy(desc(applications.updatedAt)),
@@ -150,7 +151,7 @@ export default async function DashboardPage({
           filtered.map((app) => {
             const docs = docsByApp.get(app.id) ?? [];
             const checklist = evaluateChecklist(
-              inferEmploymentType(docs),
+              app.requiredDocumentTypes,
               docs,
             );
             const pct =

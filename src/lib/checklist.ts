@@ -1,5 +1,5 @@
 import type { Document, DocumentType, EmploymentType } from "@/db/schema";
-import { REQUIRED_DOCS_BY_EMPLOYMENT } from "@/lib/config/documents";
+import { CHECKLIST_PRESETS } from "@/lib/config/documents";
 
 export type ChecklistResult = {
   required: DocumentType[];
@@ -9,10 +9,12 @@ export type ChecklistResult = {
   completedCount: number;
   totalRequired: number;
   isComplete: boolean;
+  /** true se il broker non ha ancora impostato la checklist per questa pratica */
+  isUnset: boolean;
   progressLabel: string;
 };
 
-/** Deduce il profilo lavorativo dai tipi documento presenti. */
+/** Deduce il profilo lavorativo dai tipi documento presenti (solo hint / preset). */
 export function inferEmploymentType(
   docs: Pick<Document, "documentType">[],
 ): EmploymentType {
@@ -36,11 +38,19 @@ export function inferEmploymentType(
   return "DIPENDENTE_INDETERMINATO";
 }
 
+/**
+ * Checklist per pratica: usa solo i tipi segnati su quella pratica.
+ * Non usa più la lista fissa per profilo lavorativo.
+ */
 export function evaluateChecklist(
-  employmentType: EmploymentType,
+  requiredTypes: DocumentType[] | null | undefined,
   docs: Pick<Document, "documentType" | "isValid">[],
 ): ChecklistResult {
-  const required = REQUIRED_DOCS_BY_EMPLOYMENT[employmentType] ?? [];
+  const required = (requiredTypes ?? []).filter(
+    (t) => t && t !== "SCONOSCIUTO",
+  );
+  const isUnset = required.length === 0;
+
   const validTypes = new Set(
     docs.filter((d) => d.isValid).map((d) => d.documentType),
   );
@@ -54,7 +64,7 @@ export function evaluateChecklist(
 
   const completedCount = presentValid.length;
   const totalRequired = required.length;
-  const isComplete = completedCount === totalRequired && totalRequired > 0;
+  const isComplete = !isUnset && completedCount === totalRequired;
 
   return {
     required,
@@ -64,12 +74,23 @@ export function evaluateChecklist(
     completedCount,
     totalRequired,
     isComplete,
-    progressLabel: `${completedCount}/${totalRequired}${isComplete ? " Completa" : ""}`,
+    isUnset,
+    progressLabel: isUnset
+      ? "Seleziona i documenti richiesti"
+      : `${completedCount}/${totalRequired}${isComplete ? " Completa" : ""}`,
   };
 }
 
-export function deriveApplicationStatus(
+/** @deprecated usa evaluateChecklist(requiredTypes, docs) */
+export function evaluateChecklistByEmployment(
   employmentType: EmploymentType,
+  docs: Pick<Document, "documentType" | "isValid">[],
+): ChecklistResult {
+  return evaluateChecklist(CHECKLIST_PRESETS[employmentType] ?? [], docs);
+}
+
+export function deriveApplicationStatus(
+  requiredTypes: DocumentType[] | null | undefined,
   docs: Pick<Document, "documentType" | "isValid">[],
   currentStatus: string,
 ): "DOCUMENTI_INCOMPLETI" | "COMPLETA_DA_INOLTRARE" | null {
@@ -84,7 +105,7 @@ export function deriveApplicationStatus(
     return null;
   }
 
-  const checklist = evaluateChecklist(employmentType, docs);
+  const checklist = evaluateChecklist(requiredTypes, docs);
   if (checklist.isComplete) return "COMPLETA_DA_INOLTRARE";
   return "DOCUMENTI_INCOMPLETI";
 }

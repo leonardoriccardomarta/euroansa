@@ -13,6 +13,16 @@ export function buildSollecitoMessage(params: {
     ),
   ];
 
+  if (params.checklist.isUnset) {
+    return `Ciao ${params.clientName.split(" ")[0] || ""},
+
+per procedere con la pratica mutuo ti ricordo di inviarmi i documenti che ti ho indicato.
+
+Puoi inviarmeli pure via WhatsApp o email.
+Grazie!
+${params.brokerName}`;
+  }
+
   const list =
     missingLabels.length > 0
       ? missingLabels.map((l) => `• ${l}`).join("\n")

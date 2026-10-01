@@ -8,11 +8,12 @@ import {
   documents,
   systemSettings,
   type ApplicationStatus,
+  type DocumentType,
 } from "@/db/schema";
 import { requireAdmin, requireSession } from "@/lib/auth";
-import { processIncomingFiles } from "@/lib/pipeline";
+import { processIncomingFiles, refreshApplicationState } from "@/lib/pipeline";
 import { sendApplicationToSecretary } from "@/lib/google/secretary-sender";
-import { evaluateChecklist, inferEmploymentType } from "@/lib/checklist";
+import { evaluateChecklist } from "@/lib/checklist";
 import { buildSollecitoMessage } from "@/lib/sollecito";
 
 export async function assignBrokerAction(
@@ -139,7 +140,7 @@ export async function getSollecitoTextAction(applicationId: string) {
     .where(eq(systemSettings.id, "global"))
     .limit(1);
 
-  const checklist = evaluateChecklist(inferEmploymentType(docs), docs);
+  const checklist = evaluateChecklist(app.requiredDocumentTypes, docs);
   const text = buildSollecitoMessage({
     clientName: app.clientName,
     brokerName: settings?.brokerName ?? "Euroansa",
@@ -147,6 +148,33 @@ export async function getSollecitoTextAction(applicationId: string) {
   });
 
   return { text };
+}
+
+export async function updateRequiredDocumentsAction(
+  applicationId: string,
+  requiredDocumentTypes: DocumentType[],
+) {
+  await requireSession();
+  const cleaned = [
+    ...new Set(
+      requiredDocumentTypes.filter(
+        (t): t is DocumentType => Boolean(t) && t !== "SCONOSCIUTO",
+      ),
+    ),
+  ];
+
+  await db
+    .update(applications)
+    .set({
+      requiredDocumentTypes: cleaned,
+      updatedAt: new Date(),
+    })
+    .where(eq(applications.id, applicationId));
+
+  await refreshApplicationState(applicationId);
+  revalidatePath(`/dashboard/applications/${applicationId}`);
+  revalidatePath("/dashboard");
+  return { ok: true, requiredDocumentTypes: cleaned };
 }
 
 export async function updateSettingsAction(formData: FormData): Promise<void> {

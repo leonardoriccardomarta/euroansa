@@ -618,7 +618,7 @@ export async function refreshApplicationState(applicationId: string) {
   }
 
   let nextStatus = deriveApplicationStatus(
-    employmentType,
+    app.requiredDocumentTypes,
     docs,
     app.status,
   );
@@ -637,7 +637,7 @@ export async function refreshApplicationState(applicationId: string) {
     })
     .where(eq(applications.id, applicationId));
 
-  const checklist = evaluateChecklist(employmentType, docs);
+  const checklist = evaluateChecklist(app.requiredDocumentTypes, docs);
   if (checklist.isComplete && !coherenceIssues.length) {
     const [settings] = await db
       .select()
