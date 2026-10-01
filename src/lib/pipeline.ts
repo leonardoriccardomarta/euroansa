@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray, or } from "drizzle-orm";
+import { and, desc, eq, inArray } from "drizzle-orm";
 import { db } from "@/db";
 import { applications, documents, systemSettings } from "@/db/schema";
 import { analyzeDocument } from "@/lib/ai/analyze-document";
@@ -20,44 +20,79 @@ export type IncomingFile = {
   clientNameHint?: string;
 };
 
+const OPEN_STATUSES = ["DOCUMENTI_INCOMPLETI", "COMPLETA_DA_INOLTRARE"] as const;
+
+/**
+ * Una sola pratica aperta per cliente.
+ * Stessa email (anche 2ª mail con stessi oggetti/allegati mancanti) → riusa quella esistente.
+ * Match anche per CF se già noto.
+ */
 async function findOrCreateApplication(params: {
   fiscalCode?: string | null;
   email?: string;
   clientName: string;
   isTest?: boolean;
 }) {
-  if (params.fiscalCode) {
-    const [byCf] = await db
-      .select()
-      .from(applications)
-      .where(eq(applications.clientFiscalCode, params.fiscalCode.toUpperCase()))
-      .limit(1);
-    if (byCf) return byCf;
-  }
+  const email = params.email?.trim().toLowerCase() || null;
+  const fiscalCode = params.fiscalCode?.trim().toUpperCase() || null;
 
-  if (params.email) {
+  // 1) Pratica aperta con stessa email mittente (caso tipico: seconda mail)
+  if (email) {
     const [byEmail] = await db
       .select()
       .from(applications)
       .where(
         and(
-          eq(applications.clientEmail, params.email.toLowerCase()),
-          or(
-            eq(applications.status, "DOCUMENTI_INCOMPLETI"),
-            eq(applications.status, "COMPLETA_DA_INOLTRARE"),
-          ),
+          eq(applications.clientEmail, email),
+          inArray(applications.status, [...OPEN_STATUSES]),
         ),
       )
+      .orderBy(desc(applications.updatedAt))
       .limit(1);
-    if (byEmail) return byEmail;
+    if (byEmail) {
+      // Aggiorna CF se mancava e ora lo leggiamo dai nuovi doc
+      if (fiscalCode && !byEmail.clientFiscalCode) {
+        const [updated] = await db
+          .update(applications)
+          .set({
+            clientFiscalCode: fiscalCode,
+            updatedAt: new Date(),
+          })
+          .where(eq(applications.id, byEmail.id))
+          .returning();
+        return updated ?? byEmail;
+      }
+      return byEmail;
+    }
+  }
+
+  // 2) Pratica aperta con stesso CF (doc OCR, email diversa/alias)
+  if (fiscalCode) {
+    const [byCf] = await db
+      .select()
+      .from(applications)
+      .where(
+        and(
+          eq(applications.clientFiscalCode, fiscalCode),
+          inArray(applications.status, [...OPEN_STATUSES]),
+        ),
+      )
+      .orderBy(desc(applications.updatedAt))
+      .limit(1);
+    if (byCf) {
+      if (email && byCf.clientEmail !== email) {
+        // Conserva email già nota; non sovrascrivere
+      }
+      return byCf;
+    }
   }
 
   const [created] = await db
     .insert(applications)
     .values({
       clientName: params.clientName,
-      clientEmail: (params.email ?? "sconosciuto@email.local").toLowerCase(),
-      clientFiscalCode: params.fiscalCode?.toUpperCase() ?? null,
+      clientEmail: email ?? "sconosciuto@email.local",
+      clientFiscalCode: fiscalCode,
       status: "DOCUMENTI_INCOMPLETI",
       isTest: params.isTest ?? false,
     })
@@ -66,7 +101,7 @@ async function findOrCreateApplication(params: {
   return created;
 }
 
-/** Crea pratica da mail con oggetto giusto (anche senza allegati). */
+/** Crea/riusa pratica da mail con oggetto giusto (anche senza allegati). */
 export async function ensureWaitingApplication(params: {
   email: string;
   clientNameHint?: string;
@@ -77,6 +112,60 @@ export async function ensureWaitingApplication(params: {
     clientName: params.clientNameHint || params.email.split("@")[0] || "Cliente",
     isTest: params.isTest,
   });
+}
+
+/**
+ * Se per errore esistono più pratiche aperte con la stessa email, le fonde:
+ * tiene la più recente e sposta i documenti delle altre.
+ */
+export async function mergeDuplicateOpenApplicationsByEmail(email: string) {
+  const normalized = email.trim().toLowerCase();
+  const open = await db
+    .select()
+    .from(applications)
+    .where(
+      and(
+        eq(applications.clientEmail, normalized),
+        inArray(applications.status, [...OPEN_STATUSES]),
+      ),
+    )
+    .orderBy(desc(applications.updatedAt));
+
+  if (open.length <= 1) return open[0] ?? null;
+
+  const [keep, ...dupes] = open;
+  for (const dupe of dupes) {
+    await db
+      .update(documents)
+      .set({ applicationId: keep.id })
+      .where(eq(documents.applicationId, dupe.id));
+
+    // Preferisci CF/nome dalla pratica più completa
+    const patch: Partial<typeof applications.$inferInsert> = {
+      updatedAt: new Date(),
+    };
+    if (!keep.clientFiscalCode && dupe.clientFiscalCode) {
+      patch.clientFiscalCode = dupe.clientFiscalCode;
+    }
+    if (keep.clientName === "Cliente" && dupe.clientName !== "Cliente") {
+      patch.clientName = dupe.clientName;
+    }
+    if (!keep.driveFolderId && dupe.driveFolderId) {
+      patch.driveFolderId = dupe.driveFolderId;
+      patch.driveFolderUrl = dupe.driveFolderUrl;
+    }
+    if (Object.keys(patch).length > 1) {
+      await db
+        .update(applications)
+        .set(patch)
+        .where(eq(applications.id, keep.id));
+    }
+
+    await db.delete(applications).where(eq(applications.id, dupe.id));
+  }
+
+  await dedupeApplicationDocuments(keep.id);
+  return keep;
 }
 
 /** Elimina duplicati: stesso file grezzo o stesso tipo documento (tiene il più recente). */
@@ -202,6 +291,10 @@ export async function processIncomingFiles(
           adminEmail &&
             file.clientEmail?.toLowerCase() === adminEmail,
         );
+
+      if (file.clientEmail) {
+        await mergeDuplicateOpenApplicationsByEmail(file.clientEmail);
+      }
 
       app = await findOrCreateApplication({
         fiscalCode: analysis.extractedData.fiscalCode,

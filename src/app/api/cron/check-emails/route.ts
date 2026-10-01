@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { and, eq, or } from "drizzle-orm";
+import { and, eq, inArray, or } from "drizzle-orm";
 import {
   fetchPendingMortgageEmails,
   markMessageProcessed,
 } from "@/lib/google/gmail";
 import {
   ensureWaitingApplication,
+  mergeDuplicateOpenApplicationsByEmail,
   processIncomingFiles,
 } from "@/lib/pipeline";
 import { db } from "@/db";
@@ -13,19 +14,21 @@ import { applications, documents } from "@/db/schema";
 
 export const maxDuration = 60;
 
+const OPEN_STATUSES = ["DOCUMENTI_INCOMPLETI", "COMPLETA_DA_INOLTRARE"] as const;
+
 async function alreadyProcessedFileNames(
   fromEmail: string,
 ): Promise<Set<string>> {
+  // Unisci eventuali doppioni aperti prima di leggere i file già presenti
+  await mergeDuplicateOpenApplicationsByEmail(fromEmail);
+
   const openApps = await db
     .select({ id: applications.id })
     .from(applications)
     .where(
       and(
         eq(applications.clientEmail, fromEmail.toLowerCase()),
-        or(
-          eq(applications.status, "DOCUMENTI_INCOMPLETI"),
-          eq(applications.status, "COMPLETA_DA_INOLTRARE"),
-        ),
+        inArray(applications.status, [...OPEN_STATUSES]),
       ),
     );
 
@@ -61,7 +64,9 @@ export async function GET(req: NextRequest) {
         adminEmail && email.fromEmail.toLowerCase() === adminEmail,
       );
 
-      // Mail corretta senza allegati → pratica documenti incompleti (0/n)
+      // Sempre riusa la pratica aperta dello stesso mittente
+      await mergeDuplicateOpenApplicationsByEmail(email.fromEmail);
+
       if (email.attachments.length === 0) {
         const app = await ensureWaitingApplication({
           email: email.fromEmail,
