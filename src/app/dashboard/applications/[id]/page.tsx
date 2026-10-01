@@ -255,7 +255,7 @@ export default async function ApplicationDetailPage({
         </div>
         <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
           <p className="text-xs font-semibold uppercase text-slate-500">
-            CUD / reddito lordo
+            CUD reddito lordo
           </p>
           <p className="mt-2 text-2xl font-bold text-slate-900">
             €{(scoring?.cud_gross_annual_income ?? 0).toFixed(2)}
@@ -268,7 +268,7 @@ export default async function ApplicationDetailPage({
           <p className="font-semibold">Trattenute rilevate</p>
           <p className="mt-1 text-sm">
             Obblighi mensili stimati: €
-            {scoring?.monthly_obligations.toFixed(2)} — riducono la rata
+            {scoring?.monthly_obligations.toFixed(2)}. Riducono la rata
             massima sostenibile.
           </p>
         </div>

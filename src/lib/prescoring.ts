@@ -75,7 +75,7 @@ export function computePreScoring(
 
   if (avgNet > 0) {
     notes.push(
-      `Disponibilità stimata dopo obblighi: €${available.toFixed(2)}/mese → rata max 35% = €${estimatedMax.toFixed(2)}`,
+      `Disponibilità stimata dopo obblighi: €${available.toFixed(2)}/mese, rata max 35% = €${estimatedMax.toFixed(2)}`,
     );
   }
 
