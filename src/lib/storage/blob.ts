@@ -95,6 +95,11 @@ export async function downloadBlob(
   };
 }
 
+export async function deleteBlobByPathname(pathnameOrUrl: string): Promise<void> {
+  const token = requireBlobToken();
+  await del(pathnameOrUrl, { token });
+}
+
 export async function deletePracticeBlobs(applicationId: string): Promise<void> {
   const token = requireBlobToken();
   const prefix = `${practiceStoragePrefix(applicationId)}/`;

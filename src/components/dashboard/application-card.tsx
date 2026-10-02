@@ -170,7 +170,7 @@ export function ApplicationCard({
         <div className="flex items-center gap-3 text-xs text-slate-500">
           <span>{sentLabel}</span>
           <Link
-            href={`/dashboard/applications/${id}#files`}
+            href={`/dashboard/files/${id}`}
             prefetch
             className="inline-flex min-h-10 items-center gap-1 font-medium text-slate-600 hover:text-primary-600"
           >

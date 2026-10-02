@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   Building2,
   FolderKanban,
+  HardDrive,
   LogOut,
   Settings,
   Users,
@@ -31,6 +32,7 @@ export function AppShell({
 
   const nav: NavItem[] = [
     { href: "/dashboard", label: "Pratiche", icon: FolderKanban },
+    { href: "/dashboard/files", label: "File", icon: HardDrive },
     ...(isAdmin
       ? [
           { href: "/dashboard/settings", label: "Impostazioni", icon: Settings },
