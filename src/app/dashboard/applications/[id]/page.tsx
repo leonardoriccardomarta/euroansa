@@ -49,7 +49,10 @@ export default async function ApplicationDetailPage({
   if (app.isTest && session.role !== "ADMIN") {
     redirect("/dashboard");
   }
-  // Pratiche condivise: tutti gli utenti autenticati possono aprire (tranne test)
+  // Broker minori: solo pratiche assegnate
+  if (session.role !== "ADMIN" && app.brokerId !== session.id) {
+    redirect("/dashboard");
+  }
 
   await refreshApplicationState(id);
 

@@ -66,13 +66,13 @@ export default async function DashboardPage({
       .from(users),
   ]);
 
-  // Hub mail ufficio: pratiche condivise in CRM.
-  // brokerId resta solo etichetta "di chi è"; non nasconde le pratiche.
-  // Nascondi solo le pratiche test ai non-admin.
+  // Hub: mail/Drive ufficio (OAuth admin).
+  // ADMIN = vede tutte + assegna.
+  // BROKER = soci minori, solo pratiche assegnate a loro.
   const apps =
     session.role === "ADMIN"
       ? appsRaw
-      : appsRaw.filter((a) => !a.isTest);
+      : appsRaw.filter((a) => !a.isTest && a.brokerId === session.id);
 
   const docsByApp = new Map<string, typeof docRows>();
   for (const d of docRows) {
@@ -110,8 +110,9 @@ export default async function DashboardPage({
           Pratiche
         </h1>
         <p className="mt-2 max-w-2xl text-slate-600">
-          Pratiche condivise (mail ufficio). L&apos;assegnazione broker indica
-          solo di chi è la pratica.
+          {isAdmin
+            ? "Mail/Drive ufficio. Vedi tutte le pratiche e assegna i broker."
+            : "Le pratiche assegnate a te."}
         </p>
       </div>
 
@@ -149,8 +150,9 @@ export default async function DashboardPage({
           <div className="rounded-xl border border-dashed border-slate-300 bg-white p-10 text-center">
             <p className="font-medium text-slate-900">Nessuna pratica ancora</p>
             <p className="mt-2 text-sm text-slate-500">
-              Quando arrivano documenti sulla mail ufficio collegata, compaiono
-              qui. Puoi segnare il titolare dal menu Broker.
+              {isAdmin
+                ? "Quando arrivano documenti sulla mail ufficio, assegna la pratica a un broker se serve."
+                : "Quando l'admin ti assegna una pratica, compare qui."}
             </p>
           </div>
         ) : (
