@@ -125,11 +125,19 @@ export async function POST(req: NextRequest) {
 
     await sql`
       INSERT INTO users (email, password_hash, name, role)
-      VALUES (${email}, ${passwordHash}, ${"Admin"}, ${"ADMIN"}::user_role)
+      VALUES (${email}, ${passwordHash}, ${"Euroansa"}, ${"ADMIN"}::user_role)
       ON CONFLICT (email) DO UPDATE SET
         password_hash = EXCLUDED.password_hash,
         role = ${"ADMIN"}::user_role,
-        name = COALESCE(users.name, EXCLUDED.name)
+        name = COALESCE(NULLIF(users.name, ''), EXCLUDED.name)
+    `;
+
+    // Max 1 admin: eventuali altri admin → broker
+    await sql`
+      UPDATE users
+      SET role = ${"BROKER"}::user_role
+      WHERE role = ${"ADMIN"}::user_role
+        AND lower(email) <> ${email}
     `;
 
     await sql`
@@ -140,7 +148,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       ok: true,
-      message: "Schema applicato, admin e settings pronti",
+      message: "Schema applicato, unico admin org e settings pronti",
       adminEmail: email,
     });
   } catch (error) {

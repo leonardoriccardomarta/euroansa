@@ -37,8 +37,7 @@ export default async function SettingsPage({
       <div>
         <h1 className="text-3xl font-bold text-slate-900">Impostazioni</h1>
         <p className="mt-2 text-slate-600">
-          Un solo Google collegato (mail/Drive ufficio). I broker non lo
-          gestiscono.
+          Un solo Google = mail/Drive ufficio. Un solo admin CRM = org Euroansa.
         </p>
       </div>
 

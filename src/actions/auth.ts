@@ -42,7 +42,8 @@ export async function createUserAction(formData: FormData): Promise<void> {
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
   const name = String(formData.get("name") ?? "").trim();
   const password = String(formData.get("password") ?? "");
-  const role = String(formData.get("role") ?? "BROKER") as "ADMIN" | "BROKER";
+  // Solo broker: un unico ADMIN = org Euroansa (mail/Drive ufficio)
+  const role = "BROKER" as const;
 
   if (!email || !name || password.length < 6) {
     return;
@@ -65,6 +66,17 @@ export async function deleteUserAction(formData: FormData) {
   if (!userId) return;
 
   if (session.id === userId) {
+    return;
+  }
+
+  const [target] = await db
+    .select({ id: users.id, role: users.role })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1);
+
+  // Non eliminare altri admin (max 1 admin org)
+  if (!target || target.role === "ADMIN") {
     return;
   }
 
