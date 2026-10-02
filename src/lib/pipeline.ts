@@ -33,6 +33,16 @@ const PAYSLIP_SLOTS: DocumentType[] = [
   "BUSTA_PAGA_3",
 ];
 
+/**
+ * Fronte & retro: 1 voce checklist, ma possono arrivare 1 file (unico) o 2 file.
+ * Non scartare il secondo come “tipo già presente”.
+ */
+const MULTI_SIDE_DOC_TYPES = new Set<DocumentType>([
+  "CARTA_IDENTITA",
+  "TESSERA_SANITARIA",
+]);
+const MULTI_SIDE_MAX = 2;
+
 function withResolvedType<
   T extends { documentType: DocumentType; standardizedFileName: string },
 >(analysis: T, resolved: DocumentType, originalFileName: string): T {
@@ -54,11 +64,13 @@ function withResolvedType<
 
 /**
  * Se Gemini classifica una busta già presente, la mette nel primo slot libero.
- * Tipi non-busta già presenti → null (skip).
+ * CI/TS fronte-retro: fino a 2 file dello stesso tipo.
+ * Altri tipi già presenti → null (skip).
  */
 function resolveDocumentType(
   detected: DocumentType,
   knownTypes: Set<string>,
+  typeCounts: Map<string, number>,
 ): DocumentType | null {
   if (detected === "SCONOSCIUTO") return detected;
 
@@ -66,6 +78,12 @@ function resolveDocumentType(
     if (!knownTypes.has(detected)) return detected;
     const free = PAYSLIP_SLOTS.find((slot) => !knownTypes.has(slot));
     return free ?? null;
+  }
+
+  if (MULTI_SIDE_DOC_TYPES.has(detected)) {
+    const n = typeCounts.get(detected) ?? 0;
+    if (n >= MULTI_SIDE_MAX) return null;
+    return detected;
   }
 
   if (knownTypes.has(detected)) return null;
@@ -310,7 +328,7 @@ export async function mergeAllDuplicateApplications() {
   return { emailsChecked: emails.length, mergedGroups };
 }
 
-/** Elimina duplicati: stesso file grezzo o stesso tipo documento (tiene il più recente). */
+/** Elimina duplicati: stesso file grezzo; stesso tipo solo se non è CI/TS (fronte-retro). */
 export async function dedupeApplicationDocuments(applicationId: string) {
   const docs = await db
     .select()
@@ -320,13 +338,23 @@ export async function dedupeApplicationDocuments(applicationId: string) {
 
   const seenRaw = new Set<string>();
   const seenType = new Set<string>();
+  const multiSideCount = new Map<string, number>();
   const toDelete: string[] = [];
 
   for (const doc of docs) {
     const rawKey = doc.rawFileName.trim().toLowerCase();
-    const typeDup =
-      doc.documentType !== "SCONOSCIUTO" && seenType.has(doc.documentType);
     const rawDup = seenRaw.has(rawKey);
+
+    let typeDup = false;
+    if (doc.documentType !== "SCONOSCIUTO") {
+      if (MULTI_SIDE_DOC_TYPES.has(doc.documentType)) {
+        const n = multiSideCount.get(doc.documentType) ?? 0;
+        if (n >= MULTI_SIDE_MAX) typeDup = true;
+        else multiSideCount.set(doc.documentType, n + 1);
+      } else if (seenType.has(doc.documentType)) {
+        typeDup = true;
+      }
+    }
 
     if (rawDup || typeDup) {
       toDelete.push(doc.id);
@@ -334,7 +362,10 @@ export async function dedupeApplicationDocuments(applicationId: string) {
     }
 
     seenRaw.add(rawKey);
-    if (doc.documentType !== "SCONOSCIUTO") {
+    if (
+      doc.documentType !== "SCONOSCIUTO" &&
+      !MULTI_SIDE_DOC_TYPES.has(doc.documentType)
+    ) {
       seenType.add(doc.documentType);
     }
   }
@@ -363,6 +394,7 @@ export async function processIncomingFiles(
   // Se applicationId noto: salta file già presenti (niente Gemini inutile)
   let knownRaw = new Set<string>();
   let knownTypes = new Set<string>();
+  let typeCounts = new Map<string, number>();
   if (options?.applicationId) {
     await dedupeApplicationDocuments(options.applicationId);
     const existing = await db
@@ -378,11 +410,25 @@ export async function processIncomingFiles(
         .filter((d) => d.documentType !== "SCONOSCIUTO")
         .map((d) => d.documentType),
     );
+    typeCounts = new Map<string, number>();
+    for (const d of existing) {
+      if (d.documentType === "SCONOSCIUTO") continue;
+      typeCounts.set(
+        d.documentType,
+        (typeCounts.get(d.documentType) ?? 0) + 1,
+      );
+    }
   }
 
   const errors: string[] = [];
   const applicationIds = new Set<string>();
   let processed = 0;
+
+  function trackType(type: DocumentType) {
+    if (type === "SCONOSCIUTO") return;
+    knownTypes.add(type);
+    typeCounts.set(type, (typeCounts.get(type) ?? 0) + 1);
+  }
 
   async function resolveDriveAuth(
     brokerId: string | null | undefined,
@@ -419,9 +465,13 @@ export async function processIncomingFiles(
       continue;
     }
 
-    // Se quel tipo c'è già, prova remap buste / altrimenti skip
+    // Se quel tipo c'è già, prova remap buste / CI-TS 2° lato / altrimenti skip
     if (options?.applicationId) {
-      const resolved = resolveDocumentType(analysis.documentType, knownTypes);
+      const resolved = resolveDocumentType(
+        analysis.documentType,
+        knownTypes,
+        typeCounts,
+      );
       if (!resolved) {
         applicationIds.add(options.applicationId);
         continue;
@@ -488,13 +538,25 @@ export async function processIncomingFiles(
           .filter((d) => d.documentType !== "SCONOSCIUTO")
           .map((d) => d.documentType),
       );
+      typeCounts = new Map<string, number>();
+      for (const d of existing) {
+        if (d.documentType === "SCONOSCIUTO") continue;
+        typeCounts.set(
+          d.documentType,
+          (typeCounts.get(d.documentType) ?? 0) + 1,
+        );
+      }
 
       if (knownRaw.has(rawKey)) {
         applicationIds.add(app.id);
         continue;
       }
 
-      const resolved = resolveDocumentType(analysis.documentType, knownTypes);
+      const resolved = resolveDocumentType(
+        analysis.documentType,
+        knownTypes,
+        typeCounts,
+      );
       if (!resolved) {
         applicationIds.add(app.id);
         continue;
@@ -577,9 +639,7 @@ export async function processIncomingFiles(
     });
 
     knownRaw.add(rawKey);
-    if (analysis.documentType !== "SCONOSCIUTO") {
-      knownTypes.add(analysis.documentType);
-    }
+    trackType(analysis.documentType);
     processed += 1;
     applicationIds.add(app.id);
   }

@@ -160,6 +160,7 @@ documentType: identifica il tipo tra quelli ammessi (lista Filippo).
 - Buste paga: BUSTA_PAGA_1/2/3 (più recente = 1); se non chiaro BUSTA_PAGA_1.
 - CUD → MODELLO_CUD; 730 → MODELLO_730 (non usare CUD_730 se puoi distinguere).
 - Modello Unico: MODELLO_UNICO_1 (più recente) o MODELLO_UNICO_2; se un solo file senza anno → MODELLO_UNICO_1.
+- Carta d'identità / tessera sanitaria: anche se è solo fronte o solo retro (file separati) usa comunque CARTA_IDENTITA / TESSERA_SANITARIA. Un PDF con fronte+retro insieme è lo stesso tipo.
 - Estratto conto ufficiale → ESTRATTO_CONTO; lista movimenti 3 mesi → LISTA_MOVIMENTI_3_MESI.
 - OBIS M pensionati → MODELLO_OBIS_M.
 - Atto provenienza immobile → ATTO_IMMOBILE; preliminare/proposta → PRELIMINARE_COMPRAVENDITA.
