@@ -66,12 +66,12 @@ export default async function DashboardPage({
       .from(users),
   ]);
 
-  // Drive condiviso + CRM condiviso (Filippo): tutti vedono tutte le pratiche.
-  // Nascondi solo le pratiche test agli utenti non-admin.
+  // Admin: tutte. Broker: solo pratiche assegnate a lui (niente test).
+  // Google/Drive restano sulla casella di Filippo (OAuth admin).
   const apps =
     session.role === "ADMIN"
       ? appsRaw
-      : appsRaw.filter((a) => !a.isTest);
+      : appsRaw.filter((a) => !a.isTest && a.brokerId === session.id);
 
   const docsByApp = new Map<string, typeof docRows>();
   for (const d of docRows) {
@@ -100,6 +100,8 @@ export default async function DashboardPage({
     email: b.email,
   }));
 
+  const isAdmin = session.role === "ADMIN";
+
   return (
     <div className="space-y-8">
       <div>
@@ -107,8 +109,9 @@ export default async function DashboardPage({
           Pratiche
         </h1>
         <p className="mt-2 max-w-2xl text-slate-600">
-          Tutti vedono tutte le pratiche (Drive condiviso). Assegna il broker
-          titolare e aggiorna lo stato direttamente dall&apos;elenco.
+          {isAdmin
+            ? "Tutte le pratiche. Assegna il broker titolare e aggiorna lo stato dall'elenco."
+            : "Le pratiche assegnate a te. Puoi aggiornare lo stato dall'elenco."}
         </p>
       </div>
 
@@ -146,8 +149,9 @@ export default async function DashboardPage({
           <div className="rounded-xl border border-dashed border-slate-300 bg-white p-10 text-center">
             <p className="font-medium text-slate-900">Nessuna pratica ancora</p>
             <p className="mt-2 text-sm text-slate-500">
-              Quando arrivano documenti sulla Gmail collegata (OAuth Filippo /
-              Drive condiviso), compaiono qui.
+              {isAdmin
+                ? "Quando arrivano documenti sulla Gmail collegata, assegna la pratica a un broker."
+                : "Quando l'admin ti assegna una pratica, compare qui."}
             </p>
           </div>
         ) : (
@@ -185,7 +189,7 @@ export default async function DashboardPage({
                 isTest={app.isTest}
                 brokerId={app.brokerId}
                 brokers={brokers}
-                canAssignBroker
+                canAssignBroker={isAdmin}
               />
             );
           })

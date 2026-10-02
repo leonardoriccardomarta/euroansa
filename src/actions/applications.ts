@@ -20,8 +20,8 @@ export async function assignBrokerAction(
   applicationId: string,
   brokerId: string | null,
 ) {
-  // Drive condiviso: tutti vedono tutte le pratiche; assegnazione titolare libera
-  await requireSession();
+  // Solo admin assegna il titolare (broker vede solo le proprie)
+  await requireAdmin();
   await db
     .update(applications)
     .set({

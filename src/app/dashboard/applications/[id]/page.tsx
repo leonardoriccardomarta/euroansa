@@ -49,7 +49,10 @@ export default async function ApplicationDetailPage({
   if (app.isTest && session.role !== "ADMIN") {
     redirect("/dashboard");
   }
-  // CRM condiviso (Filippo): tutti vedono tutte le pratiche (tranne test)
+  // Broker: solo pratiche assegnate a lui
+  if (session.role !== "ADMIN" && app.brokerId !== session.id) {
+    redirect("/dashboard");
+  }
 
   await refreshApplicationState(id);
 
@@ -145,15 +148,17 @@ export default async function ApplicationDetailPage({
             isAdmin={session.role === "ADMIN"}
             clientName={current.clientName}
           />
-          <BrokerAssign
-            applicationId={current.id}
-            brokerId={current.brokerId}
-            brokers={brokerRows.map((b) => ({
-              id: b.id,
-              name: b.name,
-              email: b.email,
-            }))}
-          />
+          {session.role === "ADMIN" ? (
+            <BrokerAssign
+              applicationId={current.id}
+              brokerId={current.brokerId}
+              brokers={brokerRows.map((b) => ({
+                id: b.id,
+                name: b.name,
+                email: b.email,
+              }))}
+            />
+          ) : null}
         </div>
       </div>
 
