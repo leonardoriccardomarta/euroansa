@@ -14,7 +14,6 @@ import {
   inferEmploymentType,
 } from "@/lib/checklist";
 import {
-  APPLICATION_STATUS_LABELS,
   DOCUMENT_TYPE_LABELS,
   EMPLOYMENT_TYPE_LABELS,
   sheetRowsForRequired,
@@ -22,7 +21,6 @@ import {
 import { refreshApplicationState } from "@/lib/pipeline";
 import { Badge } from "@/components/ui/badge";
 import { ApplicationActions } from "@/components/dashboard/application-actions";
-import { BrokerAssign } from "@/components/dashboard/broker-assign";
 import { DocumentUpload } from "@/components/dashboard/document-upload";
 import { RequiredDocsEditor } from "@/components/dashboard/required-docs-editor";
 
@@ -80,12 +78,8 @@ export default async function ApplicationDetailPage({
     .select({
       id: users.id,
       name: users.name,
-      email: users.email,
-      role: users.role,
     })
     .from(users);
-
-  const brokerOptions = allUsers.filter((b) => b.role === "BROKER");
 
   const brokerName = current.brokerId
     ? allUsers.find((b) => b.id === current.brokerId)?.name
@@ -113,6 +107,7 @@ export default async function ApplicationDetailPage({
           <p className="mt-2 text-slate-600">
             {current.clientEmail}
             {current.clientFiscalCode ? ` · CF ${current.clientFiscalCode}` : ""}
+            {brokerName ? ` · ${brokerName}` : ""}
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
             {current.isTest ? (
@@ -125,21 +120,9 @@ export default async function ApplicationDetailPage({
             ) : null}
             <Badge
               variant="outline"
-              className="border-primary-200 bg-primary-50 text-primary-700"
-            >
-              {APPLICATION_STATUS_LABELS[current.status] ?? current.status}
-            </Badge>
-            <Badge
-              variant="outline"
               className="border-slate-200 bg-slate-50 text-slate-700"
             >
               {EMPLOYMENT_TYPE_LABELS[employmentType]}
-            </Badge>
-            <Badge
-              variant="outline"
-              className="border-slate-200 bg-white text-slate-600"
-            >
-              {brokerName ? `Broker: ${brokerName}` : "Non assegnata"}
             </Badge>
           </div>
         </div>
@@ -150,17 +133,6 @@ export default async function ApplicationDetailPage({
             isAdmin={session.role === "ADMIN"}
             clientName={current.clientName}
           />
-          {session.role === "ADMIN" ? (
-            <BrokerAssign
-              applicationId={current.id}
-              brokerId={current.brokerId}
-              brokers={brokerOptions.map((b) => ({
-                id: b.id,
-                name: b.name,
-                email: b.email,
-              }))}
-            />
-          ) : null}
         </div>
       </div>
 
