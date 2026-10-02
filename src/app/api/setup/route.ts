@@ -62,6 +62,11 @@ const SETUP_STATEMENTS = [
   `ALTER TABLE applications ADD COLUMN IF NOT EXISTS relazione_uploaded_at timestamptz`,
   `ALTER TABLE applications ADD COLUMN IF NOT EXISTS package_token text`,
   `ALTER TABLE documents ADD COLUMN IF NOT EXISTS storage_subfolder text`,
+  // Vecchi link Drive → punta alla pratica sul sito
+  `UPDATE applications
+   SET drive_folder_url = '/dashboard/applications/' || id::text || '#files'
+   WHERE drive_folder_url IS NOT NULL
+     AND drive_folder_url LIKE '%drive.google.com%'`,
   // Espandi enum documenti = lista foglio Filippo
   `ALTER TYPE document_type ADD VALUE IF NOT EXISTS 'PERMESSO_SOGGIORNO'`,
   `ALTER TYPE document_type ADD VALUE IF NOT EXISTS 'PASSAPORTO'`,

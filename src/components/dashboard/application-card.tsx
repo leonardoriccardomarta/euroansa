@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
-import { ExternalLink } from "lucide-react";
 import {
   assignBrokerAction,
   updateApplicationStatusAction,
@@ -33,7 +32,6 @@ export function ApplicationCard({
   progressLabel,
   progressPct,
   sentLabel,
-  driveFolderUrl,
   isTest,
   brokerId,
   brokers,
@@ -49,7 +47,6 @@ export function ApplicationCard({
   progressLabel: string;
   progressPct: number;
   sentLabel: string;
-  driveFolderUrl: string | null;
   isTest?: boolean;
   brokerId: string | null;
   brokers: Array<{ id: string; name: string; email: string }>;
@@ -172,14 +169,13 @@ export function ApplicationCard({
         </Link>
         <div className="flex items-center gap-3 text-xs text-slate-500">
           <span>{sentLabel}</span>
-          {driveFolderUrl ? (
-            <a
-              href={driveFolderUrl}
-              className="inline-flex min-h-10 items-center gap-1 font-medium text-slate-600 hover:text-primary-600"
-            >
-              File <ExternalLink className="h-3.5 w-3.5" />
-            </a>
-          ) : null}
+          <Link
+            href={`/dashboard/applications/${id}#files`}
+            prefetch
+            className="inline-flex min-h-10 items-center gap-1 font-medium text-slate-600 hover:text-primary-600"
+          >
+            File
+          </Link>
         </div>
       </div>
     </div>

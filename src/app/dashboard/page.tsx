@@ -41,7 +41,6 @@ export default async function DashboardPage({
         clientFiscalCode: applications.clientFiscalCode,
         employmentType: applications.employmentType,
         status: applications.status,
-        driveFolderUrl: applications.driveFolderUrl,
         sentToSecretaryAt: applications.sentToSecretaryAt,
         isTest: applications.isTest,
         brokerId: applications.brokerId,
@@ -188,7 +187,6 @@ export default async function DashboardPage({
                     ? `Segreteria ${new Date(app.sentToSecretaryAt).toLocaleDateString("it-IT")}`
                     : "Non inviata"
                 }
-                driveFolderUrl={app.driveFolderUrl}
                 isTest={app.isTest}
                 brokerId={app.brokerId}
                 brokers={brokers}
