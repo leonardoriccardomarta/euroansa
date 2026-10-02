@@ -76,7 +76,7 @@ export default async function ApplicationDetailPage({
     .where(eq(systemSettings.id, "global"))
     .limit(1);
 
-  const brokerRows = await db
+  const allUsers = await db
     .select({
       id: users.id,
       name: users.name,
@@ -85,8 +85,10 @@ export default async function ApplicationDetailPage({
     })
     .from(users);
 
+  const brokerOptions = allUsers.filter((b) => b.role === "BROKER");
+
   const brokerName = current.brokerId
-    ? brokerRows.find((b) => b.id === current.brokerId)?.name
+    ? allUsers.find((b) => b.id === current.brokerId)?.name
     : null;
 
   const employmentType = inferEmploymentType(docs);
@@ -152,7 +154,7 @@ export default async function ApplicationDetailPage({
             <BrokerAssign
               applicationId={current.id}
               brokerId={current.brokerId}
-              brokers={brokerRows.map((b) => ({
+              brokers={brokerOptions.map((b) => ({
                 id: b.id,
                 name: b.name,
                 email: b.email,

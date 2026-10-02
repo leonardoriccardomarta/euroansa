@@ -24,12 +24,16 @@ export function BrokerAssign({
       </label>
       <select
         value={brokerId ?? ""}
-        disabled={pending}
+        disabled={pending || brokers.length === 0}
         className="min-h-11 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm font-medium text-slate-800"
         onChange={(e) => {
           const next = e.target.value || null;
           startTransition(async () => {
-            await assignBrokerAction(applicationId, next);
+            const res = await assignBrokerAction(applicationId, next);
+            if (res && "error" in res && res.error) {
+              toast.error(res.error);
+              return;
+            }
             toast.success(next ? "Broker assegnato" : "Broker rimosso");
             router.refresh();
           });
@@ -38,10 +42,15 @@ export function BrokerAssign({
         <option value="">Non assegnata</option>
         {brokers.map((b) => (
           <option key={b.id} value={b.id}>
-            {b.name} ({b.email})
+            {b.name}
           </option>
         ))}
       </select>
+      {brokers.length === 0 ? (
+        <p className="mt-1 text-xs text-slate-500">
+          Crea utenti con ruolo Broker in Utenti per poterli assegnare.
+        </p>
+      ) : null}
     </div>
   );
 }

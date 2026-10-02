@@ -95,11 +95,13 @@ export default async function DashboardPage({
       a.status === "DELIBERATA",
   ).length;
 
-  const brokers = brokerRows.map((b) => ({
-    id: b.id,
-    name: b.name,
-    email: b.email,
-  }));
+  const brokers = brokerRows
+    .filter((b) => b.role === "BROKER")
+    .map((b) => ({
+      id: b.id,
+      name: b.name,
+      email: b.email,
+    }));
 
   const isAdmin = session.role === "ADMIN";
 

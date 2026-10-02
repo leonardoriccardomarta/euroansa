@@ -7,6 +7,7 @@ import {
   applications,
   documents,
   systemSettings,
+  users,
   type ApplicationStatus,
   type DocumentType,
 } from "@/db/schema";
@@ -20,8 +21,19 @@ export async function assignBrokerAction(
   applicationId: string,
   brokerId: string | null,
 ) {
-  // Solo admin assegna il titolare (broker vede solo le proprie)
   await requireAdmin();
+
+  if (brokerId) {
+    const [broker] = await db
+      .select({ id: users.id, role: users.role })
+      .from(users)
+      .where(eq(users.id, brokerId))
+      .limit(1);
+    if (!broker || broker.role !== "BROKER") {
+      return { error: "Seleziona un utente con ruolo Broker" };
+    }
+  }
+
   await db
     .update(applications)
     .set({
