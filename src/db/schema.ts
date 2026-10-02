@@ -124,7 +124,9 @@ export const applications = pgTable("applications", {
   status: applicationStatusEnum("status")
     .notNull()
     .default("DOCUMENTI_INCOMPLETI"),
+  /** Prefisso storage Blob: practices/{id} (legacy colonna drive_*) */
   driveFolderId: text("drive_folder_id"),
+  /** Link cartella pratica sul sito (dashboard) */
   driveFolderUrl: text("drive_folder_url"),
   preScoringData: jsonb("pre_scoring_data").$type<PreScoringData>(),
   /**
@@ -136,6 +138,12 @@ export const applications = pgTable("applications", {
     .$type<DocumentType[]>()
     .notNull()
     .default([]),
+  /** Relazione broker obbligatoria prima dell'invio a segreteria */
+  relazioneStorageKey: text("relazione_storage_key"),
+  relazioneFileName: text("relazione_file_name"),
+  relazioneUploadedAt: timestamp("relazione_uploaded_at", { withTimezone: true }),
+  /** Token per download pacchetto senza login CRM */
+  packageToken: text("package_token"),
   brokerId: uuid("broker_id").references(() => users.id, { onDelete: "set null" }),
   isTest: boolean("is_test").notNull().default(false),
   sentToSecretaryAt: timestamp("sent_to_secretary_at", { withTimezone: true }),
@@ -151,8 +159,12 @@ export const documents = pgTable("documents", {
   rawFileName: text("raw_file_name").notNull(),
   renamedFileName: text("renamed_file_name").notNull(),
   documentType: documentTypeEnum("document_type").notNull(),
+  /** Pathname Blob privato (legacy colonna drive_*) */
   driveFileId: text("drive_file_id"),
+  /** URL download autenticato /api/files/{id} */
   driveFileUrl: text("drive_file_url"),
+  /** Cartella Filippo: es. "ALI DOC", "BANCA", "IMMOBILE" */
+  storageSubfolder: text("storage_subfolder"),
   isValid: boolean("is_valid").notNull().default(false),
   extractedData: jsonb("extracted_data").$type<ExtractedDocumentData>(),
   validationIssues: text("validation_issues").array().notNull().default([]),

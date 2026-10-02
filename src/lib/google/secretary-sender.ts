@@ -1,15 +1,16 @@
+import { randomBytes } from "crypto";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { applications, documents, systemSettings } from "@/db/schema";
 import { EMPLOYMENT_TYPE_LABELS } from "@/lib/config/documents";
 import { inferEmploymentType } from "@/lib/checklist";
+import { getAppBaseUrl } from "@/lib/app-url";
 import {
   getGoogleAuthForUser,
   listConnectedGoogleUsers,
   oauthClientFromRefreshToken,
   type GoogleOAuthClient,
 } from "./auth";
-import { downloadFileFromDrive } from "./drive";
 import { sendGmailHtml } from "./gmail";
 
 async function resolveAuthForApplication(
@@ -40,6 +41,12 @@ export async function sendApplicationToSecretary(applicationId: string) {
 
   if (!app) throw new Error("Pratica non trovata");
 
+  if (!app.relazioneStorageKey) {
+    throw new Error(
+      "Relazione mancante: carica la relazione PDF prima di inviare a segreteria",
+    );
+  }
+
   const auth = await resolveAuthForApplication(app.brokerId);
 
   const docs = await db
@@ -69,45 +76,40 @@ export async function sendApplicationToSecretary(applicationId: string) {
   const validDocs = docs.filter(
     (d) => d.isValid && d.driveFileId && d.renamedFileName,
   );
-  const attachments: Array<{
-    filename: string;
-    mimeType: string;
-    buffer: Buffer;
-  }> = [];
 
-  for (const doc of validDocs) {
-    try {
-      const downloaded = await downloadFileFromDrive(doc.driveFileId!, auth);
-      attachments.push({
-        filename: doc.renamedFileName,
-        mimeType: downloaded.mimeType,
-        buffer: downloaded.buffer,
-      });
-    } catch (err) {
-      console.error(
-        "download Drive failed",
-        doc.renamedFileName,
-        doc.driveFileId,
-        err,
-      );
-      throw new Error(
-        `Impossibile allegare ${doc.renamedFileName}: download Drive fallito`,
-      );
-    }
+  if (validDocs.length === 0) {
+    throw new Error("Nessun documento valido nello storage");
   }
 
-  if (attachments.length === 0) {
-    throw new Error("Nessun documento valido da allegare da Drive");
+  let packageToken = app.packageToken;
+  if (!packageToken) {
+    packageToken = randomBytes(24).toString("hex");
+    await db
+      .update(applications)
+      .set({ packageToken, updatedAt: new Date() })
+      .where(eq(applications.id, applicationId));
   }
 
-  const fileListHtml = attachments
-    .map((a) => `<li style="margin:4px 0">${a.filename}</li>`)
-    .join("");
+  const packageUrl = `${getAppBaseUrl()}/api/packages/${applicationId}?t=${packageToken}`;
+
+  const fileListHtml = [
+    ...validDocs.map((d) => {
+      const folder = d.storageSubfolder ? `[${d.storageSubfolder}] ` : "";
+      return `<li style="margin:4px 0">${folder}${d.renamedFileName}</li>`;
+    }),
+    `<li style="margin:4px 0"><strong>Relazione:</strong> ${app.relazioneFileName ?? "relazione.pdf"}</li>`,
+  ].join("");
 
   const html = `
     <div style="font-family:Segoe UI,Arial,sans-serif;color:#1a1a1a;max-width:640px">
       <h2 style="color:#0b3d2e">Pratica mutuo completa</h2>
-      <p>Buongiorno,<br/>la pratica di <strong>${app.clientName}</strong> è pronta per l'istruttoria.<br/>In allegato i documenti controllati e rinominati.</p>
+      <p>Buongiorno,<br/>la pratica di <strong>${app.clientName}</strong> è pronta per l'istruttoria.</p>
+      <p>Scarica il pacchetto documenti (ZIP) dal link qui sotto — non serve WeTransfer né Drive.</p>
+      <p style="margin:20px 0">
+        <a href="${packageUrl}" style="display:inline-block;background:#0b3d2e;color:#fff;padding:12px 18px;border-radius:6px;text-decoration:none;font-weight:600">
+          Scarica pacchetto ZIP
+        </a>
+      </p>
       <h3>Anagrafica</h3>
       <ul>
         <li><strong>Nome:</strong> ${app.clientName}</li>
@@ -122,13 +124,9 @@ export async function sendApplicationToSecretary(applicationId: string) {
         <li><strong>Obblighi mensili:</strong> €${scoring?.monthly_obligations?.toFixed(2) ?? "0.00"}</li>
         <li><strong>CUD / reddito lordo annuo:</strong> €${scoring?.cud_gross_annual_income?.toFixed(2) ?? "—"}</li>
       </ul>
-      <h3>Documenti allegati (${attachments.length})</h3>
+      <h3>Documenti nel pacchetto (${validDocs.length + 1})</h3>
       <ul>${fileListHtml}</ul>
-      ${
-        app.driveFolderUrl
-          ? `<p><a href="${app.driveFolderUrl}" style="display:inline-block;background:#0b3d2e;color:#fff;padding:10px 16px;border-radius:6px;text-decoration:none">Apri cartella Google Drive</a></p>`
-          : ""
-      }
+      <p style="font-size:12px;color:#666;margin-top:24px">Link valido senza login. Conservalo in modo sicuro.</p>
     </div>
   `;
 
@@ -137,7 +135,6 @@ export async function sendApplicationToSecretary(applicationId: string) {
       to: settings.secretaryEmail,
       subject: `[PRATICA COMPLETA] ${app.clientName} - Pratica Mutuo`,
       html,
-      attachments,
     },
     auth,
   );
@@ -151,5 +148,5 @@ export async function sendApplicationToSecretary(applicationId: string) {
     })
     .where(eq(applications.id, applicationId));
 
-  return { ok: true, attachments: attachments.length };
+  return { ok: true, documents: validDocs.length, packageUrl };
 }

@@ -9,7 +9,7 @@ function getSecret() {
   return new TextEncoder().encode(secret);
 }
 
-/** Avvia OAuth Google (Gmail + Drive) — solo ADMIN (casella agenzia). */
+/** Avvia OAuth Google (Gmail) — solo ADMIN (casella agenzia). */
 export async function GET(req: NextRequest) {
   const session = await getSession();
   if (!session) {

@@ -19,7 +19,7 @@ export function DocumentUpload({ applicationId }: { applicationId: string }) {
         const res = await uploadDocumentsAction(applicationId, formData);
         toast.success(`${res.count} file elaborati`);
       } catch {
-        toast.error("Upload o analisi fallita. Verifica Gemini e Drive");
+        toast.error("Upload o analisi fallita. Verifica Gemini e storage Blob");
       }
     });
   }

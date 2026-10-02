@@ -256,25 +256,53 @@ export const CHECKLIST_PRESETS: Record<EmploymentType, DocumentType[]> = {
 
 export const REQUIRED_DOCS_BY_EMPLOYMENT = CHECKLIST_PRESETS;
 
-export const DRIVE_FOLDER_TEMPLATE = "{CognomeNome} - Mutuo";
-
-export const DRIVE_SUBFOLDERS = [
-  "01_doc clienti",
-  "02_banca",
-  "03_immobile",
-  "04_euroansa",
+/**
+ * Struttura cartelle stile Filippo (es. MOHAMED ALI):
+ *   {Cliente}/
+ *     {COGNOME} DOC/   ← anagrafica + reddito
+ *     BANCA/
+ *     IMMOBILE/
+ *     EUROANSA/
+ *     {Cliente}_relazione.pdf  ← in root
+ */
+export const STORAGE_FOLDER_KINDS = [
+  "DOC",
+  "BANCA",
+  "IMMOBILE",
+  "EUROANSA",
 ] as const;
 
-export type DriveSubfolder = (typeof DRIVE_SUBFOLDERS)[number];
+export type StorageFolderKind = (typeof STORAGE_FOLDER_KINDS)[number];
 
-export function driveSubfolderForDocument(type: DocumentType): DriveSubfolder {
+/** Cognome breve dal nome cliente (es. "MOHAMED ALI" → "ALI") */
+export function clientSurnameShort(clientName: string): string {
+  const parts = clientName
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((p) => p.replace(/[^a-zA-ZàèéìòùÀÈÉÌÒÙ']/g, ""));
+  if (parts.length === 0) return "CLIENTE";
+  return (parts[parts.length - 1] || parts[0]!).toUpperCase();
+}
+
+export function storageSubfolderLabel(
+  kind: StorageFolderKind,
+  clientName: string,
+): string {
+  if (kind === "DOC") return `${clientSurnameShort(clientName)} DOC`;
+  return kind;
+}
+
+export function storageFolderKindForDocument(
+  type: DocumentType,
+): StorageFolderKind {
   if (
     type === "ESTRATTO_CONTO" ||
     type === "LISTA_MOVIMENTI_3_MESI" ||
     type === "CONTRATTI_FINANZIAMENTO" ||
     type === "QUIETANZA_RATA_MUTUO"
   ) {
-    return "02_banca";
+    return "BANCA";
   }
   if (
     type === "ATTO_IMMOBILE" ||
@@ -282,53 +310,66 @@ export function driveSubfolderForDocument(type: DocumentType): DriveSubfolder {
     type === "SCHEDE_CATASTALI" ||
     type === "CONTRATTO_AFFITTO"
   ) {
-    return "03_immobile";
+    return "IMMOBILE";
   }
-  return "01_doc clienti";
+  return "DOC";
 }
 
+/** Alias legacy (Drive rimosso → storage sito) */
+export const DRIVE_SUBFOLDERS = [
+  "DOC",
+  "BANCA",
+  "IMMOBILE",
+  "EUROANSA",
+] as const;
+export type DriveSubfolder = StorageFolderKind;
+export const driveSubfolderForDocument = storageFolderKindForDocument;
+
+/**
+ * Prefissi stile Filippo: ALI_ci.pdf, ALI_bp 05.pdf, ALI_cud 26.pdf
+ */
 export const FILE_NAME_PREFIX: Record<DocumentType, string> = {
-  CARTA_IDENTITA: "01_CI",
-  TESSERA_SANITARIA: "02_TS",
-  PERMESSO_SOGGIORNO: "03_PermessoSoggiorno",
-  PASSAPORTO: "04_Passaporto",
-  CERTIFICATO_RESIDENZA: "05_Residenza",
-  STATO_FAMIGLIA: "06_StatoFamiglia",
-  CERTIFICATO_STATO_LIBERO: "07_StatoLibero",
-  ATTO_MATRIMONIO: "08_Matrimonio",
-  CERTIFICATO_VEDOVANZA: "09_Vedovanza",
-  OMOLOGA_SEPARAZIONE: "10_Separazione",
-  SENTENZA_DIVORZIO: "11_Divorzio",
-  BUSTA_PAGA_1: "20_BustaPaga1",
-  BUSTA_PAGA_2: "21_BustaPaga2",
-  BUSTA_PAGA_3: "22_BustaPaga3",
-  MODELLO_CUD: "23_CU",
-  MODELLO_730: "24_730",
-  CUD_730: "23_CU",
-  CONTRATTO_LAVORO: "25_ContrattoLavoro",
-  ESTRATTO_CONTRIBUTIVO_INPS: "26_EstrattoINPS",
-  ISEE: "27_ISEE",
-  MODELLO_UNICO: "30_Unico",
-  MODELLO_UNICO_1: "30_Unico1",
-  MODELLO_UNICO_2: "31_Unico2",
-  VISURA_CAMERALE: "32_CameraCommercio",
-  CERTIFICATO_PIVA: "33_CertPIVA",
-  BILANCINO: "34_Bilancino",
-  FATTURE_EMESSE: "35_Fatture",
-  NUMERO_TELEFONO_COMMERCIALISTA: "36_TelCommercialista",
-  F24: "36_F24",
-  CEDOLINO_PENSIONE: "40_CedolinoPensione",
-  MODELLO_OBIS_M: "41_OBIS",
-  ESTRATTO_CONTO: "50_EstrattoConto",
-  LISTA_MOVIMENTI_3_MESI: "51_ListaMovimenti",
-  CONTRATTO_AFFITTO: "60_Affitto",
-  PRELIMINARE_COMPRAVENDITA: "61_Preliminare",
-  ATTO_IMMOBILE: "62_AttoProvenienza",
-  SCHEDE_CATASTALI: "63_Catasto",
-  POLIZZE_RISPARMIO: "64_Polizze",
-  CONTRATTI_FINANZIAMENTO: "65_Finanziamenti",
-  QUIETANZA_RATA_MUTUO: "66_QuietanzaMutuo",
-  SCONOSCIUTO: "99_Sconosciuto",
+  CARTA_IDENTITA: "ci",
+  TESSERA_SANITARIA: "tessera sanitaria",
+  PERMESSO_SOGGIORNO: "permesso soggiorno",
+  PASSAPORTO: "passaporto",
+  CERTIFICATO_RESIDENZA: "certificato di residenza",
+  STATO_FAMIGLIA: "stato famiglia",
+  CERTIFICATO_STATO_LIBERO: "stato libero",
+  ATTO_MATRIMONIO: "atto matrimonio",
+  CERTIFICATO_VEDOVANZA: "vedovanza",
+  OMOLOGA_SEPARAZIONE: "separazione",
+  SENTENZA_DIVORZIO: "divorzio",
+  BUSTA_PAGA_1: "bp",
+  BUSTA_PAGA_2: "bp",
+  BUSTA_PAGA_3: "bp",
+  MODELLO_CUD: "cud",
+  MODELLO_730: "730",
+  CUD_730: "cud",
+  CONTRATTO_LAVORO: "contratto lavoro",
+  ESTRATTO_CONTRIBUTIVO_INPS: "estratto inps",
+  ISEE: "isee",
+  MODELLO_UNICO: "unico",
+  MODELLO_UNICO_1: "unico 1",
+  MODELLO_UNICO_2: "unico 2",
+  VISURA_CAMERALE: "camera commercio",
+  CERTIFICATO_PIVA: "cert piva",
+  BILANCINO: "bilancino",
+  FATTURE_EMESSE: "fatture",
+  NUMERO_TELEFONO_COMMERCIALISTA: "tel commercialista",
+  F24: "f24",
+  CEDOLINO_PENSIONE: "cedolino pensione",
+  MODELLO_OBIS_M: "obis",
+  ESTRATTO_CONTO: "ecc",
+  LISTA_MOVIMENTI_3_MESI: "lista movimenti",
+  CONTRATTO_AFFITTO: "affitto",
+  PRELIMINARE_COMPRAVENDITA: "preliminare",
+  ATTO_IMMOBILE: "atto provenienza",
+  SCHEDE_CATASTALI: "catasto",
+  POLIZZE_RISPARMIO: "polizze",
+  CONTRATTI_FINANZIAMENTO: "finanziamenti",
+  QUIETANZA_RATA_MUTUO: "quietanza mutuo",
+  SCONOSCIUTO: "doc",
 };
 
 export const MAX_INSTALLMENT_RATIO = 0.35;

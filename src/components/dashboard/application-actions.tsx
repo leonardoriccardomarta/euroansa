@@ -16,11 +16,13 @@ export function ApplicationActions({
   status,
   isAdmin = false,
   clientName,
+  hasRelazione = false,
 }: {
   applicationId: string;
   status: ApplicationStatus;
   isAdmin?: boolean;
   clientName?: string;
+  hasRelazione?: boolean;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -34,13 +36,22 @@ export function ApplicationActions({
       <div className="flex w-full flex-wrap gap-2 sm:w-auto">
         {canSendToSecretary ? (
           <Button
-            disabled={pending}
-            className="min-h-11 flex-1 rounded-lg bg-primary-600 font-semibold shadow-md active:scale-95 hover:bg-primary-700 sm:flex-none"
+            disabled={pending || !hasRelazione}
+            title={
+              !hasRelazione
+                ? "Carica prima la relazione PDF"
+                : "Invia link pacchetto a segreteria"
+            }
+            className="min-h-11 flex-1 rounded-lg bg-primary-600 font-semibold shadow-md active:scale-95 hover:bg-primary-700 disabled:opacity-50 sm:flex-none"
             onClick={() => {
               startTransition(async () => {
                 try {
-                  await sendToSecretaryAction(applicationId);
-                  toast.success("Inviata a segreteria");
+                  const res = await sendToSecretaryAction(applicationId);
+                  if (res && "error" in res && res.error) {
+                    toast.error(res.error);
+                    return;
+                  }
+                  toast.success("Inviata a segreteria (link pacchetto)");
                   router.refresh();
                 } catch {
                   toast.error("Invio fallito. Verifica Google OAuth");
@@ -77,7 +88,7 @@ export function ApplicationActions({
               const label = clientName ? `"${clientName}"` : "questa pratica";
               if (
                 !window.confirm(
-                  `Eliminare ${label}? Documenti collegati e dati scoring verranno rimossi. La cartella Drive resta su Google.`,
+                  `Eliminare ${label}? Documenti e file nello storage del sito verranno rimossi.`,
                 )
               ) {
                 return;
@@ -102,6 +113,12 @@ export function ApplicationActions({
           </Button>
         ) : null}
       </div>
+
+      {canSendToSecretary && !hasRelazione ? (
+        <p className="text-xs text-amber-700">
+          Carica la relazione per abilitare l&apos;invio.
+        </p>
+      ) : null}
 
       {sollecito && (
         <pre className="mt-2 max-w-md whitespace-pre-wrap rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs text-slate-700">

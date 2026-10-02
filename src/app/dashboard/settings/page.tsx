@@ -37,7 +37,7 @@ export default async function SettingsPage({
       <div>
         <h1 className="text-3xl font-bold text-slate-900">Impostazioni</h1>
         <p className="mt-2 text-slate-600">
-          Un solo Google = mail/Drive ufficio. Un solo admin CRM = org Euroansa.
+          Un solo Google = Gmail ufficio. Documenti sullo storage del sito. Un solo admin CRM = org Euroansa.
         </p>
       </div>
 
@@ -63,7 +63,7 @@ export default async function SettingsPage({
           Google agenzia (uno solo)
         </p>
         <h2 className="mb-4 text-lg font-semibold text-slate-900">
-          Gmail + Drive ufficio
+          Gmail ufficio (lettura mail + invio segreteria)
         </h2>
         {googleConnected ? (
           <div className="space-y-4">
@@ -116,8 +116,9 @@ export default async function SettingsPage({
         ) : (
           <div className="space-y-4">
             <p className="text-sm text-slate-600">
-              Nessun hub collegato. Autorizza la Gmail/Drive{" "}
-              <strong>ufficio</strong> (una sola).
+              Nessun hub collegato. Autorizza la Gmail{" "}
+              <strong>ufficio</strong> (una sola). I file delle pratiche stanno
+              sullo storage del sito (link pacchetto per la segreteria).
             </p>
             <a href="/api/google/connect">
               <Button

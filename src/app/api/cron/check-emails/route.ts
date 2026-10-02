@@ -168,7 +168,6 @@ export async function GET(req: NextRequest) {
           {
             isTest,
             brokerId: owner.id,
-            googleAuth,
           },
         );
 

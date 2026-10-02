@@ -4,7 +4,6 @@ import {
   AlertCircle,
   CheckCircle2,
   Circle,
-  ExternalLink,
 } from "lucide-react";
 import { getSession } from "@/lib/auth";
 import { db } from "@/db";
@@ -16,12 +15,15 @@ import {
 import {
   DOCUMENT_TYPE_LABELS,
   EMPLOYMENT_TYPE_LABELS,
+  STORAGE_FOLDER_KINDS,
   sheetRowsForRequired,
+  storageSubfolderLabel,
 } from "@/lib/config/documents";
 import { refreshApplicationState } from "@/lib/pipeline";
 import { Badge } from "@/components/ui/badge";
 import { ApplicationActions } from "@/components/dashboard/application-actions";
 import { DocumentUpload } from "@/components/dashboard/document-upload";
+import { RelazioneUpload } from "@/components/dashboard/relazione-upload";
 import { RequiredDocsEditor } from "@/components/dashboard/required-docs-editor";
 
 export const dynamic = "force-dynamic";
@@ -132,6 +134,7 @@ export default async function ApplicationDetailPage({
             status={current.status}
             isAdmin={session.role === "ADMIN"}
             clientName={current.clientName}
+            hasRelazione={Boolean(current.relazioneStorageKey)}
           />
         </div>
       </div>
@@ -278,95 +281,143 @@ export default async function ApplicationDetailPage({
         </div>
       )}
 
-      {current.driveFolderUrl && (
-        <a
-          href={current.driveFolderUrl}
-          target="_blank"
-          rel="noreferrer"
-          className="inline-flex items-center gap-2 text-sm font-semibold text-primary-600 hover:underline"
-        >
-          Apri cartella Google Drive <ExternalLink className="h-4 w-4" />
-        </a>
-      )}
+      <RelazioneUpload
+        applicationId={current.id}
+        hasRelazione={Boolean(current.relazioneStorageKey)}
+        fileName={current.relazioneFileName}
+        uploadedAt={current.relazioneUploadedAt}
+      />
 
-      <section>
-        <h2 className="mb-4 text-xl font-bold text-slate-900">Documenti</h2>
+      <section id="files">
+        <h2 className="mb-2 text-xl font-bold text-slate-900">
+          Cartella documenti
+        </h2>
+        <p className="mb-4 text-sm text-slate-600">
+          Struttura Filippo:{" "}
+          {STORAGE_FOLDER_KINDS.map((k) =>
+            storageSubfolderLabel(k, current.clientName),
+          ).join(" · ")}
+          {" · relazione in root"}
+        </p>
         <div className="space-y-3">
           {docs.length === 0 && (
             <div className="rounded-xl border border-dashed border-slate-300 bg-white p-8 text-center text-sm text-slate-500">
               Nessun documento caricato.
             </div>
           )}
-          {docs.map((doc) => (
-            <div
-              key={doc.id}
-              className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm"
-            >
-              <div className="flex flex-wrap items-start justify-between gap-2">
-                <div>
-                  <p className="flex items-center gap-2 font-semibold text-slate-900">
-                    {DOCUMENT_TYPE_LABELS[doc.documentType]}
-                    {doc.isValid ? (
-                      <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                    ) : (
-                      <AlertCircle className="h-4 w-4 text-red-500" />
-                    )}
+          {(() => {
+            const defaultDocLabel = storageSubfolderLabel(
+              "DOC",
+              current.clientName,
+            );
+            const byFolder = new Map<string, typeof docs>();
+            for (const doc of docs) {
+              const key = doc.storageSubfolder?.trim() || defaultDocLabel;
+              const list = byFolder.get(key) ?? [];
+              list.push(doc);
+              byFolder.set(key, list);
+            }
+            const orderedLabels = [
+              ...STORAGE_FOLDER_KINDS.map((k) =>
+                storageSubfolderLabel(k, current.clientName),
+              ),
+              ...[...byFolder.keys()].filter(
+                (k) =>
+                  !STORAGE_FOLDER_KINDS.map((kind) =>
+                    storageSubfolderLabel(kind, current.clientName),
+                  ).includes(k),
+              ),
+            ];
+            return orderedLabels.map((label) => {
+              const list = byFolder.get(label);
+              if (!list?.length) return null;
+              return (
+                <div
+                  key={label}
+                  className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm"
+                >
+                  <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    {label}
                   </p>
-                  <p className="mt-1 text-xs text-slate-500">
-                    Originale: {doc.rawFileName}
-                  </p>
-                  <p className="text-xs text-slate-500">
-                    Rinominato: {doc.renamedFileName}
-                  </p>
-                  {doc.extractedData && (
-                    <p className="mt-2 text-xs text-slate-600">
-                      {[
-                        doc.extractedData.lastName || doc.extractedData.firstName
-                          ? `${doc.extractedData.lastName ?? ""} ${doc.extractedData.firstName ?? ""}`.trim()
-                          : null,
-                        doc.extractedData.fiscalCode
-                          ? `CF ${doc.extractedData.fiscalCode}`
-                          : null,
-                        doc.extractedData.referenceMonth
-                          ? `Mese ${doc.extractedData.referenceMonth}`
-                          : null,
-                        typeof doc.extractedData.netSalary === "number"
-                          ? `Netto €${doc.extractedData.netSalary.toFixed(2)}`
-                          : null,
-                        typeof doc.extractedData.grossIncomeAnnual === "number"
-                          ? `Lordo €${doc.extractedData.grossIncomeAnnual.toFixed(2)}`
-                          : null,
-                        doc.extractedData.expiryDate
-                          ? `Scad. ${doc.extractedData.expiryDate}`
-                          : null,
-                      ]
-                        .filter(Boolean)
-                        .join(" · ")}
-                    </p>
-                  )}
-                </div>
-                {doc.driveFileUrl && (
-                  <a
-                    href={doc.driveFileUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-sm font-medium text-primary-600 hover:underline"
-                  >
-                    Anteprima
-                  </a>
-                )}
-              </div>
-              {doc.validationIssues?.length > 0 && (
-                <div className="mt-3 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">
-                  <ul className="list-disc pl-4">
-                    {doc.validationIssues.map((issue) => (
-                      <li key={issue}>{issue}</li>
+                  <div className="space-y-3">
+                    {list.map((doc) => (
+                      <div
+                        key={doc.id}
+                        className="border-t border-slate-100 pt-3 first:border-0 first:pt-0"
+                      >
+                        <div className="flex flex-wrap items-start justify-between gap-2">
+                          <div>
+                            <p className="flex items-center gap-2 font-semibold text-slate-900">
+                              {DOCUMENT_TYPE_LABELS[doc.documentType]}
+                              {doc.isValid ? (
+                                <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                              ) : (
+                                <AlertCircle className="h-4 w-4 text-red-500" />
+                              )}
+                            </p>
+                            <p className="mt-1 text-xs text-slate-500">
+                              Originale: {doc.rawFileName}
+                            </p>
+                            <p className="text-xs text-slate-500">
+                              Rinominato: {doc.renamedFileName}
+                            </p>
+                            {doc.extractedData && (
+                              <p className="mt-2 text-xs text-slate-600">
+                                {[
+                                  doc.extractedData.lastName ||
+                                  doc.extractedData.firstName
+                                    ? `${doc.extractedData.lastName ?? ""} ${doc.extractedData.firstName ?? ""}`.trim()
+                                    : null,
+                                  doc.extractedData.fiscalCode
+                                    ? `CF ${doc.extractedData.fiscalCode}`
+                                    : null,
+                                  doc.extractedData.referenceMonth
+                                    ? `Mese ${doc.extractedData.referenceMonth}`
+                                    : null,
+                                  typeof doc.extractedData.netSalary ===
+                                  "number"
+                                    ? `Netto €${doc.extractedData.netSalary.toFixed(2)}`
+                                    : null,
+                                  typeof doc.extractedData
+                                    .grossIncomeAnnual === "number"
+                                    ? `Lordo €${doc.extractedData.grossIncomeAnnual.toFixed(2)}`
+                                    : null,
+                                  doc.extractedData.expiryDate
+                                    ? `Scad. ${doc.extractedData.expiryDate}`
+                                    : null,
+                                ]
+                                  .filter(Boolean)
+                                  .join(" · ")}
+                              </p>
+                            )}
+                          </div>
+                          {doc.driveFileUrl && (
+                            <a
+                              href={doc.driveFileUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-sm font-medium text-primary-600 hover:underline"
+                            >
+                              Scarica
+                            </a>
+                          )}
+                        </div>
+                        {doc.validationIssues?.length > 0 && (
+                          <div className="mt-3 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">
+                            <ul className="list-disc pl-4">
+                              {doc.validationIssues.map((issue) => (
+                                <li key={issue}>{issue}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </div>
                     ))}
-                  </ul>
+                  </div>
                 </div>
-              )}
-            </div>
-          ))}
+              );
+            });
+          })()}
 
           <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
             <DocumentUpload applicationId={current.id} />

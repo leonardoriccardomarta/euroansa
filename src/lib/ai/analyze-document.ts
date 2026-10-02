@@ -94,6 +94,7 @@ function sanitizeNamePart(value: string | null | undefined): string {
   );
 }
 
+/** Es. ALI_ci.pdf, ALI_bp 05.pdf (stile cartella Filippo) */
 function buildStandardizedFileName(
   documentType: DocumentType,
   extracted: ExtractedDocumentData,
@@ -102,13 +103,18 @@ function buildStandardizedFileName(
   const ext = originalFileName.includes(".")
     ? originalFileName.slice(originalFileName.lastIndexOf("."))
     : ".pdf";
-  const prefix = FILE_NAME_PREFIX[documentType] ?? "99_Doc";
-  const last = sanitizeNamePart(extracted.lastName);
-  const first = sanitizeNamePart(extracted.firstName);
-  const month = extracted.referenceMonth
-    ? `_${sanitizeNamePart(extracted.referenceMonth)}`
-    : "";
-  return `${prefix}_${last}_${first}${month}${ext}`;
+  const prefix = FILE_NAME_PREFIX[documentType] ?? "doc";
+  const surname = sanitizeNamePart(
+    extracted.lastName || extracted.firstName,
+  ).toUpperCase();
+  const monthRaw = extracted.referenceMonth?.trim();
+  let monthSuffix = "";
+  if (monthRaw) {
+    // "05/2026" o "05" → " 05"
+    const m = monthRaw.match(/(\d{1,2})/);
+    monthSuffix = m ? ` ${m[1]!.padStart(2, "0")}` : ` ${sanitizeNamePart(monthRaw)}`;
+  }
+  return `${surname}_${prefix}${monthSuffix}${ext}`;
 }
 
 function resolveModels(): string[] {

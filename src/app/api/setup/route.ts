@@ -57,6 +57,11 @@ const SETUP_STATEMENTS = [
   `ALTER TABLE users ADD COLUMN IF NOT EXISTS google_email varchar(255)`,
   `ALTER TABLE users ADD COLUMN IF NOT EXISTS google_connected_at timestamptz`,
   `ALTER TABLE applications ADD COLUMN IF NOT EXISTS required_document_types text[] DEFAULT '{}' NOT NULL`,
+  `ALTER TABLE applications ADD COLUMN IF NOT EXISTS relazione_storage_key text`,
+  `ALTER TABLE applications ADD COLUMN IF NOT EXISTS relazione_file_name text`,
+  `ALTER TABLE applications ADD COLUMN IF NOT EXISTS relazione_uploaded_at timestamptz`,
+  `ALTER TABLE applications ADD COLUMN IF NOT EXISTS package_token text`,
+  `ALTER TABLE documents ADD COLUMN IF NOT EXISTS storage_subfolder text`,
   // Espandi enum documenti = lista foglio Filippo
   `ALTER TYPE document_type ADD VALUE IF NOT EXISTS 'PERMESSO_SOGGIORNO'`,
   `ALTER TYPE document_type ADD VALUE IF NOT EXISTS 'PASSAPORTO'`,

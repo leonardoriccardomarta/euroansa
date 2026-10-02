@@ -9,14 +9,18 @@ import {
   evaluateChecklist,
   inferEmploymentType,
 } from "@/lib/checklist";
-import { FILE_NAME_PREFIX } from "@/lib/config/documents";
+import {
+  FILE_NAME_PREFIX,
+  storageFolderKindForDocument,
+  storageSubfolderLabel,
+} from "@/lib/config/documents";
 import { computePreScoring } from "@/lib/prescoring";
 import {
-  getGoogleAuthForUser,
-  type GoogleOAuthClient,
-} from "@/lib/google/auth";
-import { getOrCreateClientFolder, uploadFileToDrive } from "@/lib/google/drive";
+  practiceStoragePrefix,
+  uploadPracticeFile,
+} from "@/lib/storage/blob";
 import { sendApplicationToSecretary } from "@/lib/google/secretary-sender";
+import { getAppBaseUrl } from "@/lib/app-url";
 
 export type IncomingFile = {
   buffer: Buffer;
@@ -50,15 +54,23 @@ function withResolvedType<
   const ext = originalFileName.includes(".")
     ? originalFileName.slice(originalFileName.lastIndexOf("."))
     : ".pdf";
-  const prefix = FILE_NAME_PREFIX[resolved] ?? "99_Doc";
-  // sostituisce solo il prefisso tipo nel nome già standardizzato
-  const rest = analysis.standardizedFileName.replace(/^\d+_[^_]+/, prefix);
+  const prefix = FILE_NAME_PREFIX[resolved] ?? "doc";
+  // Nome stile Filippo: SURNAME_prefix… → sostituisci parte dopo _
+  const match = analysis.standardizedFileName.match(/^([^_]+)_(.+?)(\.[^.]+)?$/);
+  if (match) {
+    const surname = match[1]!;
+    const monthMatch = match[2]!.match(/\s+(\d{1,2})$/);
+    const monthSuffix = monthMatch ? ` ${monthMatch[1]}` : "";
+    return {
+      ...analysis,
+      documentType: resolved,
+      standardizedFileName: `${surname}_${prefix}${monthSuffix}${match[3] ?? ext}`,
+    };
+  }
   return {
     ...analysis,
     documentType: resolved,
-    standardizedFileName: rest.includes(".")
-      ? rest
-      : `${prefix}_${Date.now()}${ext}`,
+    standardizedFileName: `NA_${prefix}_${Date.now()}${ext}`,
   };
 }
 
@@ -382,9 +394,8 @@ export async function processIncomingFiles(
   options?: {
     applicationId?: string;
     isTest?: boolean;
-    /** Titolare pratica + Drive (casella da cui è arrivata la mail). */
+    /** Titolare pratica (casella da cui è arrivata la mail). */
     brokerId?: string | null;
-    googleAuth?: GoogleOAuthClient;
   },
 ) {
   if (files.length === 0) {
@@ -428,20 +439,6 @@ export async function processIncomingFiles(
     if (type === "SCONOSCIUTO") return;
     knownTypes.add(type);
     typeCounts.set(type, (typeCounts.get(type) ?? 0) + 1);
-  }
-
-  async function resolveDriveAuth(
-    brokerId: string | null | undefined,
-  ): Promise<GoogleOAuthClient | undefined> {
-    if (options?.googleAuth) return options.googleAuth;
-    if (brokerId) {
-      try {
-        return await getGoogleAuthForUser(brokerId);
-      } catch {
-        return undefined;
-      }
-    }
-    return undefined;
   }
 
   for (const file of files) {
@@ -585,58 +582,68 @@ export async function processIncomingFiles(
       app = { ...app, ...updates } as typeof app;
     }
 
-    const driveAuth = await resolveDriveAuth(
-      app.brokerId ?? options?.brokerId,
-    );
-
-    let folderId = app.driveFolderId;
-    let folderUrl = app.driveFolderUrl;
-    if (!folderId) {
-      const folder = await getOrCreateClientFolder(
-        app.clientName,
-        app.id,
-        driveAuth,
-      );
-      folderId = folder.folderId;
-      folderUrl = folder.folderUrl;
+    const folderPrefix = practiceStoragePrefix(app.id);
+    const folderUrl: string = `${getAppBaseUrl()}/dashboard/applications/${app.id}#files`;
+    if (!app.driveFolderId) {
       await db
         .update(applications)
         .set({
-          driveFolderId: folderId,
+          driveFolderId: folderPrefix,
           driveFolderUrl: folderUrl,
           updatedAt: new Date(),
         })
         .where(eq(applications.id, app.id));
+      app = {
+        ...app,
+        driveFolderId: folderPrefix,
+        driveFolderUrl: folderUrl,
+      } as typeof app;
     }
 
-    let driveFileId: string | null = null;
-    let driveFileUrl: string | null = null;
+    const folderKind = storageFolderKindForDocument(analysis.documentType);
+    const subfolder = storageSubfolderLabel(folderKind, app.clientName);
+
+    let storageKey: string | null = null;
     try {
-      const uploaded = await uploadFileToDrive({
-        folderId: folderId!,
+      const uploaded = await uploadPracticeFile({
+        applicationId: app.id,
+        subfolder,
         fileName: analysis.standardizedFileName,
         mimeType: file.mimeType,
         buffer: file.buffer,
-        documentType: analysis.documentType,
-        auth: driveAuth,
       });
-      driveFileId = uploaded.driveFileId;
-      driveFileUrl = uploaded.driveFileUrl;
+      storageKey = uploaded.pathname;
     } catch (err) {
-      console.error("Drive upload failed", err);
+      console.error("Blob upload failed", err);
+      errors.push(
+        `${file.originalFileName}: upload storage fallito — ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
     }
 
-    await db.insert(documents).values({
-      applicationId: app.id,
-      rawFileName: file.originalFileName,
-      renamedFileName: analysis.standardizedFileName,
-      documentType: analysis.documentType,
-      driveFileId,
-      driveFileUrl,
-      isValid: analysis.isValid,
-      extractedData: analysis.extractedData,
-      validationIssues: analysis.validationIssues,
-    });
+    const [inserted] = await db
+      .insert(documents)
+      .values({
+        applicationId: app.id,
+        rawFileName: file.originalFileName,
+        renamedFileName: analysis.standardizedFileName,
+        documentType: analysis.documentType,
+        driveFileId: storageKey,
+        driveFileUrl: null,
+        storageSubfolder: subfolder,
+        isValid: analysis.isValid,
+        extractedData: analysis.extractedData,
+        validationIssues: analysis.validationIssues,
+      })
+      .returning({ id: documents.id });
+
+    if (inserted && storageKey) {
+      await db
+        .update(documents)
+        .set({ driveFileUrl: `/api/files/${inserted.id}` })
+        .where(eq(documents.id, inserted.id));
+    }
 
     knownRaw.add(rawKey);
     trackType(analysis.documentType);
@@ -698,7 +705,8 @@ export async function refreshApplicationState(applicationId: string) {
     .where(eq(applications.id, applicationId));
 
   const checklist = evaluateChecklist(app.requiredDocumentTypes, docs);
-  if (checklist.isComplete && !coherenceIssues.length) {
+  const hasRelazione = Boolean(app.relazioneStorageKey);
+  if (checklist.isComplete && !coherenceIssues.length && hasRelazione) {
     const [settings] = await db
       .select()
       .from(systemSettings)

@@ -16,6 +16,10 @@ import { processIncomingFiles, refreshApplicationState } from "@/lib/pipeline";
 import { sendApplicationToSecretary } from "@/lib/google/secretary-sender";
 import { evaluateChecklist } from "@/lib/checklist";
 import { buildSollecitoMessage } from "@/lib/sollecito";
+import {
+  deletePracticeBlobs,
+  uploadRelazioneFile,
+} from "@/lib/storage/blob";
 
 export async function assignBrokerAction(
   applicationId: string,
@@ -73,13 +77,18 @@ export async function updateApplicationStatusAction(
 
 export async function sendToSecretaryAction(applicationId: string) {
   await requireSession();
-  await sendApplicationToSecretary(applicationId);
+  try {
+    await sendApplicationToSecretary(applicationId);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "Invio fallito";
+    return { error: msg };
+  }
   revalidatePath(`/dashboard/applications/${applicationId}`);
   revalidatePath("/dashboard");
   return { ok: true };
 }
 
-/** Elimina pratica + documenti collegati (cascade). Solo admin. */
+/** Elimina pratica + documenti DB + file Blob. Solo admin. */
 export async function deleteApplicationAction(applicationId: string) {
   await requireAdmin();
   const [app] = await db
@@ -89,7 +98,63 @@ export async function deleteApplicationAction(applicationId: string) {
     .limit(1);
   if (!app) return { error: "Pratica non trovata" };
 
+  try {
+    await deletePracticeBlobs(applicationId);
+  } catch (err) {
+    console.error("blob delete on application remove", err);
+  }
+
   await db.delete(applications).where(eq(applications.id, applicationId));
+  revalidatePath("/dashboard");
+  return { ok: true };
+}
+
+export async function uploadRelazioneAction(
+  applicationId: string,
+  formData: FormData,
+) {
+  await requireSession();
+  const file = formData.get("relazione") as File | null;
+  if (!file || file.size === 0) {
+    return { error: "Seleziona un file PDF relazione" };
+  }
+
+  const [app] = await db
+    .select()
+    .from(applications)
+    .where(eq(applications.id, applicationId))
+    .limit(1);
+  if (!app) return { error: "Pratica non trovata" };
+
+  const buffer = Buffer.from(await file.arrayBuffer());
+  try {
+    const uploaded = await uploadRelazioneFile({
+      applicationId,
+      clientName: app.clientName,
+      fileName: file.name,
+      mimeType: file.type || "application/pdf",
+      buffer,
+    });
+
+    await db
+      .update(applications)
+      .set({
+        relazioneStorageKey: uploaded.pathname,
+        relazioneFileName: uploaded.pathname.split("/").pop() ?? file.name,
+        relazioneUploadedAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .where(eq(applications.id, applicationId));
+
+    await refreshApplicationState(applicationId);
+  } catch (err) {
+    return {
+      error:
+        err instanceof Error ? err.message : "Upload relazione fallito",
+    };
+  }
+
+  revalidatePath(`/dashboard/applications/${applicationId}`);
   revalidatePath("/dashboard");
   return { ok: true };
 }

@@ -175,11 +175,9 @@ export function ApplicationCard({
           {driveFolderUrl ? (
             <a
               href={driveFolderUrl}
-              target="_blank"
-              rel="noreferrer"
               className="inline-flex min-h-10 items-center gap-1 font-medium text-slate-600 hover:text-primary-600"
             >
-              Drive <ExternalLink className="h-3.5 w-3.5" />
+              File <ExternalLink className="h-3.5 w-3.5" />
             </a>
           ) : null}
         </div>
