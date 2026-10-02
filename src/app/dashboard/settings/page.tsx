@@ -18,6 +18,8 @@ export default async function SettingsPage({
 }) {
   const session = await getSession();
   if (!session) redirect("/login");
+  // Google + config agenzia: solo admin (hub casella Filippo)
+  if (session.role !== "ADMIN") redirect("/dashboard");
 
   const params = await searchParams;
 
@@ -33,22 +35,19 @@ export default async function SettingsPage({
 
   const googleConnected = Boolean(me?.googleRefreshToken);
 
-  const [settings] =
-    session.role === "ADMIN"
-      ? await db
-          .select()
-          .from(systemSettings)
-          .where(eq(systemSettings.id, "global"))
-          .limit(1)
-      : [null];
+  const [settings] = await db
+    .select()
+    .from(systemSettings)
+    .where(eq(systemSettings.id, "global"))
+    .limit(1);
 
   return (
     <div className="mx-auto max-w-lg space-y-8">
       <div>
         <h1 className="text-3xl font-bold text-slate-900">Impostazioni</h1>
         <p className="mt-2 text-slate-600">
-          Collega la tua Gmail e Drive: le pratiche che arrivano sulla tua
-          casella ti vengono assegnate e i file restano sul tuo Drive.
+          Collega la Gmail e il Drive dell&apos;agenzia (casella condivisa). Solo
+          admin.
         </p>
       </div>
 
@@ -70,7 +69,7 @@ export default async function SettingsPage({
 
       <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
         <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">
-          Il mio Google
+          Google agenzia
         </p>
         <h2 className="mb-4 text-lg font-semibold text-slate-900">
           Gmail + Drive
@@ -91,11 +90,11 @@ export default async function SettingsPage({
               ) : null}
             </p>
             <p className="text-xs text-slate-500">
-              Login CRM: {session.email}. Le mail con oggetto{" "}
+              Le mail con oggetto{" "}
               <code className="rounded bg-slate-100 px-1">
                 {process.env.GMAIL_SUBJECT_TAG ?? "[EUROANSA-MUTUO]"}
               </code>{" "}
-              sulla casella collegata diventano pratiche tue.
+              su questa casella diventano pratiche; i file vanno su questo Drive.
             </p>
             <div className="flex flex-wrap gap-2">
               <a href="/api/google/connect">
@@ -121,8 +120,8 @@ export default async function SettingsPage({
         ) : (
           <div className="space-y-4">
             <p className="text-sm text-slate-600">
-              Nessun account collegato. Autorizza Gmail (lettura/invio) e Drive
-              (cartelle pratiche).
+              Nessun account collegato. Autorizza la Gmail/Drive condivisa
+              dell&apos;agenzia (Filippo).
             </p>
             <a href="/api/google/connect">
               <Button
@@ -136,59 +135,57 @@ export default async function SettingsPage({
         )}
       </div>
 
-      {session.role === "ADMIN" ? (
-        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-          <p className="mb-4 text-xs font-semibold uppercase tracking-wide text-slate-500">
-            Configurazione agenzia
-          </p>
-          <form action={updateSettingsAction} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="brokerName" className="font-semibold">
-                Nome broker / agenzia
-              </Label>
-              <Input
-                id="brokerName"
-                name="brokerName"
-                defaultValue={settings?.brokerName ?? "Euroansa"}
-                required
-                className="h-10 rounded-lg"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="secretaryEmail" className="font-semibold">
-                Email segreteria
-              </Label>
-              <Input
-                id="secretaryEmail"
-                name="secretaryEmail"
-                type="email"
-                defaultValue={
-                  settings?.secretaryEmail ??
-                  process.env.SECRETARY_EMAIL_DEFAULT ??
-                  ""
-                }
-                required
-                className="h-10 rounded-lg"
-              />
-            </div>
-            <label className="flex items-center gap-2 text-sm text-slate-700">
-              <input
-                type="checkbox"
-                name="autoSendToSecretary"
-                defaultChecked={settings?.autoSendToSecretary ?? true}
-                className="size-4 rounded border-slate-300"
-              />
-              Invio automatico a segreteria quando la checklist è completa
-            </label>
-            <Button
-              type="submit"
-              className="h-10 rounded-lg bg-primary-600 font-semibold shadow-md hover:bg-primary-700"
-            >
-              Salva
-            </Button>
-          </form>
-        </div>
-      ) : null}
+      <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+        <p className="mb-4 text-xs font-semibold uppercase tracking-wide text-slate-500">
+          Configurazione agenzia
+        </p>
+        <form action={updateSettingsAction} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="brokerName" className="font-semibold">
+              Nome broker / agenzia
+            </Label>
+            <Input
+              id="brokerName"
+              name="brokerName"
+              defaultValue={settings?.brokerName ?? "Euroansa"}
+              required
+              className="h-10 rounded-lg"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="secretaryEmail" className="font-semibold">
+              Email segreteria
+            </Label>
+            <Input
+              id="secretaryEmail"
+              name="secretaryEmail"
+              type="email"
+              defaultValue={
+                settings?.secretaryEmail ??
+                process.env.SECRETARY_EMAIL_DEFAULT ??
+                ""
+              }
+              required
+              className="h-10 rounded-lg"
+            />
+          </div>
+          <label className="flex items-center gap-2 text-sm text-slate-700">
+            <input
+              type="checkbox"
+              name="autoSendToSecretary"
+              defaultChecked={settings?.autoSendToSecretary ?? true}
+              className="size-4 rounded border-slate-300"
+            />
+            Invio automatico a segreteria quando la checklist è completa
+          </label>
+          <Button
+            type="submit"
+            className="h-10 rounded-lg bg-primary-600 font-semibold shadow-md hover:bg-primary-700"
+          >
+            Salva
+          </Button>
+        </form>
+      </div>
     </div>
   );
 }

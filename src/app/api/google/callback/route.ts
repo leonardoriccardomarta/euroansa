@@ -44,6 +44,19 @@ export async function GET(req: NextRequest) {
     }
     const userId = String(payload.userId);
 
+    const [user] = await db
+      .select({ id: users.id, role: users.role })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
+    if (!user || user.role !== "ADMIN") {
+      return NextResponse.redirect(
+        `${base}/dashboard?google=error&msg=${encodeURIComponent(
+          "Solo admin può collegare Google",
+        )}`,
+      );
+    }
+
     const client = createGoogleOAuthClient(getGoogleRedirectUri());
     const { tokens } = await client.getToken(code);
     if (!tokens.refresh_token) {

@@ -9,11 +9,14 @@ function getSecret() {
   return new TextEncoder().encode(secret);
 }
 
-/** Avvia OAuth Google (Gmail + Drive) per l'utente loggato. */
+/** Avvia OAuth Google (Gmail + Drive) — solo ADMIN (casella agenzia). */
 export async function GET(req: NextRequest) {
   const session = await getSession();
   if (!session) {
     return NextResponse.redirect(new URL("/login", req.url));
+  }
+  if (session.role !== "ADMIN") {
+    return NextResponse.redirect(new URL("/dashboard", req.url));
   }
 
   try {

@@ -31,9 +31,11 @@ export function AppShell({
 
   const nav: NavItem[] = [
     { href: "/dashboard", label: "Pratiche", icon: FolderKanban },
-    { href: "/dashboard/settings", label: "Impostazioni", icon: Settings },
     ...(isAdmin
-      ? [{ href: "/dashboard/users", label: "Utenti", icon: Users }]
+      ? [
+          { href: "/dashboard/settings", label: "Impostazioni", icon: Settings },
+          { href: "/dashboard/users", label: "Utenti", icon: Users },
+        ]
       : []),
   ];
 

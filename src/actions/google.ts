@@ -4,10 +4,10 @@ import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { db } from "@/db";
 import { users } from "@/db/schema";
-import { requireSession } from "@/lib/auth";
+import { requireAdmin } from "@/lib/auth";
 
 export async function disconnectGoogleAction(): Promise<void> {
-  const session = await requireSession();
+  const session = await requireAdmin();
   await db
     .update(users)
     .set({
