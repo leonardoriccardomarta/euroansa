@@ -2,9 +2,10 @@ import { redirect } from "next/navigation";
 import { eq } from "drizzle-orm";
 import { getSession } from "@/lib/auth";
 import { db } from "@/db";
-import { systemSettings, users } from "@/db/schema";
+import { systemSettings } from "@/db/schema";
 import { updateSettingsAction } from "@/actions/applications";
 import { disconnectGoogleAction } from "@/actions/google";
+import { getOfficeGoogleHub } from "@/lib/google/auth";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -18,22 +19,12 @@ export default async function SettingsPage({
 }) {
   const session = await getSession();
   if (!session) redirect("/login");
-  // Google + config agenzia: solo admin (hub casella Filippo)
   if (session.role !== "ADMIN") redirect("/dashboard");
 
   const params = await searchParams;
-
-  const [me] = await db
-    .select({
-      googleEmail: users.googleEmail,
-      googleConnectedAt: users.googleConnectedAt,
-      googleRefreshToken: users.googleRefreshToken,
-    })
-    .from(users)
-    .where(eq(users.id, session.id))
-    .limit(1);
-
-  const googleConnected = Boolean(me?.googleRefreshToken);
+  const hub = await getOfficeGoogleHub();
+  const googleConnected = Boolean(hub?.googleRefreshToken);
+  const connectedByMe = hub?.id === session.id;
 
   const [settings] = await db
     .select()
@@ -46,14 +37,15 @@ export default async function SettingsPage({
       <div>
         <h1 className="text-3xl font-bold text-slate-900">Impostazioni</h1>
         <p className="mt-2 text-slate-600">
-          Collega la Gmail e il Drive dell&apos;agenzia (casella condivisa). Solo
-          admin.
+          Un solo Google collegato (mail/Drive ufficio). I broker non lo
+          gestiscono.
         </p>
       </div>
 
       {params.google === "ok" ? (
         <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
-          Google collegato correttamente.
+          Google collegato. Eventuali altri OAuth admin sono stati scollegati
+          (hub unico).
         </p>
       ) : null}
       {params.google === "denied" ? (
@@ -69,32 +61,37 @@ export default async function SettingsPage({
 
       <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
         <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">
-          Google agenzia
+          Google agenzia (uno solo)
         </p>
         <h2 className="mb-4 text-lg font-semibold text-slate-900">
-          Gmail + Drive
+          Gmail + Drive ufficio
         </h2>
         {googleConnected ? (
           <div className="space-y-4">
             <p className="text-sm text-slate-700">
               Collegato come{" "}
               <span className="font-semibold">
-                {me?.googleEmail ?? "account Google"}
+                {hub?.googleEmail ?? "account Google"}
               </span>
-              {me?.googleConnectedAt ? (
+              {hub?.googleConnectedAt ? (
                 <span className="text-slate-500">
                   {" "}
-                  ·{" "}
-                  {new Date(me.googleConnectedAt).toLocaleString("it-IT")}
+                  · {new Date(hub.googleConnectedAt).toLocaleString("it-IT")}
                 </span>
               ) : null}
             </p>
             <p className="text-xs text-slate-500">
-              Le mail con oggetto{" "}
+              Hub gestito dall&apos;admin CRM{" "}
+              <span className="font-medium">{hub?.email}</span>
+              {connectedByMe ? " (tu)" : ""}. Solo questa casella viene letta;
+              non collegare una seconda mail diversa a meno che non sia
+              intenzionale (Ricollega sostituisce l&apos;hub).
+            </p>
+            <p className="text-xs text-slate-500">
+              Tag oggetto:{" "}
               <code className="rounded bg-slate-100 px-1">
                 {process.env.GMAIL_SUBJECT_TAG ?? "[EUROANSA-MUTUO]"}
-              </code>{" "}
-              su questa casella diventano pratiche; i file vanno su questo Drive.
+              </code>
             </p>
             <div className="flex flex-wrap gap-2">
               <a href="/api/google/connect">
@@ -103,7 +100,7 @@ export default async function SettingsPage({
                   variant="outline"
                   className="h-10 rounded-lg"
                 >
-                  Ricollega Google
+                  {connectedByMe ? "Ricollega Google" : "Prendi hub Google"}
                 </Button>
               </a>
               <form action={disconnectGoogleAction}>
@@ -120,15 +117,15 @@ export default async function SettingsPage({
         ) : (
           <div className="space-y-4">
             <p className="text-sm text-slate-600">
-              Nessun account collegato. Autorizza la Gmail/Drive condivisa
-              dell&apos;agenzia (Filippo).
+              Nessun hub collegato. Autorizza la Gmail/Drive{" "}
+              <strong>ufficio</strong> (una sola).
             </p>
             <a href="/api/google/connect">
               <Button
                 type="button"
                 className="h-10 rounded-lg bg-primary-600 font-semibold shadow-md hover:bg-primary-700"
               >
-                Collega Google
+                Collega Google ufficio
               </Button>
             </a>
           </div>

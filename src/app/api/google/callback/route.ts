@@ -4,7 +4,7 @@ import { eq } from "drizzle-orm";
 import { google } from "googleapis";
 import { db } from "@/db";
 import { users } from "@/db/schema";
-import { createGoogleOAuthClient, getGoogleRedirectUri } from "@/lib/google/auth";
+import { createGoogleOAuthClient, getGoogleRedirectUri, clearGoogleConnectionsExcept } from "@/lib/google/auth";
 
 function getSecret() {
   const secret = process.env.AUTH_SECRET?.trim();
@@ -72,6 +72,9 @@ export async function GET(req: NextRequest) {
     const oauth2 = google.oauth2({ version: "v2", auth: client });
     const me = await oauth2.userinfo.get();
     const googleEmail = me.data.email?.toLowerCase() ?? null;
+
+    // Hub unico: togli OAuth da eventuali altri admin
+    await clearGoogleConnectionsExcept(userId);
 
     await db
       .update(users)

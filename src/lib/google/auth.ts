@@ -1,5 +1,5 @@
 import { google, type Auth } from "googleapis";
-import { eq, isNotNull } from "drizzle-orm";
+import { and, eq, isNotNull, ne } from "drizzle-orm";
 import { db } from "@/db";
 import { users } from "@/db/schema";
 
@@ -35,7 +35,6 @@ function requireClientCredentials() {
   return { clientId, clientSecret };
 }
 
-/** Client OAuth senza token (per avviare il flusso / scambiare code). */
 export function createGoogleOAuthClient(redirectUri?: string): GoogleOAuthClient {
   const { clientId, clientSecret } = requireClientCredentials();
   return new google.auth.OAuth2(
@@ -83,12 +82,16 @@ export async function getGoogleAuthForUser(
   const token = await getUserGoogleRefreshToken(userId);
   if (token) return oauthClientFromRefreshToken(token);
 
-  // Fallback legacy: env globale solo se nessun token user (migrazione)
+  const hub = await getOfficeGoogleHub();
+  if (hub?.googleRefreshToken) {
+    return oauthClientFromRefreshToken(hub.googleRefreshToken);
+  }
+
   const legacy = process.env.GOOGLE_REFRESH_TOKEN?.trim();
   if (legacy) return oauthClientFromRefreshToken(legacy);
 
   throw new Error(
-    "Google non collegato per questo utente. Vai in Impostazioni → Collega Google.",
+    "Google non collegato. Impostazioni → Collega Google (mail ufficio).",
   );
 }
 
@@ -113,13 +116,12 @@ export type ConnectedGoogleUser = {
   role: "ADMIN" | "BROKER";
   googleEmail: string | null;
   googleRefreshToken: string;
+  googleConnectedAt?: Date | null;
 };
 
-/** Utenti con OAuth collegato; se nessuno, fallback token env → admin. */
-export async function listConnectedGoogleUsers(): Promise<
-  ConnectedGoogleUser[]
-> {
-  const rows = await db
+/** Un solo hub Google (mail/Drive ufficio) in tutto il sistema. */
+export async function getOfficeGoogleHub(): Promise<ConnectedGoogleUser | null> {
+  const [row] = await db
     .select({
       id: users.id,
       email: users.email,
@@ -127,18 +129,18 @@ export async function listConnectedGoogleUsers(): Promise<
       role: users.role,
       googleEmail: users.googleEmail,
       googleRefreshToken: users.googleRefreshToken,
+      googleConnectedAt: users.googleConnectedAt,
     })
     .from(users)
-    .where(isNotNull(users.googleRefreshToken));
+    .where(isNotNull(users.googleRefreshToken))
+    .limit(1);
 
-  const connected = rows.filter(
-    (r): r is ConnectedGoogleUser => Boolean(r.googleRefreshToken),
-  );
-
-  if (connected.length > 0) return connected;
+  if (row?.googleRefreshToken) {
+    return row as ConnectedGoogleUser;
+  }
 
   const legacy = process.env.GOOGLE_REFRESH_TOKEN?.trim();
-  if (!legacy) return [];
+  if (!legacy) return null;
 
   const [admin] = await db
     .select({
@@ -147,19 +149,48 @@ export async function listConnectedGoogleUsers(): Promise<
       name: users.name,
       role: users.role,
       googleEmail: users.googleEmail,
+      googleConnectedAt: users.googleConnectedAt,
     })
     .from(users)
     .where(eq(users.role, "ADMIN"))
     .limit(1);
 
-  if (!admin) return [];
+  if (!admin) return null;
+  return {
+    ...admin,
+    googleRefreshToken: legacy,
+  };
+}
 
-  return [
-    {
-      ...admin,
-      googleRefreshToken: legacy,
-    },
-  ];
+/** Rimuove OAuth da tutti tranne keepUserId. */
+export async function clearGoogleConnectionsExcept(keepUserId: string) {
+  await db
+    .update(users)
+    .set({
+      googleRefreshToken: null,
+      googleEmail: null,
+      googleConnectedAt: null,
+    })
+    .where(and(isNotNull(users.googleRefreshToken), ne(users.id, keepUserId)));
+}
+
+export async function clearAllGoogleConnections() {
+  await db
+    .update(users)
+    .set({
+      googleRefreshToken: null,
+      googleEmail: null,
+      googleConnectedAt: null,
+    })
+    .where(isNotNull(users.googleRefreshToken));
+}
+
+/** Cron: al massimo un hub. */
+export async function listConnectedGoogleUsers(): Promise<
+  ConnectedGoogleUser[]
+> {
+  const hub = await getOfficeGoogleHub();
+  return hub ? [hub] : [];
 }
 
 export function buildGoogleAuthUrl(state: string): string {

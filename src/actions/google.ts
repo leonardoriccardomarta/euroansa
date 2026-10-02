@@ -1,20 +1,12 @@
 "use server";
 
-import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
-import { db } from "@/db";
-import { users } from "@/db/schema";
 import { requireAdmin } from "@/lib/auth";
+import { clearAllGoogleConnections } from "@/lib/google/auth";
 
+/** Scollega l'unico hub Google ufficio. */
 export async function disconnectGoogleAction(): Promise<void> {
-  const session = await requireAdmin();
-  await db
-    .update(users)
-    .set({
-      googleRefreshToken: null,
-      googleEmail: null,
-      googleConnectedAt: null,
-    })
-    .where(eq(users.id, session.id));
+  await requireAdmin();
+  await clearAllGoogleConnections();
   revalidatePath("/dashboard/settings");
 }
