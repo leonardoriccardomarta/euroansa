@@ -76,6 +76,7 @@ export const documentTypeEnum = pgEnum("document_type", [
   "POLIZZE_RISPARMIO",
   "CONTRATTI_FINANZIAMENTO",
   "QUIETANZA_RATA_MUTUO",
+  "NUMERO_TELEFONO_COMMERCIALISTA",
   "SCONOSCIUTO",
 ]);
 

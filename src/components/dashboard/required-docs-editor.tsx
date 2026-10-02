@@ -5,10 +5,10 @@ import { useOptimistic, useTransition } from "react";
 import { updateRequiredDocumentsAction } from "@/actions/applications";
 import type { DocumentType, EmploymentType } from "@/db/schema";
 import {
-  CHECKLIST_GROUPS,
   CHECKLIST_PRESETS,
-  DOCUMENT_TYPE_LABELS,
   EMPLOYMENT_TYPE_LABELS,
+  SHEET_SECTIONS,
+  type SheetChecklistItem,
 } from "@/lib/config/documents";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -17,7 +17,6 @@ const PRESET_ORDER: EmploymentType[] = [
   "DIPENDENTE_INDETERMINATO",
   "PARTITA_IVA",
   "PENSIONATO",
-  "ALTRO",
 ];
 
 export function RequiredDocsEditor({
@@ -38,19 +37,27 @@ export function RequiredDocsEditor({
       setSelected(next);
       try {
         await updateRequiredDocumentsAction(applicationId, next);
-        toast.success("Checklist pratica aggiornata");
+        toast.success("Checklist aggiornata");
         router.refresh();
       } catch {
-        toast.error("Salvataggio checklist fallito");
+        toast.error("Salvataggio fallito");
         router.refresh();
       }
     });
   }
 
-  function toggle(type: DocumentType) {
-    const next = selected.includes(type)
-      ? selected.filter((t) => t !== type)
-      : [...selected, type];
+  function isItemOn(item: SheetChecklistItem) {
+    return item.types.every((t) => selected.includes(t));
+  }
+
+  function toggleItem(item: SheetChecklistItem) {
+    const on = isItemOn(item);
+    let next: DocumentType[];
+    if (on) {
+      next = selected.filter((t) => !item.types.includes(t));
+    } else {
+      next = [...new Set([...selected, ...item.types])];
+    }
     save(next);
   }
 
@@ -60,16 +67,6 @@ export function RequiredDocsEditor({
 
   return (
     <div className="space-y-5">
-      <div>
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-          Documenti richiesti per questa pratica
-        </p>
-        <p className="mt-1 text-sm text-slate-600">
-          Lista completa foglio Filippo. Usa un preset (Dipendenti / Autonomi /
-          Pensionati) poi spunta o togli ciò che serve per questa banca.
-        </p>
-      </div>
-
       <div className="flex flex-wrap gap-2">
         {PRESET_ORDER.map((preset) => (
           <Button
@@ -80,7 +77,7 @@ export function RequiredDocsEditor({
             className="h-9 rounded-lg text-xs"
             onClick={() => applyPreset(preset)}
           >
-            Preset {EMPLOYMENT_TYPE_LABELS[preset]}
+            {EMPLOYMENT_TYPE_LABELS[preset]}
             {suggestedPreset === preset ? " ★" : ""}
           </Button>
         ))}
@@ -95,38 +92,43 @@ export function RequiredDocsEditor({
         </Button>
       </div>
 
-      <div className="space-y-5">
-        {CHECKLIST_GROUPS.map((group) => (
-          <div key={group.id}>
-            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
-              {group.title}
+      <div className="space-y-6">
+        {SHEET_SECTIONS.map((section, idx) => (
+          <div key={`${section.title}-${section.subtitle ?? idx}`}>
+            <p className="text-center text-xs font-bold uppercase tracking-wide text-slate-800">
+              {section.title}
             </p>
-            <ul className="grid gap-2 sm:grid-cols-2">
-              {group.types.map((type) => {
-                const on = selected.includes(type);
+            {section.subtitle ? (
+              <p className="mt-2 text-xs font-semibold uppercase text-slate-600">
+                {section.subtitle}
+              </p>
+            ) : null}
+            <ul className="mt-3 grid gap-2 sm:grid-cols-2">
+              {section.items.map((item) => {
+                const on = isItemOn(item);
                 return (
-                  <li key={`${group.id}-${type}`}>
+                  <li key={`${section.subtitle ?? section.title}-${item.label}`}>
                     <button
                       type="button"
                       disabled={pending}
-                      onClick={() => toggle(type)}
-                      className={`flex w-full items-center gap-2.5 rounded-lg border px-3 py-2.5 text-left text-sm transition active:scale-[0.99] ${
+                      onClick={() => toggleItem(item)}
+                      className={`flex w-full items-center gap-2.5 rounded-lg border px-3 py-2.5 text-left text-xs font-medium uppercase transition active:scale-[0.99] sm:text-[13px] ${
                         on
                           ? "border-primary-300 bg-primary-50 text-primary-900"
-                          : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                          : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
                       }`}
                     >
                       <span
-                        className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border text-[10px] ${
+                        className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full border text-[10px] ${
                           on
                             ? "border-primary-600 bg-primary-600 text-white"
-                            : "border-slate-300 bg-white"
+                            : "border-slate-400 bg-white"
                         }`}
                         aria-hidden
                       >
                         {on ? "✓" : ""}
                       </span>
-                      {DOCUMENT_TYPE_LABELS[type]}
+                      {item.label}
                     </button>
                   </li>
                 );

@@ -17,6 +17,7 @@ import {
   APPLICATION_STATUS_LABELS,
   DOCUMENT_TYPE_LABELS,
   EMPLOYMENT_TYPE_LABELS,
+  sheetRowsForRequired,
 } from "@/lib/config/documents";
 import { refreshApplicationState } from "@/lib/pipeline";
 import { Badge } from "@/components/ui/badge";
@@ -175,8 +176,8 @@ export default async function ApplicationDetailPage({
         </div>
         {checklist.isUnset ? (
           <p className="mt-3 text-sm text-amber-700">
-            Imposta sopra i documenti richiesti per questa pratica: senza
-            checklist non può risultare completa.
+            Seleziona sopra le voci del foglio documenti richieste per questa
+            pratica.
           </p>
         ) : (
           <>
@@ -187,23 +188,34 @@ export default async function ApplicationDetailPage({
               />
             </div>
             <ul className="mt-4 grid gap-2 sm:grid-cols-2">
-              {checklist.required.map((type) => {
-                const ok = checklist.presentValid.includes(type);
-                const invalid = checklist.invalid.includes(type);
+              {sheetRowsForRequired(checklist.required).map((row) => {
+                const ok = row.types.every((t) =>
+                  checklist.presentValid.includes(t),
+                );
+                const invalid = row.types.some((t) =>
+                  checklist.invalid.includes(t),
+                );
+                const partial =
+                  !ok &&
+                  row.types.some(
+                    (t) =>
+                      checklist.presentValid.includes(t) ||
+                      checklist.invalid.includes(t),
+                  );
                 return (
                   <li
-                    key={type}
-                    className="flex items-center gap-2.5 rounded-lg bg-slate-50 px-3 py-2.5 text-sm text-slate-700"
+                    key={`${row.label}-${row.types.join("-")}`}
+                    className="flex items-center gap-2.5 rounded-lg bg-slate-50 px-3 py-2.5 text-xs font-medium uppercase text-slate-700 sm:text-[13px]"
                   >
                     {ok ? (
                       <CheckCircle2
                         className="h-4 w-4 shrink-0 text-emerald-600"
                         aria-label="Presente e valido"
                       />
-                    ) : invalid ? (
+                    ) : invalid || partial ? (
                       <AlertCircle
                         className="h-4 w-4 shrink-0 text-amber-500"
-                        aria-label="Presente ma non valido"
+                        aria-label="Incompleto o non valido"
                       />
                     ) : (
                       <Circle
@@ -212,22 +224,15 @@ export default async function ApplicationDetailPage({
                       />
                     )}
                     <span className={ok ? "text-slate-800" : "text-slate-600"}>
-                      {DOCUMENT_TYPE_LABELS[type]}
+                      {row.label}
+                      {row.types.length > 1
+                        ? ` (${row.types.filter((t) => checklist.presentValid.includes(t)).length}/${row.types.length})`
+                        : ""}
                     </span>
                   </li>
                 );
               })}
             </ul>
-            {(checklist.missing.length > 0 || checklist.invalid.length > 0) && (
-              <p className="mt-4 text-sm text-slate-500">
-                {checklist.missing.length > 0
-                  ? `Mancano: ${checklist.missing.map((t) => DOCUMENT_TYPE_LABELS[t]).join(", ")}.`
-                  : null}{" "}
-                {checklist.invalid.length > 0
-                  ? `Da rifare: ${checklist.invalid.map((t) => DOCUMENT_TYPE_LABELS[t]).join(", ")}.`
-                  : null}
-              </p>
-            )}
           </>
         )}
       </div>
