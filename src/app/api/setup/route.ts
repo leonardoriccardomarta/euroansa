@@ -107,9 +107,6 @@ const SETUP_STATEMENTS = [
  * Setup one-shot in produzione (niente comandi locali).
  * POST /api/setup
  * Header: Authorization: Bearer <CRON_SECRET>
- *
- * Test mail pacchetto:
- * Body JSON { "action": "test-secretary-email", "to": "...", "clientName": "Mario Rossi" }
  */
 export async function POST(req: NextRequest) {
   const auth = req.headers.get("authorization");
@@ -117,38 +114,6 @@ export async function POST(req: NextRequest) {
 
   if (!secret || auth !== `Bearer ${secret}`) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  // Invio test mail segreteria (senza cambiare schema)
-  const contentType = req.headers.get("content-type") ?? "";
-  if (contentType.includes("application/json")) {
-    try {
-      const body = await req.json();
-      if (body?.action === "test-secretary-email") {
-        const { sendTestSecretaryEmail } = await import(
-          "@/lib/google/test-secretary-email"
-        );
-        const result = await sendTestSecretaryEmail({
-          to: String(body.to ?? ""),
-          clientName: body.clientName ? String(body.clientName) : "Mario Rossi",
-          applicationId: body.applicationId
-            ? String(body.applicationId)
-            : undefined,
-        });
-        return NextResponse.json(result, {
-          status: result.ok ? 200 : 400,
-        });
-      }
-    } catch (error) {
-      console.error("test secretary email error", error);
-      return NextResponse.json(
-        {
-          ok: false,
-          error: error instanceof Error ? error.message : "Test email failed",
-        },
-        { status: 500 },
-      );
-    }
   }
 
   const databaseUrl = process.env.DATABASE_URL;

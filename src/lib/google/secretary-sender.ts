@@ -85,13 +85,12 @@ export async function sendApplicationToSecretary(applicationId: string) {
       .where(eq(applications.id, applicationId));
   }
 
-  const packageUrl = `${getAppBaseUrl()}/api/packages/${applicationId}?t=${packageToken}`;
+  const packageUrl = `${getAppBaseUrl()}/package/${applicationId}?t=${packageToken}`;
 
   const bodyText = `Buongiorno,
 
 pratica ${app.clientName} pronta.
 
-Scarica il pacchetto:
 ${packageUrl}
 
 Grazie
