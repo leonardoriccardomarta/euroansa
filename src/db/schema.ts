@@ -130,7 +130,7 @@ export const applications = pgTable("applications", {
   driveFolderUrl: text("drive_folder_url"),
   preScoringData: jsonb("pre_scoring_data").$type<PreScoringData>(),
   /**
-   * Documenti richiesti PER QUESTA pratica (Filippo: ogni banca/pratica è diversa).
+   * Documenti richiesti PER QUESTA pratica (ogni banca/pratica è diversa).
    * Vuoto = checklist non ancora impostata dal broker → pratica incompleta.
    */
   requiredDocumentTypes: text("required_document_types")
@@ -138,6 +138,8 @@ export const applications = pgTable("applications", {
     .$type<DocumentType[]>()
     .notNull()
     .default([]),
+  /** Cartelle storage gestite (stile Drive). Vuoto = usa le predefinite. */
+  storageFolders: text("storage_folders").array().notNull().default([]),
   /** Relazione broker obbligatoria prima dell'invio a segreteria */
   relazioneStorageKey: text("relazione_storage_key"),
   relazioneFileName: text("relazione_file_name"),
@@ -163,7 +165,7 @@ export const documents = pgTable("documents", {
   driveFileId: text("drive_file_id"),
   /** URL download autenticato /api/files/{id} */
   driveFileUrl: text("drive_file_url"),
-  /** Cartella Filippo: es. "ALI DOC", "BANCA", "IMMOBILE" */
+  /** Nome cartella storage: es. "ALI DOC", "BANCA", "IMMOBILE" */
   storageSubfolder: text("storage_subfolder"),
   isValid: boolean("is_valid").notNull().default(false),
   extractedData: jsonb("extracted_data").$type<ExtractedDocumentData>(),

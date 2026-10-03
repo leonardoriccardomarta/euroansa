@@ -293,11 +293,11 @@ export default async function ApplicationDetailPage({
           Cartella documenti
         </h2>
         <p className="mb-4 text-sm text-slate-600">
-          Struttura Filippo:{" "}
+          Cartelle:{" "}
           {STORAGE_FOLDER_KINDS.map((k) =>
             storageSubfolderLabel(k, current.clientName),
           ).join(" · ")}
-          {" · relazione in root"}
+          {" · relazione"}
         </p>
         <div className="space-y-3">
           {docs.length === 0 && (

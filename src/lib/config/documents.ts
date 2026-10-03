@@ -257,13 +257,13 @@ export const CHECKLIST_PRESETS: Record<EmploymentType, DocumentType[]> = {
 export const REQUIRED_DOCS_BY_EMPLOYMENT = CHECKLIST_PRESETS;
 
 /**
- * Struttura cartelle stile Filippo (es. MOHAMED ALI):
+ * Cartelle storage predefinite per pratica cliente.
  *   {Cliente}/
- *     {COGNOME} DOC/   ← anagrafica + reddito
+ *     {COGNOME} DOC/
  *     BANCA/
  *     IMMOBILE/
  *     EUROANSA/
- *     {Cliente}_relazione.pdf  ← in root
+ *     {Cliente}_relazione.pdf
  */
 export const STORAGE_FOLDER_KINDS = [
   "DOC",
@@ -291,6 +291,19 @@ export function storageSubfolderLabel(
 ): string {
   if (kind === "DOC") return `${clientSurnameShort(clientName)} DOC`;
   return kind;
+}
+
+/** Cartelle iniziali di una pratica */
+export function defaultStorageFolders(clientName: string): string[] {
+  return STORAGE_FOLDER_KINDS.map((k) => storageSubfolderLabel(k, clientName));
+}
+
+export function sanitizeFolderName(name: string): string {
+  return name
+    .trim()
+    .replace(/[\\/]+/g, " ")
+    .replace(/\s+/g, " ")
+    .slice(0, 80);
 }
 
 export function storageFolderKindForDocument(

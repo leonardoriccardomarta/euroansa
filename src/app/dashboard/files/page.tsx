@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { desc, eq, sql } from "drizzle-orm";
+import { desc, sql } from "drizzle-orm";
 import { Folder } from "lucide-react";
 import { getSession } from "@/lib/auth";
 import { db } from "@/db";
 import { applications, documents } from "@/db/schema";
+import { CreateClientFolderForm } from "@/components/dashboard/file-browser-actions";
 
 export const dynamic = "force-dynamic";
 
@@ -46,15 +47,18 @@ export default async function FilesIndexPage() {
       <div>
         <h1 className="text-3xl font-bold text-slate-900">File</h1>
         <p className="mt-2 text-slate-600">
-          Cartelle clienti stile Drive (struttura Filippo). Apri una cartella
-          per aggiungere, sostituire o eliminare documenti.
+          Storage documenti: crea cartelle, carica file, sostituisci o elimina —
+          come un drive interno.
         </p>
       </div>
+
+      <CreateClientFolderForm />
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {filtered.length === 0 ? (
           <div className="col-span-full rounded-xl border border-dashed border-slate-300 bg-white p-10 text-center text-sm text-slate-500">
-            Nessuna cartella pratica. Arrivano dalle email o dalle pratiche.
+            Nessuna cartella. Creane una sopra, oppure arriva dalle email /
+            pratiche.
           </div>
         ) : (
           filtered.map((app) => {

@@ -5,12 +5,11 @@ import { ChevronLeft, Folder } from "lucide-react";
 import { getSession } from "@/lib/auth";
 import { db } from "@/db";
 import { applications, documents } from "@/db/schema";
+import { DOCUMENT_TYPE_LABELS } from "@/lib/config/documents";
+import { syncStorageFoldersForApp } from "@/actions/files";
 import {
-  DOCUMENT_TYPE_LABELS,
-  STORAGE_FOLDER_KINDS,
-  storageSubfolderLabel,
-} from "@/lib/config/documents";
-import {
+  CreateFolderForm,
+  DeleteFolderButton,
   DocumentFileRow,
   FolderUploadButton,
 } from "@/components/dashboard/file-browser-actions";
@@ -39,13 +38,15 @@ export default async function ClientFilesPage({
     redirect("/dashboard/files");
   }
 
+  const folders = await syncStorageFoldersForApp(id);
+
   const docs = await db
     .select()
     .from(documents)
     .where(eq(documents.applicationId, id))
     .orderBy(desc(documents.createdAt));
 
-  const defaultDoc = storageSubfolderLabel("DOC", app.clientName);
+  const fallbackFolder = folders[0] ?? "DOC";
 
   return (
     <div className="space-y-6">
@@ -74,6 +75,10 @@ export default async function ClientFilesPage({
       </div>
 
       <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+        <CreateFolderForm applicationId={app.id} />
+      </div>
+
+      <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
         <RelazioneFileActions
           applicationId={app.id}
           hasRelazione={Boolean(app.relazioneStorageKey)}
@@ -82,16 +87,15 @@ export default async function ClientFilesPage({
       </div>
 
       <div className="space-y-4">
-        {STORAGE_FOLDER_KINDS.map((kind) => {
-          const label = storageSubfolderLabel(kind, app.clientName);
+        {folders.map((label) => {
           const list = docs.filter((d) => {
-            const key = d.storageSubfolder?.trim() || defaultDoc;
+            const key = d.storageSubfolder?.trim() || fallbackFolder;
             return key === label;
           });
 
           return (
             <section
-              key={kind}
+              key={label}
               className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm"
             >
               <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
@@ -99,18 +103,19 @@ export default async function ClientFilesPage({
                   <Folder className="h-5 w-5 text-amber-600" />
                   <div>
                     <h2 className="font-semibold text-slate-900">{label}</h2>
-                    <p className="text-xs text-slate-500">
-                      {list.length} file
-                      {kind === "EUROANSA"
-                        ? " · archivio libero"
-                        : " · classificazione AI all'upload"}
-                    </p>
+                    <p className="text-xs text-slate-500">{list.length} file</p>
                   </div>
                 </div>
-                <FolderUploadButton
-                  applicationId={app.id}
-                  folderKind={kind}
-                />
+                <div className="flex flex-wrap gap-2">
+                  <FolderUploadButton
+                    applicationId={app.id}
+                    folderName={label}
+                  />
+                  <DeleteFolderButton
+                    applicationId={app.id}
+                    folderName={label}
+                  />
+                </div>
               </div>
 
               {list.length === 0 ? (

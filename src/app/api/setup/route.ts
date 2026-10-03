@@ -61,6 +61,7 @@ const SETUP_STATEMENTS = [
   `ALTER TABLE applications ADD COLUMN IF NOT EXISTS relazione_file_name text`,
   `ALTER TABLE applications ADD COLUMN IF NOT EXISTS relazione_uploaded_at timestamptz`,
   `ALTER TABLE applications ADD COLUMN IF NOT EXISTS package_token text`,
+  `ALTER TABLE applications ADD COLUMN IF NOT EXISTS storage_folders text[] DEFAULT '{}' NOT NULL`,
   `ALTER TABLE documents ADD COLUMN IF NOT EXISTS storage_subfolder text`,
   // Vecchi link Drive → punta alla pratica sul sito
   `UPDATE applications

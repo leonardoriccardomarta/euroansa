@@ -25,7 +25,7 @@ export function RelazioneFileActions({
   return (
     <div className="flex flex-wrap items-center justify-between gap-3">
       <div>
-        <p className="text-sm font-semibold text-slate-900">Relazione (root)</p>
+        <p className="text-sm font-semibold text-slate-900">Relazione</p>
         {hasRelazione ? (
           <p className="mt-1 text-sm text-emerald-700">
             <a
