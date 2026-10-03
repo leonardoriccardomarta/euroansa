@@ -108,8 +108,8 @@ export default async function ApplicationDetailPage({
           </h1>
           <p className="mt-2 text-slate-600">
             {current.clientEmail}
-            {current.clientFiscalCode ? ` · CF ${current.clientFiscalCode}` : ""}
-            {brokerName ? ` · ${brokerName}` : ""}
+            {current.clientFiscalCode ? `, CF ${current.clientFiscalCode}` : ""}
+            {brokerName ? `, ${brokerName}` : ""}
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
             {current.isTest ? (
@@ -296,8 +296,8 @@ export default async function ApplicationDetailPage({
           Cartelle:{" "}
           {STORAGE_FOLDER_KINDS.map((k) =>
             storageSubfolderLabel(k, current.clientName),
-          ).join(" · ")}
-          {" · relazione"}
+          ).join(", ")}
+          {", relazione"}
         </p>
         <div className="space-y-3">
           {docs.length === 0 && (
@@ -387,7 +387,7 @@ export default async function ApplicationDetailPage({
                                     : null,
                                 ]
                                   .filter(Boolean)
-                                  .join(" · ")}
+                                  .join(", ")}
                               </p>
                             )}
                           </div>
@@ -426,7 +426,7 @@ export default async function ApplicationDetailPage({
       </section>
 
       <p className="text-xs text-slate-400">
-        Broker: {settings?.brokerName ?? "Euroansa"} · Auto-invio segreteria:{" "}
+        Broker: {settings?.brokerName ?? "Euroansa"}, auto-invio segreteria:{" "}
         {settings?.autoSendToSecretary ? "ON" : "OFF"}
       </p>
     </div>

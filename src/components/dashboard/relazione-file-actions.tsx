@@ -1,12 +1,13 @@
 "use client";
 
-import { useRef, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   deleteRelazioneAction,
   uploadRelazioneFromFilesAction,
 } from "@/actions/files";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { toast } from "sonner";
 
 export function RelazioneFileActions({
@@ -21,6 +22,7 @@ export function RelazioneFileActions({
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
   const [pending, startTransition] = useTransition();
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   return (
     <div className="flex flex-wrap items-center justify-between gap-3">
@@ -85,23 +87,34 @@ export function RelazioneFileActions({
             variant="outline"
             disabled={pending}
             className="min-h-10 rounded-lg border-red-200 text-red-700 hover:bg-red-50"
-            onClick={() => {
-              if (!window.confirm("Eliminare la relazione?")) return;
-              startTransition(async () => {
-                const res = await deleteRelazioneAction(applicationId);
-                if (res && "error" in res && res.error) {
-                  toast.error(res.error);
-                  return;
-                }
-                toast.success("Relazione eliminata");
-                router.refresh();
-              });
-            }}
+            onClick={() => setConfirmDelete(true)}
           >
             Elimina
           </Button>
         ) : null}
       </div>
+
+      <ConfirmDialog
+        open={confirmDelete}
+        onOpenChange={setConfirmDelete}
+        title="Eliminare la relazione?"
+        description="Il file relazione verrà rimosso dallo storage."
+        confirmLabel="Elimina"
+        destructive
+        pending={pending}
+        onConfirm={() => {
+          startTransition(async () => {
+            const res = await deleteRelazioneAction(applicationId);
+            if (res && "error" in res && res.error) {
+              toast.error(res.error);
+              return;
+            }
+            setConfirmDelete(false);
+            toast.success("Relazione eliminata");
+            router.refresh();
+          });
+        }}
+      />
     </div>
   );
 }

@@ -44,13 +44,13 @@ export function RelazioneUpload({
               {uploadedAt ? (
                 <span className="text-slate-500">
                   {" "}
-                  · {new Date(uploadedAt).toLocaleString("it-IT")}
+                  {new Date(uploadedAt).toLocaleString("it-IT")}
                 </span>
               ) : null}
             </p>
           ) : (
             <p className="mt-2 text-sm font-medium text-amber-700">
-              Mancante — senza relazione non si può inviare.
+              Mancante: senza relazione non si può inviare.
             </p>
           )}
           {localName ? (

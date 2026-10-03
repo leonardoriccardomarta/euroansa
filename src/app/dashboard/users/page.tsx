@@ -100,7 +100,7 @@ export default async function UsersPage() {
             >
               <div>
                 <p className="font-semibold text-slate-900">{u.name}</p>
-                <p className="text-sm text-slate-500">{u.email} · BROKER</p>
+                <p className="text-sm text-slate-500">{u.email}, BROKER</p>
               </div>
               <form action={deleteUserAction}>
                 <input type="hidden" name="userId" value={u.id} />

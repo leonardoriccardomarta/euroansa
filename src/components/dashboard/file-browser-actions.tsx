@@ -11,6 +11,7 @@ import {
   uploadToFolderAction,
 } from "@/actions/files";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { toast } from "sonner";
 
 export function FolderUploadButton({
@@ -51,7 +52,7 @@ export function FolderUploadButton({
             const n = "count" in res ? res.count : 0;
             toast.success(`${n ?? 0} file caricati`);
             if ("errors" in res && res.errors?.length) {
-              toast.message(res.errors.slice(0, 2).join(" · "));
+              toast.message(res.errors.slice(0, 2).join("; "));
             }
             router.refresh();
           });
@@ -79,37 +80,44 @@ export function DeleteFolderButton({
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   return (
-    <Button
-      type="button"
-      variant="outline"
-      disabled={pending}
-      className="min-h-10 rounded-lg border-red-200 text-red-700 hover:bg-red-50"
-      onClick={() => {
-        if (
-          !window.confirm(
-            `Eliminare la cartella "${folderName}" e tutti i file al suo interno?`,
-          )
-        ) {
-          return;
-        }
-        startTransition(async () => {
-          const res = await deleteStorageFolderAction(
-            applicationId,
-            folderName,
-          );
-          if (res && "error" in res && res.error) {
-            toast.error(res.error);
-            return;
-          }
-          toast.success("Cartella eliminata");
-          router.refresh();
-        });
-      }}
-    >
-      {pending ? "..." : "Elimina cartella"}
-    </Button>
+    <>
+      <Button
+        type="button"
+        variant="outline"
+        disabled={pending}
+        className="min-h-10 rounded-lg border-red-200 text-red-700 hover:bg-red-50"
+        onClick={() => setConfirmDelete(true)}
+      >
+        {pending ? "..." : "Elimina cartella"}
+      </Button>
+      <ConfirmDialog
+        open={confirmDelete}
+        onOpenChange={setConfirmDelete}
+        title="Eliminare la cartella?"
+        description={`"${folderName}" e tutti i file al suo interno verranno rimossi.`}
+        confirmLabel="Elimina"
+        destructive
+        pending={pending}
+        onConfirm={() => {
+          startTransition(async () => {
+            const res = await deleteStorageFolderAction(
+              applicationId,
+              folderName,
+            );
+            if (res && "error" in res && res.error) {
+              toast.error(res.error);
+              return;
+            }
+            setConfirmDelete(false);
+            toast.success("Cartella eliminata");
+            router.refresh();
+          });
+        }}
+      />
+    </>
   );
 }
 
@@ -227,6 +235,7 @@ export function DocumentFileRow({
   const router = useRouter();
   const replaceRef = useRef<HTMLInputElement>(null);
   const [pending, startTransition] = useTransition();
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   return (
     <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 py-3 first:border-0 first:pt-0">
@@ -280,22 +289,33 @@ export function DocumentFileRow({
           variant="outline"
           disabled={pending}
           className="h-9 rounded-lg border-red-200 text-red-700 hover:bg-red-50"
-          onClick={() => {
-            if (!window.confirm(`Eliminare "${name}"?`)) return;
-            startTransition(async () => {
-              const res = await deleteDocumentFileAction(documentId);
-              if (res && "error" in res && res.error) {
-                toast.error(res.error);
-                return;
-              }
-              toast.success("File eliminato");
-              router.refresh();
-            });
-          }}
+          onClick={() => setConfirmDelete(true)}
         >
           Elimina
         </Button>
       </div>
+
+      <ConfirmDialog
+        open={confirmDelete}
+        onOpenChange={setConfirmDelete}
+        title="Eliminare il file?"
+        description={`"${name}" verrà rimosso dallo storage.`}
+        confirmLabel="Elimina"
+        destructive
+        pending={pending}
+        onConfirm={() => {
+          startTransition(async () => {
+            const res = await deleteDocumentFileAction(documentId);
+            if (res && "error" in res && res.error) {
+              toast.error(res.error);
+              return;
+            }
+            setConfirmDelete(false);
+            toast.success("File eliminato");
+            router.refresh();
+          });
+        }}
+      />
     </div>
   );
 }

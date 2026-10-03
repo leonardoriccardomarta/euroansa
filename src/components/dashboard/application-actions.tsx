@@ -9,6 +9,7 @@ import {
 } from "@/actions/applications";
 import type { ApplicationStatus } from "@/db/schema";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { toast } from "sonner";
 
 export function ApplicationActions({
@@ -27,6 +28,7 @@ export function ApplicationActions({
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [sollecito, setSollecito] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   const canSendToSecretary =
     status === "DOCUMENTI_INCOMPLETI" || status === "COMPLETA_DA_INOLTRARE";
@@ -51,7 +53,7 @@ export function ApplicationActions({
                     toast.error(res.error);
                     return;
                   }
-                  toast.success("Inviata a segreteria (link pacchetto)");
+                  toast.success("Inviata a segreteria");
                   router.refresh();
                 } catch {
                   toast.error("Invio fallito. Verifica Google OAuth");
@@ -84,30 +86,7 @@ export function ApplicationActions({
             variant="outline"
             disabled={pending}
             className="min-h-11 flex-1 rounded-lg border-red-200 text-red-700 hover:bg-red-50 active:scale-95 sm:flex-none"
-            onClick={() => {
-              const label = clientName ? `"${clientName}"` : "questa pratica";
-              if (
-                !window.confirm(
-                  `Eliminare ${label}? Documenti e file nello storage del sito verranno rimossi.`,
-                )
-              ) {
-                return;
-              }
-              startTransition(async () => {
-                try {
-                  const res = await deleteApplicationAction(applicationId);
-                  if (res && "error" in res && res.error) {
-                    toast.error(res.error);
-                    return;
-                  }
-                  toast.success("Pratica eliminata");
-                  router.push("/dashboard");
-                  router.refresh();
-                } catch {
-                  toast.error("Eliminazione fallita");
-                }
-              });
-            }}
+            onClick={() => setConfirmDelete(true)}
           >
             Elimina pratica
           </Button>
@@ -125,6 +104,37 @@ export function ApplicationActions({
           {sollecito}
         </pre>
       )}
+
+      <ConfirmDialog
+        open={confirmDelete}
+        onOpenChange={setConfirmDelete}
+        title="Eliminare la pratica?"
+        description={
+          clientName
+            ? `Stai per eliminare "${clientName}". Documenti e file nello storage verranno rimossi.`
+            : "Documenti e file nello storage verranno rimossi."
+        }
+        confirmLabel="Elimina"
+        destructive
+        pending={pending}
+        onConfirm={() => {
+          startTransition(async () => {
+            try {
+              const res = await deleteApplicationAction(applicationId);
+              if (res && "error" in res && res.error) {
+                toast.error(res.error);
+                return;
+              }
+              setConfirmDelete(false);
+              toast.success("Pratica eliminata");
+              router.push("/dashboard");
+              router.refresh();
+            } catch {
+              toast.error("Eliminazione fallita");
+            }
+          });
+        }}
+      />
     </div>
   );
 }

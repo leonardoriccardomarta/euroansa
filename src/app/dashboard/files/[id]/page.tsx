@@ -64,7 +64,7 @@ export default async function ClientFilesPage({
         </h1>
         <p className="mt-2 text-slate-600">
           {app.clientEmail}
-          {" · "}
+          {", "}
           <Link
             href={`/dashboard/applications/${app.id}`}
             className="font-medium text-primary-600 hover:underline"
@@ -129,7 +129,7 @@ export default async function ClientFilesPage({
                       name={doc.renamedFileName}
                       downloadUrl={doc.driveFileUrl}
                       meta={`${DOCUMENT_TYPE_LABELS[doc.documentType] ?? doc.documentType}${
-                        doc.isValid ? "" : " · da verificare"
+                        doc.isValid ? "" : ", da verificare"
                       }`}
                     />
                   ))}

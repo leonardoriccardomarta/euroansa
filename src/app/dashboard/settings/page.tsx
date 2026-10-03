@@ -75,7 +75,7 @@ export default async function SettingsPage({
               {hub?.googleConnectedAt ? (
                 <span className="text-slate-500">
                   {" "}
-                  · {new Date(hub.googleConnectedAt).toLocaleString("it-IT")}
+                  {new Date(hub.googleConnectedAt).toLocaleString("it-IT")}
                 </span>
               ) : null}
             </p>

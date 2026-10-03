@@ -90,7 +90,7 @@ export async function sendApplicationToSecretary(applicationId: string) {
   const fileLines = validDocs
     .map((d) => {
       const folder = d.storageSubfolder ? `${d.storageSubfolder}/` : "";
-      return `- ${folder}${d.renamedFileName}`;
+      return `${folder}${d.renamedFileName}`;
     })
     .join("\n");
 
@@ -102,7 +102,7 @@ pratica ${app.clientName} pronta.
 
 Documenti:
 ${fileLines}
-- Relazione: ${relazioneName}
+Relazione: ${relazioneName}
 
 Scarica il pacchetto:
 ${packageUrl}
@@ -118,7 +118,7 @@ Filippo`;
   await sendGmailHtml(
     {
       to: settings.secretaryEmail,
-      subject: `Pratica completa — ${app.clientName}`,
+      subject: `Pratica completa ${app.clientName}`,
       html,
     },
     auth,

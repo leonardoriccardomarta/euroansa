@@ -47,8 +47,8 @@ export default async function FilesIndexPage() {
       <div>
         <h1 className="text-3xl font-bold text-slate-900">File</h1>
         <p className="mt-2 text-slate-600">
-          Storage documenti: crea cartelle, carica file, sostituisci o elimina —
-          come un drive interno.
+          Storage documenti: crea cartelle, carica file, sostituisci o elimina.
+          Come un drive interno.
         </p>
       </div>
 
@@ -83,7 +83,7 @@ export default async function FilesIndexPage() {
                   </p>
                   <p className="mt-2 text-xs text-slate-600">
                     {n} file
-                    {hasRelazione ? " · relazione ok" : " · senza relazione"}
+                    {hasRelazione ? ", relazione ok" : ", senza relazione"}
                   </p>
                 </div>
               </Link>

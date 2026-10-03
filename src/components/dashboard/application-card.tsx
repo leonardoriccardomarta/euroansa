@@ -81,7 +81,7 @@ export function ApplicationCard({
           </div>
           <p className="mt-1 truncate text-sm text-slate-500">
             {clientEmail}
-            {clientFiscalCode ? ` · ${clientFiscalCode}` : ""}
+            {clientFiscalCode ? `, ${clientFiscalCode}` : ""}
           </p>
           <div className="mt-3 max-w-xs">
             <div className="mb-1 flex justify-between text-xs text-slate-500">
