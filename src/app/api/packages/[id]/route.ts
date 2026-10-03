@@ -4,8 +4,52 @@ import JSZip from "jszip";
 import { db } from "@/db";
 import { applications, documents } from "@/db/schema";
 import { downloadBlob } from "@/lib/storage/blob";
+import {
+  getGoogleAuthForUser,
+  listConnectedGoogleUsers,
+  oauthClientFromRefreshToken,
+} from "@/lib/google/auth";
+import { downloadFileFromDrive } from "@/lib/google/drive";
 
 export const maxDuration = 60;
+
+function looksLikeBlobPath(key: string): boolean {
+  return (
+    key.startsWith("practices/") ||
+    key.includes("/") ||
+    key.startsWith("http://") ||
+    key.startsWith("https://")
+  );
+}
+
+async function loadFileBuffer(
+  storageKey: string,
+  brokerId: string | null,
+): Promise<Buffer> {
+  if (looksLikeBlobPath(storageKey)) {
+    const { buffer } = await downloadBlob(storageKey);
+    return buffer;
+  }
+
+  // Legacy: ID Google Drive (pratiche create prima dello storage sito)
+  let auth;
+  if (brokerId) {
+    try {
+      auth = await getGoogleAuthForUser(brokerId);
+    } catch {
+      // fall through
+    }
+  }
+  if (!auth) {
+    const connected = await listConnectedGoogleUsers();
+    if (!connected[0]) {
+      throw new Error("File legacy Drive: Google non collegato");
+    }
+    auth = oauthClientFromRefreshToken(connected[0].googleRefreshToken);
+  }
+  const downloaded = await downloadFileFromDrive(storageKey, auth);
+  return downloaded.buffer;
+}
 
 /**
  * Download ZIP pacchetto pratica per segreteria (token, senza login CRM).
@@ -38,33 +82,41 @@ export async function GET(
 
   const zip = new JSZip();
   const root = app.clientName.replace(/[\\/]+/g, " ").trim() || "Pratica";
+  let added = 0;
 
   for (const doc of docs) {
     if (!doc.isValid || !doc.driveFileId) continue;
     try {
-      const { buffer } = await downloadBlob(doc.driveFileId);
+      const buffer = await loadFileBuffer(doc.driveFileId, app.brokerId);
       const folder = doc.storageSubfolder || "DOC";
       zip.file(`${root}/${folder}/${doc.renamedFileName}`, buffer);
+      added += 1;
     } catch (err) {
-      console.error("package zip doc failed", doc.id, err);
+      console.error("package zip doc failed", doc.id, doc.driveFileId, err);
     }
   }
 
   if (app.relazioneStorageKey) {
     try {
-      const { buffer } = await downloadBlob(app.relazioneStorageKey);
+      const buffer = await loadFileBuffer(
+        app.relazioneStorageKey,
+        app.brokerId,
+      );
       const name = app.relazioneFileName ?? `${root}_relazione.pdf`;
       zip.file(`${root}/${name}`, buffer);
+      added += 1;
     } catch (err) {
       console.error("package zip relazione failed", err);
     }
   }
 
-  const files = Object.keys(zip.files).filter((k) => !zip.files[k]?.dir);
-  if (files.length === 0) {
-    return NextResponse.json(
-      { error: "Nessun file disponibile nel pacchetto" },
-      { status: 404 },
+  if (added === 0) {
+    return new NextResponse(
+      "Nessun file scaricabile. Ricarica i documenti nella sezione File del sito e riprova.",
+      {
+        status: 404,
+        headers: { "Content-Type": "text/plain; charset=utf-8" },
+      },
     );
   }
 

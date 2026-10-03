@@ -87,22 +87,9 @@ export async function sendApplicationToSecretary(applicationId: string) {
 
   const packageUrl = `${getAppBaseUrl()}/api/packages/${applicationId}?t=${packageToken}`;
 
-  const fileLines = validDocs
-    .map((d) => {
-      const folder = d.storageSubfolder ? `${d.storageSubfolder}/` : "";
-      return `${folder}${d.renamedFileName}`;
-    })
-    .join("\n");
-
-  const relazioneName = app.relazioneFileName ?? "relazione.pdf";
-
   const bodyText = `Buongiorno,
 
 pratica ${app.clientName} pronta.
-
-Documenti:
-${fileLines}
-Relazione: ${relazioneName}
 
 Scarica il pacchetto:
 ${packageUrl}

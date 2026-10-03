@@ -58,26 +58,9 @@ export async function sendTestSecretaryEmail(params: {
 
   const packageUrl = `${getAppBaseUrl()}/api/packages/${app.id}?t=${packageToken}`;
 
-  const fileLines =
-    validDocs.length > 0
-      ? validDocs
-          .map((d) => {
-            const folder = d.storageSubfolder ? `${d.storageSubfolder}/` : "";
-            return `${folder}${d.renamedFileName}`;
-          })
-          .join("\n")
-      : "(nessun documento valido ancora in storage)";
-
-  const relazioneName = app.relazioneFileName ?? "relazione.pdf";
-  const hasRelazione = Boolean(app.relazioneStorageKey);
-
   const bodyText = `Buongiorno,
 
 pratica ${app.clientName} pronta.
-
-Documenti:
-${fileLines}
-${hasRelazione ? `Relazione: ${relazioneName}` : "Relazione: (non caricata)"}
 
 Scarica il pacchetto:
 ${packageUrl}
