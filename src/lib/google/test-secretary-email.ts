@@ -105,6 +105,6 @@ Filippo`;
     clientName: app.clientName,
     packageUrl,
     documents: validDocs.length,
-    hasRelazione,
+    hasRelazione: Boolean(app.relazioneStorageKey),
   };
 }
