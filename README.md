@@ -33,15 +33,19 @@ Upload documenti: **diretto browser → R2** (presigned), poi analisi Gemini sul
 Alla segreteria arriva una mail Gmail **senza allegati pesanti**: solo link **Scarica pacchetto ZIP** (validità 7 giorni).
 
 ### CORS R2 (obbligatorio per upload diretto)
-Bucket Settings → CORS Policy, esempio:
+Bucket Settings → CORS Policy. Su R2 il wildcard `*` negli header **spesso non funziona**:
+metti `Content-Type` esplicito e l’origine **senza** slash finale.
 
 ```json
 [
   {
-    "AllowedOrigins": ["https://TUO-PROGETTO.vercel.app"],
+    "AllowedOrigins": [
+      "https://euroansa-pi.vercel.app",
+      "http://localhost:3000"
+    ],
     "AllowedMethods": ["GET", "PUT", "HEAD"],
-    "AllowedHeaders": ["*"],
-    "ExposeHeaders": ["ETag"],
+    "AllowedHeaders": ["Content-Type"],
+    "ExposeHeaders": ["ETag", "Content-Type"],
     "MaxAgeSeconds": 3600
   }
 ]
