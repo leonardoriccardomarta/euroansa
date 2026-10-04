@@ -7,6 +7,8 @@ export const GOOGLE_OAUTH_SCOPES = [
   "https://www.googleapis.com/auth/gmail.modify",
   "https://www.googleapis.com/auth/gmail.send",
   "https://www.googleapis.com/auth/userinfo.email",
+  // Allegati grandi via link Drive nella mail
+  "https://www.googleapis.com/auth/drive.readonly",
 ] as const;
 
 export type GoogleOAuthClient = Auth.OAuth2Client;

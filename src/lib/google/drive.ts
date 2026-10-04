@@ -164,18 +164,77 @@ export async function uploadFileToDrive(params: {
 export async function downloadFileFromDrive(
   fileId: string,
   auth?: GoogleOAuthClient,
-): Promise<{ buffer: Buffer; mimeType: string }> {
+): Promise<{ buffer: Buffer; mimeType: string; fileName: string }> {
   const drive = getDriveClient(auth);
   const meta = await drive.files.get({
     fileId,
-    fields: "mimeType",
+    fields: "name,mimeType,trashed",
+    supportsAllDrives: true,
   });
+  if (meta.data.trashed) {
+    throw new Error("File Drive nel cestino");
+  }
+  const name = meta.data.name?.trim() || `drive_${fileId}`;
+  const mime = meta.data.mimeType ?? "application/octet-stream";
+
+  // Documenti nativi Google → PDF
+  if (mime.startsWith("application/vnd.google-apps.")) {
+    if (mime === "application/vnd.google-apps.folder") {
+      throw new Error("Cartella Drive: non è un file singolo");
+    }
+    const exportable = [
+      "application/vnd.google-apps.document",
+      "application/vnd.google-apps.spreadsheet",
+      "application/vnd.google-apps.presentation",
+      "application/vnd.google-apps.drawing",
+    ];
+    if (!exportable.includes(mime)) {
+      throw new Error(`Tipo Drive non supportato: ${mime}`);
+    }
+    const res = await drive.files.export(
+      { fileId, mimeType: "application/pdf" },
+      { responseType: "arraybuffer" },
+    );
+    const base = name.replace(/\.[^.]+$/, "");
+    return {
+      buffer: Buffer.from(res.data as ArrayBuffer),
+      mimeType: "application/pdf",
+      fileName: `${base}.pdf`,
+    };
+  }
+
   const res = await drive.files.get(
-    { fileId, alt: "media" },
+    { fileId, alt: "media", supportsAllDrives: true },
     { responseType: "arraybuffer" },
   );
   return {
     buffer: Buffer.from(res.data as ArrayBuffer),
-    mimeType: meta.data.mimeType ?? "application/octet-stream",
+    mimeType: mime,
+    fileName: name,
   };
+}
+
+/** Elenca file in una cartella Drive (non ricorsivo). */
+export async function listDriveFolderFileIds(
+  folderId: string,
+  auth?: GoogleOAuthClient,
+): Promise<string[]> {
+  const drive = getDriveClient(auth);
+  const ids: string[] = [];
+  let pageToken: string | undefined;
+  do {
+    const page = await drive.files.list({
+      q: `'${folderId}' in parents and trashed = false and mimeType != 'application/vnd.google-apps.folder'`,
+      fields: "nextPageToken, files(id)",
+      pageSize: 50,
+      pageToken,
+      supportsAllDrives: true,
+      includeItemsFromAllDrives: true,
+    });
+    for (const f of page.data.files ?? []) {
+      if (f.id) ids.push(f.id);
+    }
+    pageToken = page.data.nextPageToken ?? undefined;
+  } while (pageToken);
+  return ids;
 }

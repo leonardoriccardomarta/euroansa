@@ -82,7 +82,9 @@ export default async function SettingsPage({
               Gestita da{" "}
               <span className="font-medium">{hub?.email}</span>
               {connectedByMe ? " (tu)" : ""}. Solo questa casella viene usata
-              per leggere le mail e scrivere alla segreteria.
+              per leggere le mail, i link Drive degli allegati grandi e scrivere
+              alla segreteria. Se hai collegato Google prima, usa Ricollega per
+              aggiornare i permessi.
             </p>
             {process.env.GMAIL_SUBJECT_TAG ? (
               <p className="text-xs text-slate-500">
