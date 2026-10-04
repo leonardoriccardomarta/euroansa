@@ -16,16 +16,32 @@ export type StoredBlob = {
   url: string;
 };
 
+/** Endpoint account-only (no /bucket). Virtual-host bucket.account.r2… rompe TLS. */
+function resolveR2Endpoint(accountId?: string, rawEndpoint?: string): string | undefined {
+  let endpoint =
+    rawEndpoint?.trim() ||
+    (accountId ? `https://${accountId}.r2.cloudflarestorage.com` : undefined);
+  if (!endpoint) return undefined;
+
+  // Se in env è stata incollata l'S3 API URL completa …/euroansa → togli il path
+  try {
+    const u = new URL(endpoint);
+    endpoint = `${u.protocol}//${u.host}`;
+  } catch {
+    endpoint = endpoint.replace(/\/+$/, "");
+  }
+  return endpoint;
+}
+
 function requireR2Config() {
   const accountId = process.env.R2_ACCOUNT_ID?.trim();
   const accessKeyId = process.env.R2_ACCESS_KEY_ID?.trim();
   const secretAccessKey = process.env.R2_SECRET_ACCESS_KEY?.trim();
   const bucket = process.env.R2_BUCKET_NAME?.trim();
-  const endpoint =
-    process.env.R2_ENDPOINT?.trim() ||
-    (accountId
-      ? `https://${accountId}.r2.cloudflarestorage.com`
-      : undefined);
+  const endpoint = resolveR2Endpoint(
+    accountId,
+    process.env.R2_ENDPOINT?.trim(),
+  );
 
   if (!endpoint || !accessKeyId || !secretAccessKey || !bucket) {
     throw new Error(
@@ -45,6 +61,11 @@ function getR2Client() {
       accessKeyId,
       secretAccessKey,
     },
+    // Obbligatorio: altrimenti SDK usa euroansa.<account>.r2… → SSL handshake failure
+    forcePathStyle: true,
+    // SDK ≥3.729 checksum default incompatibile con R2
+    requestChecksumCalculation: "WHEN_REQUIRED",
+    responseChecksumValidation: "WHEN_REQUIRED",
   });
 }
 
