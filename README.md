@@ -85,7 +85,7 @@ Importa il repo e in **Settings → Environment Variables** (Production):
 | `GOOGLE_CLIENT_SECRET` | Google Cloud OAuth |
 | `GOOGLE_REDIRECT_URI` | `https://….vercel.app/api/google/callback` |
 | `NEXT_PUBLIC_APP_URL` | `https://….vercel.app` |
-| `GMAIL_SUBJECT_TAG` | Tag oggetto mail clienti (default `[EUROANSA-MUTUO]`) |
+| `GMAIL_SUBJECT_TAG` | Tag oggetto mail clienti (obbligatorio, solo da env) |
 | `NEXT_PUBLIC_APP_NAME` | Nome UI (default `Prontopratica`) |
 | `CRON_SECRET` | Stringa random lunga |
 | `AUTH_SECRET` | Stringa random ≥32 caratteri |
@@ -110,7 +110,7 @@ Poi login → **Impostazioni → Collega Google** (solo Gmail).
 - **GET** + header `Authorization: Bearer TUO_CRON_SECRET`
 
 ### Oggetto email clienti
-**`[EUROANSA-MUTUO]`** nell'oggetto (o il valore di `GMAIL_SUBJECT_TAG`).
+il valore di **`GMAIL_SUBJECT_TAG`** nell'oggetto.
 
 ## Google OAuth scopes
 - `gmail.modify` / `gmail.send`

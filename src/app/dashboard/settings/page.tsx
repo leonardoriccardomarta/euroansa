@@ -89,7 +89,7 @@ export default async function SettingsPage({
             <p className="text-xs text-slate-500">
               Tag oggetto:{" "}
               <code className="rounded bg-slate-100 px-1">
-                {process.env.GMAIL_SUBJECT_TAG ?? "[EUROANSA-MUTUO]"}
+                {process.env.GMAIL_SUBJECT_TAG || "(non impostato)"}
               </code>
             </p>
             <div className="flex flex-wrap gap-2">

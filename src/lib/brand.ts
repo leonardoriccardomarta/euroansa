@@ -4,12 +4,11 @@ export const APP_NAME =
 
 export const APP_TAGLINE = "Gestione pratiche mutuo";
 
-/** Tag oggetto mail clienti / prefisso notifiche — usa GMAIL_SUBJECT_TAG in env */
-export const DEFAULT_GMAIL_SUBJECT_TAG = "[EUROANSA-MUTUO]";
-
+/** Oggetto mail: solo da env `GMAIL_SUBJECT_TAG` (nessun default in codice). */
 export function gmailSubjectTag(): string {
-  return (process.env.GMAIL_SUBJECT_TAG ?? DEFAULT_GMAIL_SUBJECT_TAG).trim();
+  const tag = process.env.GMAIL_SUBJECT_TAG?.trim();
+  if (!tag) {
+    throw new Error("Imposta GMAIL_SUBJECT_TAG nell'ambiente");
+  }
+  return tag;
 }
-
-/** Prefisso oggetto email notifiche interne (stesso tag dell’env) */
-export const APP_MAIL_PREFIX = gmailSubjectTag();

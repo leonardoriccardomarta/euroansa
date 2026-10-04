@@ -59,11 +59,14 @@ export async function fetchPendingMortgageEmails(
 ): Promise<PendingMortgageEmail[]> {
   const gmail = getGmailClient(auth);
 
-  const subjectTag = (
-    process.env.GMAIL_SUBJECT_TAG ?? "[EUROANSA-MUTUO]"
-  ).trim();
-  const searchToken =
-    subjectTag.replace(/[\[\]]/g, "").trim() || "EUROANSA-MUTUO";
+  const subjectTag = process.env.GMAIL_SUBJECT_TAG?.trim();
+  if (!subjectTag) {
+    throw new Error("Imposta GMAIL_SUBJECT_TAG nell'ambiente");
+  }
+  const searchToken = subjectTag.replace(/[\[\]]/g, "").trim();
+  if (!searchToken) {
+    throw new Error("GMAIL_SUBJECT_TAG non valida");
+  }
 
   const list = await gmail.users.messages.list({
     userId: "me",
