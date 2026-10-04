@@ -110,7 +110,7 @@ Poi login → **Impostazioni → Collega Google** (solo Gmail).
 - **GET** + header `Authorization: Bearer TUO_CRON_SECRET`
 
 ### Oggetto email clienti
-**`[PRATICA-MUTUO]`** nell'oggetto (o il valore di `GMAIL_SUBJECT_TAG`).
+**`[EUROANSA-MUTUO]`** nell'oggetto (o il valore di `GMAIL_SUBJECT_TAG`).
 
 ## Google OAuth scopes
 - `gmail.modify` / `gmail.send`
