@@ -119,5 +119,6 @@ il valore di **`GMAIL_SUBJECT_TAG`** nell'oggetto.
 ## Google OAuth scopes
 - `gmail.modify` / `gmail.send`
 - `userinfo.email`
+- `drive.readonly` (allegati grandi inviati come link Drive nella mail)
 
-(Drive non serve: i file stanno su Cloudflare R2.)
+I file delle pratiche restano su Cloudflare R2; Drive serve solo a scaricare i link dalle email.
