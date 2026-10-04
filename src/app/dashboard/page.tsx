@@ -99,18 +99,11 @@ export default async function DashboardPage({
   const filtered = status ? apps.filter((a) => a.status === status) : apps;
 
   const total = apps.length;
+  // Conteggio esatto per stato corrente (si aggiorna se torni indietro)
   const sentToSecretary = apps.filter(
     (a) => a.status === "INVIATA_A_SEGRETERIA",
   ).length;
-  const sent = apps.filter(
-    (a) =>
-      a.status === "INVIATA_A_SEGRETERIA" ||
-      a.status === "DELIBERA_REDDITUALE" ||
-      a.status === "PERIZIA_PRESA" ||
-      a.status === "PERIZIA_EFFETTUATA" ||
-      a.status === "DELIBERA_FINALE" ||
-      a.status === "ROGITATA",
-  ).length;
+  const rogitate = apps.filter((a) => a.status === "ROGITATA").length;
 
   const brokers = brokerRows
     .filter((b) => b.role === "BROKER")
@@ -152,9 +145,9 @@ export default async function DashboardPage({
         </div>
         <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
           <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-            Inviate in banca
+            Rogitate
           </p>
-          <p className="mt-2 text-3xl font-bold text-primary-600">{sent}</p>
+          <p className="mt-2 text-3xl font-bold text-primary-600">{rogitate}</p>
         </div>
       </div>
 
