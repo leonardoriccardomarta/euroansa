@@ -4,8 +4,12 @@ export const APP_NAME =
 
 export const APP_TAGLINE = "Gestione pratiche mutuo";
 
-/** Prefisso oggetto email notifiche interne */
-export const APP_MAIL_PREFIX = `[${APP_NAME.toUpperCase()}]`;
+/** Tag oggetto mail clienti / prefisso notifiche — usa GMAIL_SUBJECT_TAG in env */
+export const DEFAULT_GMAIL_SUBJECT_TAG = "[EUROANSA-MUTUO]";
 
-/** Tag oggetto mail clienti (override con GMAIL_SUBJECT_TAG in env) */
-export const DEFAULT_GMAIL_SUBJECT_TAG = "[PRATICA-MUTUO]";
+export function gmailSubjectTag(): string {
+  return (process.env.GMAIL_SUBJECT_TAG ?? DEFAULT_GMAIL_SUBJECT_TAG).trim();
+}
+
+/** Prefisso oggetto email notifiche interne (stesso tag dell’env) */
+export const APP_MAIL_PREFIX = gmailSubjectTag();

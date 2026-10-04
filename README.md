@@ -85,7 +85,7 @@ Importa il repo e in **Settings → Environment Variables** (Production):
 | `GOOGLE_CLIENT_SECRET` | Google Cloud OAuth |
 | `GOOGLE_REDIRECT_URI` | `https://….vercel.app/api/google/callback` |
 | `NEXT_PUBLIC_APP_URL` | `https://….vercel.app` |
-| `GMAIL_SUBJECT_TAG` | Tag oggetto mail clienti (default `[PRATICA-MUTUO]`) |
+| `GMAIL_SUBJECT_TAG` | Tag oggetto mail clienti (default `[EUROANSA-MUTUO]`) |
 | `NEXT_PUBLIC_APP_NAME` | Nome UI (default `Prontopratica`) |
 | `CRON_SECRET` | Stringa random lunga |
 | `AUTH_SECRET` | Stringa random ≥32 caratteri |

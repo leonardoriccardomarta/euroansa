@@ -60,9 +60,10 @@ export async function fetchPendingMortgageEmails(
   const gmail = getGmailClient(auth);
 
   const subjectTag = (
-    process.env.GMAIL_SUBJECT_TAG ?? "[PRATICA-MUTUO]"
+    process.env.GMAIL_SUBJECT_TAG ?? "[EUROANSA-MUTUO]"
   ).trim();
-  const searchToken = subjectTag.replace(/[\[\]]/g, "").trim() || "PRATICA-MUTUO";
+  const searchToken =
+    subjectTag.replace(/[\[\]]/g, "").trim() || "EUROANSA-MUTUO";
 
   const list = await gmail.users.messages.list({
     userId: "me",
