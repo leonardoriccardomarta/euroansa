@@ -1,9 +1,9 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  Building2,
   FolderKanban,
   HardDrive,
   LogOut,
@@ -11,6 +11,7 @@ import {
   Users,
 } from "lucide-react";
 import { logoutAction } from "@/actions/auth";
+import { APP_NAME } from "@/lib/brand";
 import { cn } from "@/lib/utils";
 
 type NavItem = {
@@ -58,12 +59,17 @@ export function AppShell({
           <Link
             href="/dashboard"
             prefetch
-            className="flex items-center gap-2 font-bold text-slate-900 active:scale-95"
+            className="flex cursor-pointer items-center gap-2 font-bold text-slate-900 active:scale-95"
           >
-            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary-600 text-white shadow-sm">
-              <Building2 className="h-5 w-5" />
-            </span>
-            <span className="hidden sm:inline">Euroansa</span>
+            <Image
+              src="/favicon.jpg"
+              alt=""
+              width={36}
+              height={36}
+              className="h-9 w-9 rounded-xl shadow-sm"
+              priority
+            />
+            <span className="hidden sm:inline">{APP_NAME}</span>
           </Link>
 
           <nav className="hidden items-center gap-1 md:flex">

@@ -159,10 +159,10 @@ export async function analyzeDocument(params: {
   const ai = new GoogleGenAI({ apiKey });
   const base64 = params.buffer.toString("base64");
 
-  const prompt = `Sei un esperto di istruttoria mutui in Italia (Euroansa / mediatore creditizio).
+  const prompt = `Sei un esperto di istruttoria mutui in Italia (mediatore creditizio).
 Analizza questo documento (PDF o immagine) e restituisci JSON strutturato.
 
-documentType: identifica il tipo tra quelli ammessi (lista Filippo).
+documentType: identifica il tipo tra quelli ammessi (lista documenti pratica).
 - Buste paga: BUSTA_PAGA_1/2/3 (più recente = 1); se non chiaro BUSTA_PAGA_1.
 - CUD → MODELLO_CUD; 730 → MODELLO_730 (non usare CUD_730 se puoi distinguere).
 - Modello Unico: MODELLO_UNICO_1 (più recente) o MODELLO_UNICO_2; se un solo file senza anno → MODELLO_UNICO_1.

@@ -1,11 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowRight, AlertCircle, Building2 } from "lucide-react";
+import Image from "next/image";
+import { ArrowRight, AlertCircle } from "lucide-react";
 import { loginAction } from "@/actions/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { APP_NAME, APP_TAGLINE } from "@/lib/brand";
 
 export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
@@ -25,12 +27,17 @@ export default function LoginPage() {
     <div className="min-h-screen bg-slate-50">
       <div className="mx-auto flex max-w-md flex-col justify-center px-4 py-16">
         <div className="mb-8 flex items-center gap-3">
-          <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary-600 text-white shadow-md">
-            <Building2 className="h-6 w-6" />
-          </span>
+          <Image
+            src="/favicon.jpg"
+            alt=""
+            width={44}
+            height={44}
+            className="h-11 w-11 rounded-xl shadow-md"
+            priority
+          />
           <div>
-            <p className="text-lg font-bold text-slate-900">Euroansa</p>
-            <p className="text-sm text-slate-500">Pratiche mutuo</p>
+            <p className="text-lg font-bold text-slate-900">{APP_NAME}</p>
+            <p className="text-sm text-slate-500">{APP_TAGLINE}</p>
           </div>
         </div>
 

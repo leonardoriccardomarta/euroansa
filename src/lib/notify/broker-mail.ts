@@ -7,6 +7,7 @@ import {
   oauthClientFromRefreshToken,
 } from "@/lib/google/auth";
 import { sendGmailHtml } from "@/lib/google/gmail";
+import { APP_MAIL_PREFIX, APP_NAME } from "@/lib/brand";
 
 async function sendOfficeMail(params: {
   to: string;
@@ -73,14 +74,14 @@ export async function notifyBrokerAssigned(params: {
   const url = `${getAppBaseUrl()}/dashboard/applications/${params.applicationId}`;
   await sendOfficeMail({
     to: broker.email,
-    subject: `[EUROANSA] Pratica ${app.clientName} — assegnata a te`,
+    subject: `${APP_MAIL_PREFIX} Pratica ${app.clientName} — assegnata a te`,
     bodyText: `Ciao ${broker.name},
 
 ti è stata assegnata la pratica ${app.clientName} (${app.clientEmail}).
 
 Apri: ${url}
 
-Euroansa`,
+${APP_NAME}`,
   });
 }
 
@@ -133,7 +134,7 @@ export async function notifySecretarySendFailed(params: {
   const url = `${getAppBaseUrl()}/dashboard/applications/${params.applicationId}`;
   await sendOfficeMail({
     to,
-    subject: `[EUROANSA] Invio segreteria fallito — ${app.clientName}`,
+    subject: `${APP_MAIL_PREFIX} Invio segreteria fallito — ${app.clientName}`,
     bodyText: `Ciao ${name},
 
 l'invio automatico/manuale a segreteria per ${app.clientName} è fallito.
@@ -142,6 +143,6 @@ Errore: ${params.errorMessage}
 
 Apri la pratica e riprova: ${url}
 
-Euroansa`,
+${APP_NAME}`,
   });
 }

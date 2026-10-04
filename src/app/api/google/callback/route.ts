@@ -63,7 +63,7 @@ export async function GET(req: NextRequest) {
       // Se Google non rilascia refresh (già autorizzato senza prompt), errore chiaro
       return NextResponse.redirect(
         `${base}/dashboard/settings?google=error&msg=${encodeURIComponent(
-          "Nessun refresh_token: revoca l'accesso Euroansa su https://myaccount.google.com/permissions e riprova",
+          "Nessun refresh_token: revoca l'accesso app su https://myaccount.google.com/permissions e riprova",
         )}`,
       );
     }

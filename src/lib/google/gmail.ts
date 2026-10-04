@@ -49,7 +49,7 @@ function collectParts(part: GmailPart, acc: GmailPart[] = []): GmailPart[] {
 }
 
 /**
- * Trova email con oggetto corretto (tag EUROANSA-MUTUO).
+ * Trova email con oggetto corretto (tag GMAIL_SUBJECT_TAG).
  * Include anche mail SENZA allegati → pratica "Documenti incompleti".
  */
 export async function fetchPendingMortgageEmails(
@@ -60,9 +60,9 @@ export async function fetchPendingMortgageEmails(
   const gmail = getGmailClient(auth);
 
   const subjectTag = (
-    process.env.GMAIL_SUBJECT_TAG ?? "[EUROANSA-MUTUO]"
+    process.env.GMAIL_SUBJECT_TAG ?? "[PRATICA-MUTUO]"
   ).trim();
-  const searchToken = subjectTag.replace(/[\[\]]/g, "").trim() || "EUROANSA-MUTUO";
+  const searchToken = subjectTag.replace(/[\[\]]/g, "").trim() || "PRATICA-MUTUO";
 
   const list = await gmail.users.messages.list({
     userId: "me",
@@ -184,7 +184,7 @@ export async function sendGmailHtml(
 ) {
   const gmail = getGmailClient(auth);
   const attachments = params.attachments ?? [];
-  const boundary = `euroansa_${Date.now().toString(36)}`;
+  const boundary = `app_${Date.now().toString(36)}`;
 
   const encodeSubject = (subject: string) => {
     if (/^[\x20-\x7E]*$/.test(subject)) return subject;

@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { Download } from "lucide-react";
 import { getPackageBundle } from "@/lib/package-bundle";
 import { PACKAGE_LINK_TTL_DAYS } from "@/lib/db/setup-statements";
+import { APP_NAME } from "@/lib/brand";
 
 export const dynamic = "force-dynamic";
 
@@ -25,7 +26,7 @@ export default async function PackagePage({
       <div className="min-h-screen bg-slate-50 px-4 py-12">
         <div className="mx-auto w-full max-w-lg rounded-2xl border border-amber-200 bg-white p-8 shadow-sm">
           <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-            Euroansa
+            {APP_NAME}
           </p>
           <h1 className="mt-2 text-2xl font-bold text-slate-900">
             {bundle.app.clientName}
@@ -49,7 +50,7 @@ export default async function PackagePage({
     <div className="min-h-screen bg-slate-50 px-4 py-12">
       <div className="mx-auto w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
         <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-          Euroansa
+          {APP_NAME}
         </p>
         <h1 className="mt-2 text-2xl font-bold text-slate-900">
           {app.clientName}

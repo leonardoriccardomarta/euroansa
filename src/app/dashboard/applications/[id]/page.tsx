@@ -549,7 +549,7 @@ export default async function ApplicationDetailPage({
       ) : null}
 
       <p className="text-xs text-slate-400">
-        Firma default: {settings?.brokerName ?? "Euroansa"}, auto-invio
+        Firma default: {settings?.brokerName ?? "Broker"}, auto-invio
         segreteria: {settings?.autoSendToSecretary ? "ON" : "OFF"}
       </p>
     </div>

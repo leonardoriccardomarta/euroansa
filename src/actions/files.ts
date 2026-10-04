@@ -232,7 +232,7 @@ export async function createClientFolderAction(clientName: string) {
   if (!name) return { error: "Inserisci il nome cliente / cartella" };
 
   const folders = defaultStorageFolders(name);
-  const email = `cartella.${Date.now()}@euroansa.local`;
+  const email = `cartella.${Date.now()}@prontopratica.local`;
 
   const [created] = await db
     .insert(applications)

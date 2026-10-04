@@ -42,7 +42,7 @@ export async function createUserAction(formData: FormData): Promise<void> {
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
   const name = String(formData.get("name") ?? "").trim();
   const password = String(formData.get("password") ?? "");
-  // Solo broker: un unico ADMIN = org Euroansa (mail/Drive ufficio)
+  // Solo broker: un unico ADMIN = hub Gmail/Drive ufficio
   const role = "BROKER" as const;
 
   if (!email || !name || password.length < 6) {

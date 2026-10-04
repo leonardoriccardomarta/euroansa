@@ -2,8 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { uploadDocumentsAction } from "@/actions/applications";
 import { Button } from "@/components/ui/button";
+import { uploadFilesDirectToR2 } from "@/lib/storage/direct-upload";
 import { toast } from "sonner";
 
 export function DocumentUpload({ applicationId }: { applicationId: string }) {
@@ -13,28 +13,23 @@ export function DocumentUpload({ applicationId }: { applicationId: string }) {
 
   function handleFiles(fileList: FileList | null) {
     if (!fileList || fileList.length === 0) return;
-    const formData = new FormData();
-    Array.from(fileList).forEach((f) => formData.append("files", f));
+    const files = Array.from(fileList);
 
     startTransition(async () => {
       try {
-        const res = await uploadDocumentsAction(applicationId, formData);
-        if (res && "error" in res && res.error) {
-          toast.error(res.error);
-          router.refresh();
-          return;
+        const res = await uploadFilesDirectToR2({
+          applicationId,
+          files,
+        });
+        if (res.count > 0) {
+          toast.success(`${res.count} file caricati e analizzati`);
         }
-        const count = "count" in res && typeof res.count === "number" ? res.count : 0;
-        const errors = "errors" in res && res.errors ? res.errors : [];
-        if (count > 0) {
-          toast.success(`${count} file elaborati`);
-        }
-        if (errors.length > 0) {
+        if (res.errors.length > 0) {
           toast.error(
-            errors.slice(0, 2).join("; ") +
-              (errors.length > 2 ? ` (+${errors.length - 2})` : ""),
+            res.errors.slice(0, 2).join("; ") +
+              (res.errors.length > 2 ? ` (+${res.errors.length - 2})` : ""),
           );
-        } else if (count === 0) {
+        } else if (res.count === 0) {
           toast.message("Nessun file nuovo elaborato");
         }
         router.refresh();
@@ -66,6 +61,9 @@ export function DocumentUpload({ applicationId }: { applicationId: string }) {
       <p className="mb-3 text-sm text-slate-600">
         Trascina qui PDF o immagini, oppure seleziona i file
       </p>
+      <p className="mb-3 text-xs text-slate-500">
+        Upload diretto su storage (più veloce)
+      </p>
       <input
         id="file-upload"
         type="file"
@@ -78,10 +76,10 @@ export function DocumentUpload({ applicationId }: { applicationId: string }) {
         type="button"
         variant="outline"
         disabled={pending}
-        className="min-h-11 rounded-lg active:scale-95"
+        className="min-h-11 cursor-pointer rounded-lg active:scale-95"
         onClick={() => document.getElementById("file-upload")?.click()}
       >
-        {pending ? "Elaborazione AI..." : "Carica documenti"}
+        {pending ? "Upload + AI..." : "Carica documenti"}
       </Button>
     </div>
   );

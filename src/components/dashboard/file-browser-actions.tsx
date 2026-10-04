@@ -8,11 +8,19 @@ import {
   deleteDocumentFileAction,
   deleteStorageFolderAction,
   replaceDocumentFileAction,
-  uploadToFolderAction,
 } from "@/actions/files";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { uploadFilesDirectToR2 } from "@/lib/storage/direct-upload";
 import { toast } from "sonner";
+
+/** Allineato a upload server: AI solo su DOC / BANCA / IMMOBILE */
+function folderUsesAi(folderName: string): boolean {
+  const t = folderName.trim();
+  if (t === "BANCA" || t === "IMMOBILE") return true;
+  if (/\sDOC$/i.test(t)) return true;
+  return false;
+}
 
 export function FolderUploadButton({
   applicationId,
@@ -37,22 +45,21 @@ export function FolderUploadButton({
         onChange={(e) => {
           const list = e.target.files;
           if (!list?.length) return;
-          const fd = new FormData();
-          Array.from(list).forEach((f) => fd.append("files", f));
+          const files = Array.from(list);
           startTransition(async () => {
-            const res = await uploadToFolderAction(
+            const res = await uploadFilesDirectToR2({
               applicationId,
-              folderName,
-              fd,
-            );
-            if (res && "error" in res && res.error) {
-              toast.error(res.error);
-              return;
+              files,
+              subfolder: folderName,
+              skipAi: !folderUsesAi(folderName),
+            });
+            if (res.count > 0) {
+              toast.success(`${res.count} file caricati`);
             }
-            const n = "count" in res ? res.count : 0;
-            toast.success(`${n ?? 0} file caricati`);
-            if ("errors" in res && res.errors?.length) {
+            if (res.errors.length) {
               toast.error(res.errors.slice(0, 2).join("; "));
+            } else if (res.count === 0) {
+              toast.message("Nessun file caricato");
             }
             router.refresh();
           });
@@ -62,7 +69,7 @@ export function FolderUploadButton({
       <Button
         type="button"
         disabled={pending}
-        className="min-h-10 rounded-lg bg-primary-600 font-semibold hover:bg-primary-700"
+        className="min-h-10 cursor-pointer rounded-lg bg-primary-600 font-semibold hover:bg-primary-700"
         onClick={() => inputRef.current?.click()}
       >
         {pending ? "Caricamento..." : label}

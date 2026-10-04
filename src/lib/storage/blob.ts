@@ -2,6 +2,7 @@
  * Storage documenti su Cloudflare R2 (S3-compatible).
  * I pathname restano `practices/{id}/...` come prima (compat DB).
  */
+import { randomUUID } from "crypto";
 import {
   DeleteObjectCommand,
   DeleteObjectsCommand,
@@ -10,6 +11,7 @@ import {
   PutObjectCommand,
   S3Client,
 } from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 export type StoredBlob = {
   pathname: string;
@@ -85,6 +87,46 @@ function normalizeKey(pathnameOrUrl: string): string {
 
 export function practiceStoragePrefix(applicationId: string): string {
   return `practices/${applicationId}`;
+}
+
+/** Presigned PUT: il browser carica diretto su R2 (niente body su Vercel). */
+export async function createPresignedPutUrl(params: {
+  applicationId: string;
+  fileName: string;
+  contentType: string;
+  /** secondi (default 15 min) */
+  expiresIn?: number;
+}): Promise<{ uploadUrl: string; storageKey: string }> {
+  const { bucket } = requireR2Config();
+  const client = getR2Client();
+  const safeName = params.fileName.replace(/[\\/]+/g, "_").slice(0, 120);
+  const storageKey = `${practiceStoragePrefix(params.applicationId)}/_incoming/${randomUUID()}_${safeName}`;
+
+  const command = new PutObjectCommand({
+    Bucket: bucket,
+    Key: storageKey,
+    ContentType: params.contentType || "application/octet-stream",
+  });
+
+  const uploadUrl = await getSignedUrl(client, command, {
+    expiresIn: params.expiresIn ?? 900,
+  });
+
+  return { uploadUrl, storageKey };
+}
+
+export async function createPresignedGetUrl(
+  pathnameOrUrl: string,
+  expiresIn = 7200,
+): Promise<string> {
+  const { bucket } = requireR2Config();
+  const client = getR2Client();
+  const key = normalizeKey(pathnameOrUrl);
+  return getSignedUrl(
+    client,
+    new GetObjectCommand({ Bucket: bucket, Key: key }),
+    { expiresIn },
+  );
 }
 
 function wrapR2Error(err: unknown): never {

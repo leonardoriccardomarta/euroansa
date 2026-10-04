@@ -65,7 +65,7 @@ async function resolveEmailSignature(
       .limit(1);
     if (broker?.name?.trim()) return broker.name.trim();
   }
-  return settingsBrokerName.trim() || "Euroansa";
+  return settingsBrokerName.trim() || "Broker";
 }
 
 export async function regeneratePackageToken(applicationId: string): Promise<{
@@ -127,7 +127,7 @@ export async function sendApplicationToSecretary(
       id: "global",
       secretaryEmail:
         process.env.SECRETARY_EMAIL_DEFAULT ?? "segreteria@example.com",
-      brokerName: "Euroansa",
+      brokerName: "Broker",
       autoSendToSecretary: true,
     };
   }

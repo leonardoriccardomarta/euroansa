@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { APP_NAME, APP_TAGLINE } from "@/lib/brand";
 import "./globals.css";
 
 const inter = Inter({
@@ -11,8 +12,12 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Euroansa Pratiche Mutuo",
-  description: "Gestione automatica pratiche mutuo Euroansa",
+  title: `${APP_NAME} — ${APP_TAGLINE}`,
+  description: APP_TAGLINE,
+  icons: {
+    icon: [{ url: "/favicon.jpg", type: "image/jpeg" }],
+    apple: [{ url: "/icon.jpg", type: "image/jpeg" }],
+  },
 };
 
 export default function RootLayout({

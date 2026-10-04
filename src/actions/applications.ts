@@ -305,7 +305,7 @@ export async function getSollecitoTextAction(applicationId: string) {
   const checklist = evaluateChecklist(app.requiredDocumentTypes, docs);
   const text = buildSollecitoMessage({
     clientName: app.clientName,
-    brokerName: settings?.brokerName ?? "Euroansa",
+    brokerName: settings?.brokerName ?? "Broker",
     checklist,
   });
 

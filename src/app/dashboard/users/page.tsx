@@ -23,8 +23,8 @@ export default async function UsersPage() {
       <div>
         <h1 className="text-3xl font-bold text-slate-900">Utenti</h1>
         <p className="mt-2 text-slate-600">
-          Un solo admin = org Euroansa (Gmail ufficio + storage sito). I broker servono
-          per assegnazione e, se entrano, vedono solo le loro pratiche.
+          Un solo admin (Gmail ufficio + storage). I broker servono per assegnazione
+          e, se entrano, vedono solo le loro pratiche.
         </p>
       </div>
 

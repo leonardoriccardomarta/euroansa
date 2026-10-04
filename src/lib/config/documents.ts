@@ -262,14 +262,14 @@ export const REQUIRED_DOCS_BY_EMPLOYMENT = CHECKLIST_PRESETS;
  *     {COGNOME} DOC/
  *     BANCA/
  *     IMMOBILE/
- *     EUROANSA/
+ *     UFFICIO/
  *     {Cliente}_relazione.pdf
  */
 export const STORAGE_FOLDER_KINDS = [
   "DOC",
   "BANCA",
   "IMMOBILE",
-  "EUROANSA",
+  "UFFICIO",
 ] as const;
 
 export type StorageFolderKind = (typeof STORAGE_FOLDER_KINDS)[number];
@@ -333,7 +333,7 @@ export const DRIVE_SUBFOLDERS = [
   "DOC",
   "BANCA",
   "IMMOBILE",
-  "EUROANSA",
+  "UFFICIO",
 ] as const;
 export type DriveSubfolder = StorageFolderKind;
 export const driveSubfolderForDocument = storageFolderKindForDocument;

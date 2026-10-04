@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
       await sql.query(statement);
     }
 
-    const email = (process.env.ADMIN_EMAIL ?? "admin@euroansa.local").toLowerCase();
+    const email = (process.env.ADMIN_EMAIL ?? "admin@prontopratica.local").toLowerCase();
     const password = process.env.ADMIN_PASSWORD ?? "admin123456";
     const passwordHash = await bcrypt.hash(password, 10);
     const secretary =
@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
 
     await sql`
       INSERT INTO users (email, password_hash, name, role)
-      VALUES (${email}, ${passwordHash}, ${"Euroansa"}, ${"ADMIN"}::user_role)
+      VALUES (${email}, ${passwordHash}, ${"Admin"}, ${"ADMIN"}::user_role)
       ON CONFLICT (email) DO UPDATE SET
         password_hash = EXCLUDED.password_hash,
         role = ${"ADMIN"}::user_role,
@@ -54,13 +54,13 @@ export async function POST(req: NextRequest) {
 
     await sql`
       INSERT INTO system_settings (id, secretary_email, broker_name, auto_send_to_secretary)
-      VALUES (${"global"}, ${secretary}, ${"Euroansa"}, ${true})
+      VALUES (${"global"}, ${secretary}, ${"Broker"}, ${true})
       ON CONFLICT (id) DO NOTHING
     `;
 
     return NextResponse.json({
       ok: true,
-      message: "Schema applicato, unico admin org e settings pronti",
+      message: "Schema applicato, admin e settings pronti",
       adminEmail: email,
     });
   } catch (error) {

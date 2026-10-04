@@ -16,6 +16,8 @@ import {
 } from "@/lib/config/documents";
 import { computePreScoring } from "@/lib/prescoring";
 import {
+  deleteBlobByPathname,
+  downloadBlob,
   practiceStoragePrefix,
   uploadPracticeFile,
 } from "@/lib/storage/blob";
@@ -30,6 +32,8 @@ export type IncomingFile = {
   originalFileName: string;
   clientEmail?: string;
   clientNameHint?: string;
+  /** Key R2 da upload diretto (_incoming/…); rimossa dopo salvataggio finale */
+  incomingStorageKey?: string;
 };
 
 const OPEN_STATUSES = ["DOCUMENTI_INCOMPLETI", "COMPLETA_DA_INOLTRARE"] as const;
@@ -615,6 +619,13 @@ export async function processIncomingFiles(
         buffer: file.buffer,
       });
       storageKey = uploaded.pathname;
+      if (file.incomingStorageKey) {
+        try {
+          await deleteBlobByPathname(file.incomingStorageKey);
+        } catch (delErr) {
+          console.error("cleanup incoming R2 key", delErr);
+        }
+      }
     } catch (err) {
       console.error("R2 upload failed", err);
       errors.push(
@@ -661,6 +672,65 @@ export async function processIncomingFiles(
     processed,
     applicationIds: [...applicationIds],
     errors,
+  };
+}
+
+/** Dopo PUT diretto su R2: scarica, Gemini, salva path finale. */
+export async function processDirectUploads(
+  items: Array<{
+    storageKey: string;
+    mimeType: string;
+    originalFileName: string;
+  }>,
+  options: {
+    applicationId: string;
+    brokerId?: string;
+    subfolder?: string;
+  },
+) {
+  const incoming: IncomingFile[] = [];
+  const loadErrors: string[] = [];
+
+  for (const item of items) {
+    try {
+      const { buffer } = await downloadBlob(item.storageKey);
+      incoming.push({
+        buffer,
+        mimeType: item.mimeType,
+        originalFileName: item.originalFileName,
+        incomingStorageKey: item.storageKey,
+      });
+    } catch (err) {
+      loadErrors.push(
+        `${item.originalFileName}: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+    }
+  }
+
+  const result = await processIncomingFiles(incoming, {
+    applicationId: options.applicationId,
+    brokerId: options.brokerId,
+  });
+
+  if (options.subfolder) {
+    for (const item of items) {
+      await db
+        .update(documents)
+        .set({ storageSubfolder: options.subfolder })
+        .where(
+          and(
+            eq(documents.applicationId, options.applicationId),
+            eq(documents.rawFileName, item.originalFileName),
+          ),
+        );
+    }
+  }
+
+  return {
+    ...result,
+    errors: [...loadErrors, ...result.errors],
   };
 }
 

@@ -1,6 +1,8 @@
-# Euroansa — Pratiche Mutuo
+# Prontopratica — Gestione pratiche mutuo
 
-Web app full-stack per mediatori creditizi: email clienti → OCR/AI → storage Cloudflare R2 (cartelle stile Filippo) → pre-scoring → invio segreteria con **link ZIP** → dashboard CRM.
+Web app full-stack per mediatori creditizi: email clienti → OCR/AI → storage Cloudflare R2 → pre-scoring → invio segreteria con **link ZIP** → dashboard CRM.
+
+Nome UI configurabile con `NEXT_PUBLIC_APP_NAME` (default **Prontopratica**).
 
 ## Stack
 
@@ -20,17 +22,34 @@ Per ogni pratica sul sito si crea una cartella virtuale:
   {COGNOME} DOC/   ← CI, buste, CUD, …
   BANCA/
   IMMOBILE/
-  EUROANSA/
+  UFFICIO/
   {Cliente}_relazione.pdf   ← obbligatoria prima dell'invio
 ```
 
 Nomi file stile campione: `ALI_ci.pdf`, `ALI_bp 05.pdf`.
 
-Alla segreteria arriva una mail Gmail **senza allegati pesanti**: solo un bottone **Scarica pacchetto ZIP** (link token sul sito, validità 7 giorni).
+Upload documenti: **diretto browser → R2** (presigned), poi analisi Gemini sul server.
+
+Alla segreteria arriva una mail Gmail **senza allegati pesanti**: solo link **Scarica pacchetto ZIP** (validità 7 giorni).
+
+### CORS R2 (obbligatorio per upload diretto)
+Bucket Settings → CORS Policy, esempio:
+
+```json
+[
+  {
+    "AllowedOrigins": ["https://TUO-PROGETTO.vercel.app"],
+    "AllowedMethods": ["GET", "PUT", "HEAD"],
+    "AllowedHeaders": ["*"],
+    "ExposeHeaders": ["ETag"],
+    "MaxAgeSeconds": 3600
+  }
+]
+```
 
 ## Multiuser
 
-1. Un solo **ADMIN** = org Euroansa (collega Gmail ufficio in Impostazioni).
+1. Un solo **ADMIN** (collega Gmail ufficio in Impostazioni).
 2. I **BROKER** gestiscono pratiche assegnate (checklist, relazione, invio).
 3. ADMIN vede tutto e assegna i broker.
 4. Mail automatiche al broker: pratica assegnata; fallimento invio segreteria.
@@ -66,7 +85,8 @@ Importa il repo e in **Settings → Environment Variables** (Production):
 | `GOOGLE_CLIENT_SECRET` | Google Cloud OAuth |
 | `GOOGLE_REDIRECT_URI` | `https://….vercel.app/api/google/callback` |
 | `NEXT_PUBLIC_APP_URL` | `https://….vercel.app` |
-| `GMAIL_SUBJECT_TAG` | Tag oggetto mail clienti (default `[EUROANSA-MUTUO]`) |
+| `GMAIL_SUBJECT_TAG` | Tag oggetto mail clienti (default `[PRATICA-MUTUO]`) |
+| `NEXT_PUBLIC_APP_NAME` | Nome UI (default `Prontopratica`) |
 | `CRON_SECRET` | Stringa random lunga |
 | `AUTH_SECRET` | Stringa random ≥32 caratteri |
 | `ADMIN_EMAIL` | Email login admin |
@@ -90,7 +110,7 @@ Poi login → **Impostazioni → Collega Google** (solo Gmail).
 - **GET** + header `Authorization: Bearer TUO_CRON_SECRET`
 
 ### Oggetto email clienti
-**`[EUROANSA-MUTUO]`** nell'oggetto (o `GMAIL_SUBJECT_TAG`).
+**`[PRATICA-MUTUO]`** nell'oggetto (o il valore di `GMAIL_SUBJECT_TAG`).
 
 ## Google OAuth scopes
 - `gmail.modify` / `gmail.send`

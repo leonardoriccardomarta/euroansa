@@ -37,7 +37,7 @@ export default async function SettingsPage({
       <div>
         <h1 className="text-3xl font-bold text-slate-900">Impostazioni</h1>
         <p className="mt-2 text-slate-600">
-          Un solo Google = Gmail ufficio. Documenti su Cloudflare R2. Un solo admin CRM = org Euroansa.
+          Un solo Google = Gmail ufficio. Documenti su Cloudflare R2. Un solo admin CRM.
         </p>
       </div>
 
@@ -89,7 +89,7 @@ export default async function SettingsPage({
             <p className="text-xs text-slate-500">
               Tag oggetto:{" "}
               <code className="rounded bg-slate-100 px-1">
-                {process.env.GMAIL_SUBJECT_TAG ?? "[EUROANSA-MUTUO]"}
+                {process.env.GMAIL_SUBJECT_TAG ?? "[PRATICA-MUTUO]"}
               </code>
             </p>
             <div className="flex flex-wrap gap-2">
@@ -144,7 +144,7 @@ export default async function SettingsPage({
             <Input
               id="brokerName"
               name="brokerName"
-              defaultValue={settings?.brokerName ?? "Euroansa"}
+              defaultValue={settings?.brokerName ?? "Broker"}
               required
               className="h-10 rounded-lg"
             />
