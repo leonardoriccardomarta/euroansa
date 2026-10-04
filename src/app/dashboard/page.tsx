@@ -1,4 +1,4 @@
-import { desc } from "drizzle-orm";
+import { and, desc, eq, inArray } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import { db } from "@/db";
@@ -32,30 +32,35 @@ export default async function DashboardPage({
 
   const { status } = await searchParams;
 
-  const [appsRaw, docRows, brokerRows] = await Promise.all([
-    db
-      .select({
-        id: applications.id,
-        clientName: applications.clientName,
-        clientEmail: applications.clientEmail,
-        clientFiscalCode: applications.clientFiscalCode,
-        employmentType: applications.employmentType,
-        status: applications.status,
-        sentToSecretaryAt: applications.sentToSecretaryAt,
-        isTest: applications.isTest,
-        brokerId: applications.brokerId,
-        requiredDocumentTypes: applications.requiredDocumentTypes,
-        lastPipelineError: applications.lastPipelineError,
-      })
-      .from(applications)
-      .orderBy(desc(applications.updatedAt)),
-    db
-      .select({
-        applicationId: documents.applicationId,
-        documentType: documents.documentType,
-        isValid: documents.isValid,
-      })
-      .from(documents),
+  // Hub: mail ufficio (OAuth admin). Documenti su Cloudflare R2.
+  // ADMIN = vede tutte + assegna.
+  // BROKER = soci minori, solo pratiche assegnate a loro.
+  const appWhere =
+    session.role === "ADMIN"
+      ? undefined
+      : and(eq(applications.brokerId, session.id), eq(applications.isTest, false));
+
+  const appsQuery = db
+    .select({
+      id: applications.id,
+      clientName: applications.clientName,
+      clientEmail: applications.clientEmail,
+      clientFiscalCode: applications.clientFiscalCode,
+      employmentType: applications.employmentType,
+      status: applications.status,
+      sentToSecretaryAt: applications.sentToSecretaryAt,
+      isTest: applications.isTest,
+      brokerId: applications.brokerId,
+      requiredDocumentTypes: applications.requiredDocumentTypes,
+      lastPipelineError: applications.lastPipelineError,
+    })
+    .from(applications)
+    .$dynamic();
+
+  const [apps, brokerRows] = await Promise.all([
+    (appWhere ? appsQuery.where(appWhere) : appsQuery).orderBy(
+      desc(applications.updatedAt),
+    ),
     db
       .select({
         id: users.id,
@@ -66,13 +71,18 @@ export default async function DashboardPage({
       .from(users),
   ]);
 
-  // Hub: mail ufficio (OAuth admin). Documenti su Cloudflare R2.
-  // ADMIN = vede tutte + assegna.
-  // BROKER = soci minori, solo pratiche assegnate a loro.
-  const apps =
-    session.role === "ADMIN"
-      ? appsRaw
-      : appsRaw.filter((a) => !a.isTest && a.brokerId === session.id);
+  const appIds = apps.map((a) => a.id);
+  const docRows =
+    appIds.length === 0
+      ? []
+      : await db
+          .select({
+            applicationId: documents.applicationId,
+            documentType: documents.documentType,
+            isValid: documents.isValid,
+          })
+          .from(documents)
+          .where(inArray(documents.applicationId, appIds));
 
   const docsByApp = new Map<string, typeof docRows>();
   for (const d of docRows) {

@@ -1,7 +1,6 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   FolderKanban,
@@ -11,6 +10,7 @@ import {
   Users,
 } from "lucide-react";
 import { logoutAction } from "@/actions/auth";
+import { NavLink } from "@/components/layout/nav-link";
 import { APP_NAME } from "@/lib/brand";
 import { cn } from "@/lib/utils";
 
@@ -56,13 +56,12 @@ export function AppShell({
     <div className="min-h-screen bg-slate-50 pb-24 md:pb-0">
       <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/95 backdrop-blur-md">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-2.5 md:px-8">
-          <Link
+          <NavLink
             href="/dashboard"
-            prefetch
-            className="flex cursor-pointer items-center gap-2 font-bold text-slate-900 active:scale-95"
+            className="flex items-center gap-2 font-bold text-slate-900 active:scale-95"
           >
             <Image
-              src="/favicon.jpg"
+              src="/icon-192.png"
               alt=""
               width={36}
               height={36}
@@ -70,17 +69,16 @@ export function AppShell({
               priority
             />
             <span className="hidden sm:inline">{APP_NAME}</span>
-          </Link>
+          </NavLink>
 
           <nav className="hidden items-center gap-1 md:flex">
             {nav.map((item) => {
               const active = isActive(item.href);
               const Icon = item.icon;
               return (
-                <Link
+                <NavLink
                   key={item.href}
                   href={item.href}
-                  prefetch
                   className={cn(
                     "flex min-h-10 items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors active:scale-95",
                     active
@@ -90,7 +88,7 @@ export function AppShell({
                 >
                   <Icon className="h-4 w-4" />
                   {item.label}
-                </Link>
+                </NavLink>
               );
             })}
           </nav>
@@ -122,10 +120,9 @@ export function AppShell({
           const active = isActive(item.href);
           const Icon = item.icon;
           return (
-            <Link
+            <NavLink
               key={item.href}
               href={item.href}
-              prefetch
               className={cn(
                 "flex min-h-14 flex-1 flex-col items-center justify-center gap-0.5 text-[11px] font-semibold active:scale-95",
                 active ? "text-primary-700" : "text-slate-500",
@@ -133,7 +130,7 @@ export function AppShell({
             >
               <Icon className="h-5 w-5" />
               {item.label}
-            </Link>
+            </NavLink>
           );
         })}
       </nav>

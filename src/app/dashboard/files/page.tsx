@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { desc, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { Folder } from "lucide-react";
 import { getSession } from "@/lib/auth";
 import { db } from "@/db";
@@ -13,7 +13,12 @@ export default async function FilesIndexPage() {
   const session = await getSession();
   if (!session) redirect("/login");
 
-  const apps = await db
+  const appWhere =
+    session.role === "ADMIN"
+      ? undefined
+      : and(eq(applications.brokerId, session.id), eq(applications.isTest, false));
+
+  const appsQuery = db
     .select({
       id: applications.id,
       clientName: applications.clientName,
@@ -24,21 +29,26 @@ export default async function FilesIndexPage() {
       relazioneStorageKey: applications.relazioneStorageKey,
     })
     .from(applications)
-    .orderBy(desc(applications.updatedAt));
+    .$dynamic();
 
-  const filtered = apps.filter((app) => {
-    if (app.isTest && session.role !== "ADMIN") return false;
-    if (session.role !== "ADMIN" && app.brokerId !== session.id) return false;
-    return true;
-  });
+  const apps = await (appWhere ? appsQuery.where(appWhere) : appsQuery).orderBy(
+    desc(applications.updatedAt),
+  );
 
-  const counts = await db
-    .select({
-      applicationId: documents.applicationId,
-      n: sql<number>`count(*)::int`,
-    })
-    .from(documents)
-    .groupBy(documents.applicationId);
+  const filtered = apps;
+  const appIds = filtered.map((a) => a.id);
+
+  const counts =
+    appIds.length === 0
+      ? []
+      : await db
+          .select({
+            applicationId: documents.applicationId,
+            n: sql<number>`count(*)::int`,
+          })
+          .from(documents)
+          .where(inArray(documents.applicationId, appIds))
+          .groupBy(documents.applicationId);
 
   const countMap = new Map(counts.map((c) => [c.applicationId, c.n]));
 
