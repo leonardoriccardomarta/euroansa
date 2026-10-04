@@ -7,6 +7,26 @@ export type DirectUploadResult = {
   errors: string[];
 };
 
+const UPLOAD_CONCURRENCY = 4;
+
+async function mapPool<T, R>(
+  items: T[],
+  concurrency: number,
+  fn: (item: T) => Promise<R>,
+): Promise<R[]> {
+  const results = new Array<R>(items.length);
+  let next = 0;
+  async function worker() {
+    while (next < items.length) {
+      const idx = next++;
+      results[idx] = await fn(items[idx]!);
+    }
+  }
+  const n = Math.min(concurrency, Math.max(items.length, 1));
+  await Promise.all(Array.from({ length: n }, () => worker()));
+  return results;
+}
+
 async function presignOne(params: {
   applicationId: string;
   file: File;
@@ -50,7 +70,7 @@ export async function uploadFilesDirectToR2(params: {
   }> = [];
   const errors: string[] = [];
 
-  for (const file of files) {
+  const outcomes = await mapPool(files, UPLOAD_CONCURRENCY, async (file) => {
     try {
       const { uploadUrl, storageKey } = await presignOne({
         applicationId: params.applicationId,
@@ -66,16 +86,25 @@ export async function uploadFilesDirectToR2(params: {
       if (!put.ok) {
         throw new Error(`Upload R2 HTTP ${put.status}`);
       }
-      uploaded.push({
-        storageKey,
-        fileName: file.name,
-        contentType: file.type || "application/octet-stream",
-      });
+      return {
+        ok: true as const,
+        item: {
+          storageKey,
+          fileName: file.name,
+          contentType: file.type || "application/octet-stream",
+        },
+      };
     } catch (err) {
-      errors.push(
-        `${file.name}: ${err instanceof Error ? err.message : String(err)}`,
-      );
+      return {
+        ok: false as const,
+        error: `${file.name}: ${err instanceof Error ? err.message : String(err)}`,
+      };
     }
+  });
+
+  for (const outcome of outcomes) {
+    if (outcome.ok) uploaded.push(outcome.item);
+    else errors.push(outcome.error);
   }
 
   if (uploaded.length === 0) {

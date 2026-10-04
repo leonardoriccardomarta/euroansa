@@ -3,11 +3,11 @@ import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { applications } from "@/db/schema";
 import { getSession } from "@/lib/auth";
-import { downloadBlob } from "@/lib/storage/blob";
+import { createPresignedGetUrl } from "@/lib/storage/blob";
 
-export const maxDuration = 60;
+export const maxDuration = 30;
 
-/** Download relazione broker (login CRM). */
+/** Apre relazione broker: auth → redirect URL firmato R2. */
 export async function GET(
   _req: Request,
   { params }: { params: Promise<{ id: string }> },
@@ -33,18 +33,14 @@ export async function GET(
   }
 
   try {
-    const { buffer, contentType } = await downloadBlob(app.relazioneStorageKey);
     const name = app.relazioneFileName ?? "relazione.pdf";
-    return new NextResponse(new Uint8Array(buffer), {
-      status: 200,
-      headers: {
-        "Content-Type": contentType,
-        "Content-Disposition": `inline; filename="${name.replace(/"/g, "")}"`,
-        "Cache-Control": "private, no-store",
-      },
+    const url = await createPresignedGetUrl(app.relazioneStorageKey, 900, {
+      fileName: name,
+      contentType: "application/pdf",
     });
+    return NextResponse.redirect(url, 302);
   } catch (err) {
-    console.error("relazione download failed", id, err);
+    console.error("relazione presign failed", id, err);
     return NextResponse.json(
       { error: "Download fallito" },
       { status: 500 },

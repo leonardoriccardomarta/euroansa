@@ -25,7 +25,6 @@ import {
   sheetRowsForRequired,
   storageSubfolderLabel,
 } from "@/lib/config/documents";
-import { refreshApplicationState } from "@/lib/pipeline";
 import { isLegacyDriveKey, isSiteStorageKey } from "@/lib/storage/paths";
 import { PACKAGE_LINK_TTL_DAYS } from "@/lib/db/setup-statements";
 import { Badge } from "@/components/ui/badge";
@@ -62,41 +61,35 @@ export default async function ApplicationDetailPage({
     redirect("/dashboard");
   }
 
-  await refreshApplicationState(id);
+  // Refresh stato solo dopo upload/mutazioni (pipeline), non a ogni apertura pagina
+  const current = app;
 
-  const [appFresh] = await db
-    .select()
-    .from(applications)
-    .where(eq(applications.id, id))
-    .limit(1);
-  if (!appFresh) notFound();
-  const current = appFresh;
+  const [docs, sendLogs, settingsRow, allUsers] = await Promise.all([
+    db
+      .select()
+      .from(documents)
+      .where(eq(documents.applicationId, id))
+      .orderBy(desc(documents.createdAt)),
+    db
+      .select()
+      .from(secretarySendLogs)
+      .where(eq(secretarySendLogs.applicationId, id))
+      .orderBy(desc(secretarySendLogs.createdAt))
+      .limit(8),
+    db
+      .select()
+      .from(systemSettings)
+      .where(eq(systemSettings.id, "global"))
+      .limit(1),
+    db
+      .select({
+        id: users.id,
+        name: users.name,
+      })
+      .from(users),
+  ]);
 
-  const docs = await db
-    .select()
-    .from(documents)
-    .where(eq(documents.applicationId, id))
-    .orderBy(desc(documents.createdAt));
-
-  const sendLogs = await db
-    .select()
-    .from(secretarySendLogs)
-    .where(eq(secretarySendLogs.applicationId, id))
-    .orderBy(desc(secretarySendLogs.createdAt))
-    .limit(8);
-
-  const [settings] = await db
-    .select()
-    .from(systemSettings)
-    .where(eq(systemSettings.id, "global"))
-    .limit(1);
-
-  const allUsers = await db
-    .select({
-      id: users.id,
-      name: users.name,
-    })
-    .from(users);
+  const [settings] = settingsRow;
 
   const brokerName = current.brokerId
     ? allUsers.find((b) => b.id === current.brokerId)?.name

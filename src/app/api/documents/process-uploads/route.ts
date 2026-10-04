@@ -86,52 +86,57 @@ export async function POST(req: Request) {
 
   try {
     if (body.skipAi && subfolder) {
-      let count = 0;
-      const errors: string[] = [];
-      for (const f of files) {
-        try {
-          const { buffer } = await downloadBlob(f.storageKey);
-          const safeName = f.fileName.replace(/[\\/]+/g, "_");
-          const uploaded = await uploadPracticeFile({
-            applicationId,
-            subfolder,
-            fileName: safeName,
-            mimeType: f.contentType || "application/octet-stream",
-            buffer,
-          });
+      const outcomes = await Promise.all(
+        files.map(async (f) => {
           try {
-            await deleteBlobByPathname(f.storageKey);
-          } catch {
-            // ignore
-          }
-          const [inserted] = await db
-            .insert(documents)
-            .values({
+            const { buffer } = await downloadBlob(f.storageKey);
+            const safeName = f.fileName.replace(/[\\/]+/g, "_");
+            const uploaded = await uploadPracticeFile({
               applicationId,
-              rawFileName: f.fileName,
-              renamedFileName: safeName,
-              documentType: "SCONOSCIUTO",
-              driveFileId: uploaded.pathname,
-              driveFileUrl: null,
-              storageSubfolder: subfolder,
-              isValid: true,
-              extractedData: {},
-              validationIssues: [],
-            })
-            .returning({ id: documents.id });
-          if (inserted) {
-            await db
-              .update(documents)
-              .set({ driveFileUrl: `/api/files/${inserted.id}` })
-              .where(eq(documents.id, inserted.id));
+              subfolder,
+              fileName: safeName,
+              mimeType: f.contentType || "application/octet-stream",
+              buffer,
+            });
+            try {
+              await deleteBlobByPathname(f.storageKey);
+            } catch {
+              // ignore
+            }
+            const [inserted] = await db
+              .insert(documents)
+              .values({
+                applicationId,
+                rawFileName: f.fileName,
+                renamedFileName: safeName,
+                documentType: "SCONOSCIUTO",
+                driveFileId: uploaded.pathname,
+                driveFileUrl: null,
+                storageSubfolder: subfolder,
+                isValid: true,
+                extractedData: {},
+                validationIssues: [],
+              })
+              .returning({ id: documents.id });
+            if (inserted) {
+              await db
+                .update(documents)
+                .set({ driveFileUrl: `/api/files/${inserted.id}` })
+                .where(eq(documents.id, inserted.id));
+            }
+            return { ok: true as const };
+          } catch (err) {
+            return {
+              ok: false as const,
+              error: `${f.fileName}: ${err instanceof Error ? err.message : String(err)}`,
+            };
           }
-          count += 1;
-        } catch (err) {
-          errors.push(
-            `${f.fileName}: ${err instanceof Error ? err.message : String(err)}`,
-          );
-        }
-      }
+        }),
+      );
+      const count = outcomes.filter((o) => o.ok).length;
+      const errors = outcomes
+        .filter((o): o is { ok: false; error: string } => !o.ok)
+        .map((o) => o.error);
       await setApplicationPipelineError(
         applicationId,
         errors.length ? errors.slice(0, 3).join("; ") : null,

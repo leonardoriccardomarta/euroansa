@@ -3,12 +3,12 @@ import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { applications, documents } from "@/db/schema";
 import { getSession } from "@/lib/auth";
-import { downloadBlob } from "@/lib/storage/blob";
+import { createPresignedGetUrl } from "@/lib/storage/blob";
 import { isLegacyDriveKey, isSiteStorageKey } from "@/lib/storage/paths";
 
-export const maxDuration = 60;
+export const maxDuration = 30;
 
-/** Download singolo documento (login CRM richiesto). */
+/** Apre il documento: auth CRM → redirect a URL firmato R2 (niente proxy byte su Vercel). */
 export async function GET(
   _req: Request,
   { params }: { params: Promise<{ documentId: string }> },
@@ -54,17 +54,12 @@ export async function GET(
   }
 
   try {
-    const { buffer, contentType } = await downloadBlob(doc.driveFileId);
-    return new NextResponse(new Uint8Array(buffer), {
-      status: 200,
-      headers: {
-        "Content-Type": contentType,
-        "Content-Disposition": `inline; filename="${doc.renamedFileName.replace(/"/g, "")}"`,
-        "Cache-Control": "private, no-store",
-      },
+    const url = await createPresignedGetUrl(doc.driveFileId, 900, {
+      fileName: doc.renamedFileName,
     });
+    return NextResponse.redirect(url, 302);
   } catch (err) {
-    console.error("file download failed", documentId, err);
+    console.error("file presign failed", documentId, err);
     return NextResponse.json(
       { error: "Download fallito dallo storage sito" },
       { status: 500 },

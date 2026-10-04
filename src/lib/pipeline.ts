@@ -691,22 +691,33 @@ export async function processDirectUploads(
   const incoming: IncomingFile[] = [];
   const loadErrors: string[] = [];
 
-  for (const item of items) {
-    try {
-      const { buffer } = await downloadBlob(item.storageKey);
-      incoming.push({
-        buffer,
-        mimeType: item.mimeType,
-        originalFileName: item.originalFileName,
-        incomingStorageKey: item.storageKey,
-      });
-    } catch (err) {
-      loadErrors.push(
-        `${item.originalFileName}: ${
-          err instanceof Error ? err.message : String(err)
-        }`,
-      );
-    }
+  const loaded = await Promise.all(
+    items.map(async (item) => {
+      try {
+        const { buffer } = await downloadBlob(item.storageKey);
+        return {
+          ok: true as const,
+          file: {
+            buffer,
+            mimeType: item.mimeType,
+            originalFileName: item.originalFileName,
+            incomingStorageKey: item.storageKey,
+          } satisfies IncomingFile,
+        };
+      } catch (err) {
+        return {
+          ok: false as const,
+          error: `${item.originalFileName}: ${
+            err instanceof Error ? err.message : String(err)
+          }`,
+        };
+      }
+    }),
+  );
+
+  for (const row of loaded) {
+    if (row.ok) incoming.push(row.file);
+    else loadErrors.push(row.error);
   }
 
   const result = await processIncomingFiles(incoming, {
@@ -766,15 +777,22 @@ export async function refreshApplicationState(applicationId: string) {
     nextStatus = "DOCUMENTI_INCOMPLETI";
   }
 
-  await db
-    .update(applications)
-    .set({
-      employmentType,
-      preScoringData: preScoring,
-      ...(nextStatus ? { status: nextStatus } : {}),
-      updatedAt: new Date(),
-    })
-    .where(eq(applications.id, applicationId));
+  const statusUnchanged = !nextStatus || nextStatus === app.status;
+  const scoringUnchanged =
+    JSON.stringify(app.preScoringData ?? null) === JSON.stringify(preScoring);
+  const employmentUnchanged = app.employmentType === employmentType;
+
+  if (!statusUnchanged || !scoringUnchanged || !employmentUnchanged) {
+    await db
+      .update(applications)
+      .set({
+        employmentType,
+        preScoringData: preScoring,
+        ...(nextStatus ? { status: nextStatus } : {}),
+        updatedAt: new Date(),
+      })
+      .where(eq(applications.id, applicationId));
+  }
 
   const checklist = evaluateChecklist(app.requiredDocumentTypes, docs);
   const hasRelazione = Boolean(app.relazioneStorageKey);

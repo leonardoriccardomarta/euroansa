@@ -54,9 +54,12 @@ function requireR2Config() {
   return { endpoint, accessKeyId, secretAccessKey, bucket };
 }
 
+const globalR2 = globalThis as unknown as { __prontopraticaR2?: S3Client };
+
 function getR2Client() {
+  if (globalR2.__prontopraticaR2) return globalR2.__prontopraticaR2;
   const { endpoint, accessKeyId, secretAccessKey } = requireR2Config();
-  return new S3Client({
+  const client = new S3Client({
     region: "auto",
     endpoint,
     credentials: {
@@ -69,6 +72,8 @@ function getR2Client() {
     requestChecksumCalculation: "WHEN_REQUIRED",
     responseChecksumValidation: "WHEN_REQUIRED",
   });
+  globalR2.__prontopraticaR2 = client;
+  return client;
 }
 
 function normalizeKey(pathnameOrUrl: string): string {
@@ -118,13 +123,26 @@ export async function createPresignedPutUrl(params: {
 export async function createPresignedGetUrl(
   pathnameOrUrl: string,
   expiresIn = 7200,
+  options?: { fileName?: string; contentType?: string },
 ): Promise<string> {
   const { bucket } = requireR2Config();
   const client = getR2Client();
   const key = normalizeKey(pathnameOrUrl);
+  const safeName = options?.fileName?.replace(/["\r\n]+/g, "").slice(0, 180);
   return getSignedUrl(
     client,
-    new GetObjectCommand({ Bucket: bucket, Key: key }),
+    new GetObjectCommand({
+      Bucket: bucket,
+      Key: key,
+      ...(safeName
+        ? {
+            ResponseContentDisposition: `inline; filename="${safeName}"`,
+          }
+        : {}),
+      ...(options?.contentType
+        ? { ResponseContentType: options.contentType }
+        : {}),
+    }),
     { expiresIn },
   );
 }
