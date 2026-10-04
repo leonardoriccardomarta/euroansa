@@ -22,14 +22,23 @@ export async function GET(
   }
 
   const bundle = await getPackageBundle(id, token);
-  if (!bundle) {
+  if (bundle.status === "invalid") {
     return NextResponse.json({ error: "Link non valido" }, { status: 403 });
+  }
+  if (bundle.status === "expired") {
+    return new NextResponse(
+      "Link scaduto. Chiedi al broker di rigenerare il pacchetto.",
+      {
+        status: 410,
+        headers: { "Content-Type": "text/plain; charset=utf-8" },
+      },
+    );
   }
 
   const { app, files } = bundle;
   if (files.length === 0) {
     return new NextResponse(
-      "Nessun file disponibile. Ricarica i documenti nella sezione File e riprova.",
+      "Nessun file sullo storage sito. Ricarica i documenti nella sezione File e riprova.",
       {
         status: 404,
         headers: { "Content-Type": "text/plain; charset=utf-8" },

@@ -5,6 +5,7 @@ import { useState, useTransition } from "react";
 import {
   deleteApplicationAction,
   getSollecitoTextAction,
+  regeneratePackageLinkAction,
   sendToSecretaryAction,
 } from "@/actions/applications";
 import type { ApplicationStatus } from "@/db/schema";
@@ -18,12 +19,14 @@ export function ApplicationActions({
   isAdmin = false,
   clientName,
   hasRelazione = false,
+  hasPackageLink = false,
 }: {
   applicationId: string;
   status: ApplicationStatus;
   isAdmin?: boolean;
   clientName?: string;
   hasRelazione?: boolean;
+  hasPackageLink?: boolean;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -31,7 +34,9 @@ export function ApplicationActions({
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   const canSendToSecretary =
-    status === "DOCUMENTI_INCOMPLETI" || status === "COMPLETA_DA_INOLTRARE";
+    status === "DOCUMENTI_INCOMPLETI" ||
+    status === "COMPLETA_DA_INOLTRARE" ||
+    status === "INVIATA_A_SEGRETERIA";
 
   return (
     <div className="flex w-full flex-col gap-2 sm:w-auto sm:items-end">
@@ -51,17 +56,55 @@ export function ApplicationActions({
                   const res = await sendToSecretaryAction(applicationId);
                   if (res && "error" in res && res.error) {
                     toast.error(res.error);
+                    router.refresh();
                     return;
                   }
-                  toast.success("Inviata a segreteria");
+                  if (res && "legacySkipped" in res && res.legacySkipped) {
+                    toast.message(
+                      `${res.legacySkipped} file Drive esclusi: ricaricali sullo storage sito`,
+                    );
+                  }
+                  toast.success(
+                    status === "INVIATA_A_SEGRETERIA"
+                      ? "Reinviata a segreteria (nuovo link)"
+                      : "Inviata a segreteria",
+                  );
                   router.refresh();
                 } catch {
                   toast.error("Invio fallito. Verifica Google OAuth");
+                  router.refresh();
                 }
               });
             }}
           >
-            {pending ? "Invio..." : "Invia ora a segreteria"}
+            {pending
+              ? "Invio..."
+              : status === "INVIATA_A_SEGRETERIA"
+                ? "Reinvia a segreteria"
+                : "Invia ora a segreteria"}
+          </Button>
+        ) : null}
+        {hasPackageLink || status === "INVIATA_A_SEGRETERIA" ? (
+          <Button
+            variant="outline"
+            disabled={pending}
+            className="min-h-11 flex-1 rounded-lg active:scale-95 sm:flex-none"
+            onClick={() => {
+              startTransition(async () => {
+                const res = await regeneratePackageLinkAction(applicationId);
+                if (res && "error" in res && res.error) {
+                  toast.error(res.error);
+                  return;
+                }
+                if (res && "packageUrl" in res && res.packageUrl) {
+                  await navigator.clipboard.writeText(res.packageUrl);
+                  toast.success("Nuovo link copiato (valido 7 giorni)");
+                  router.refresh();
+                }
+              });
+            }}
+          >
+            Rigenera link
           </Button>
         ) : null}
         <Button

@@ -7,6 +7,7 @@ import { db } from "@/db";
 import { applications, documents } from "@/db/schema";
 import { DOCUMENT_TYPE_LABELS } from "@/lib/config/documents";
 import { syncStorageFoldersForApp } from "@/actions/files";
+import { isLegacyDriveKey } from "@/lib/storage/paths";
 import {
   CreateFolderForm,
   DeleteFolderButton,
@@ -74,6 +75,13 @@ export default async function ClientFilesPage({
         </p>
       </div>
 
+      {docs.some((d) => isLegacyDriveKey(d.driveFileId)) ? (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          Alcuni file sono ancora su Drive e non entrano nello ZIP segreteria.
+          Usa <strong>Sostituisci</strong> o ricarica i PDF.
+        </div>
+      ) : null}
+
       <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
         <CreateFolderForm applicationId={app.id} />
       </div>
@@ -128,6 +136,7 @@ export default async function ClientFilesPage({
                       documentId={doc.id}
                       name={doc.renamedFileName}
                       downloadUrl={doc.driveFileUrl}
+                      legacyDrive={isLegacyDriveKey(doc.driveFileId)}
                       meta={`${DOCUMENT_TYPE_LABELS[doc.documentType] ?? doc.documentType}${
                         doc.isValid ? "" : ", da verificare"
                       }`}

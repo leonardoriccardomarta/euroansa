@@ -13,13 +13,21 @@ import {
 } from "@/db/schema";
 import { requireAdmin, requireSession } from "@/lib/auth";
 import { processIncomingFiles, refreshApplicationState } from "@/lib/pipeline";
-import { sendApplicationToSecretary } from "@/lib/google/secretary-sender";
+import {
+  regeneratePackageToken,
+  sendApplicationToSecretary,
+} from "@/lib/google/secretary-sender";
 import { evaluateChecklist } from "@/lib/checklist";
 import { buildSollecitoMessage } from "@/lib/sollecito";
+import { setApplicationPipelineError } from "@/lib/applications/errors";
 import {
   deletePracticeBlobs,
   uploadRelazioneFile,
 } from "@/lib/storage/blob";
+import {
+  notifyBrokerAssigned,
+  notifySecretarySendFailed,
+} from "@/lib/notify/broker-mail";
 
 export async function assignBrokerAction(
   applicationId: string,
@@ -38,6 +46,12 @@ export async function assignBrokerAction(
     }
   }
 
+  const [before] = await db
+    .select({ brokerId: applications.brokerId })
+    .from(applications)
+    .where(eq(applications.id, applicationId))
+    .limit(1);
+
   await db
     .update(applications)
     .set({
@@ -45,6 +59,13 @@ export async function assignBrokerAction(
       updatedAt: new Date(),
     })
     .where(eq(applications.id, applicationId));
+
+  if (brokerId && brokerId !== before?.brokerId) {
+    void notifyBrokerAssigned({ applicationId, brokerId }).catch((err) =>
+      console.error("notify assign failed", err),
+    );
+  }
+
   revalidatePath(`/dashboard/applications/${applicationId}`);
   revalidatePath("/dashboard");
   return { ok: true };
@@ -76,19 +97,59 @@ export async function updateApplicationStatusAction(
 }
 
 export async function sendToSecretaryAction(applicationId: string) {
-  await requireSession();
+  const session = await requireSession();
   try {
-    await sendApplicationToSecretary(applicationId);
+    const result = await sendApplicationToSecretary(applicationId, {
+      actorUserId: session.id,
+      actorName: session.name,
+      regenerateToken: true,
+    });
+    revalidatePath(`/dashboard/applications/${applicationId}`);
+    revalidatePath("/dashboard");
+    return {
+      ok: true as const,
+      packageUrl: result.packageUrl,
+      legacySkipped: result.legacySkipped,
+    };
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Invio fallito";
+    await setApplicationPipelineError(applicationId, `Invio segreteria: ${msg}`);
+    void notifySecretarySendFailed({
+      applicationId,
+      errorMessage: msg,
+    }).catch((e) => console.error("notify send fail mail", e));
+    revalidatePath(`/dashboard/applications/${applicationId}`);
+    revalidatePath("/dashboard");
     return { error: msg };
   }
-  revalidatePath(`/dashboard/applications/${applicationId}`);
-  revalidatePath("/dashboard");
-  return { ok: true };
 }
 
-/** Elimina pratica + documenti DB + file Blob. Solo admin. */
+/** Nuovo token + 7 giorni, senza reinviare email. */
+export async function regeneratePackageLinkAction(applicationId: string) {
+  await requireSession();
+  const [app] = await db
+    .select({ id: applications.id })
+    .from(applications)
+    .where(eq(applications.id, applicationId))
+    .limit(1);
+  if (!app) return { error: "Pratica non trovata" };
+
+  try {
+    const result = await regeneratePackageToken(applicationId);
+    revalidatePath(`/dashboard/applications/${applicationId}`);
+    return {
+      ok: true as const,
+      packageUrl: result.packageUrl,
+      expiresAt: result.expiresAt.toISOString(),
+    };
+  } catch (err) {
+    return {
+      error: err instanceof Error ? err.message : "Rigenerazione fallita",
+    };
+  }
+}
+
+/** Elimina pratica + documenti DB + file R2. Solo admin. */
 export async function deleteApplicationAction(applicationId: string) {
   await requireAdmin();
   const [app] = await db
@@ -148,12 +209,13 @@ export async function uploadRelazioneAction(
 
     await refreshApplicationState(applicationId);
   } catch (err) {
-    return {
-      error:
-        err instanceof Error ? err.message : "Upload relazione fallito",
-    };
+    const msg =
+      err instanceof Error ? err.message : "Upload relazione fallito";
+    await setApplicationPipelineError(applicationId, `Relazione: ${msg}`);
+    return { error: msg };
   }
 
+  await setApplicationPipelineError(applicationId, null);
   revalidatePath(`/dashboard/applications/${applicationId}`);
   revalidatePath("/dashboard");
   return { ok: true };
@@ -191,13 +253,33 @@ export async function uploadDocumentsAction(
       .where(eq(applications.id, applicationId));
   }
 
-  await processIncomingFiles(incoming, {
-    applicationId,
-    brokerId,
-  });
-  revalidatePath(`/dashboard/applications/${applicationId}`);
-  revalidatePath("/dashboard");
-  return { ok: true, count: incoming.length };
+  try {
+    const result = await processIncomingFiles(incoming, {
+      applicationId,
+      brokerId,
+    });
+    if (result.errors.length > 0) {
+      await setApplicationPipelineError(
+        applicationId,
+        result.errors.slice(0, 3).join("; "),
+      );
+    } else {
+      await setApplicationPipelineError(applicationId, null);
+    }
+    revalidatePath(`/dashboard/applications/${applicationId}`);
+    revalidatePath("/dashboard");
+    return {
+      ok: true as const,
+      count: result.processed,
+      errors: result.errors,
+    };
+  } catch (err) {
+    const msg =
+      err instanceof Error ? err.message : "Upload o analisi fallita";
+    await setApplicationPipelineError(applicationId, msg);
+    revalidatePath(`/dashboard/applications/${applicationId}`);
+    return { error: msg };
+  }
 }
 
 export async function getSollecitoTextAction(applicationId: string) {

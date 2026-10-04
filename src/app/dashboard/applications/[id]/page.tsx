@@ -7,7 +7,13 @@ import {
 } from "lucide-react";
 import { getSession } from "@/lib/auth";
 import { db } from "@/db";
-import { applications, documents, systemSettings, users } from "@/db/schema";
+import {
+  applications,
+  documents,
+  secretarySendLogs,
+  systemSettings,
+  users,
+} from "@/db/schema";
 import {
   evaluateChecklist,
   inferEmploymentType,
@@ -20,6 +26,8 @@ import {
   storageSubfolderLabel,
 } from "@/lib/config/documents";
 import { refreshApplicationState } from "@/lib/pipeline";
+import { isLegacyDriveKey, isSiteStorageKey } from "@/lib/storage/paths";
+import { PACKAGE_LINK_TTL_DAYS } from "@/lib/db/setup-statements";
 import { Badge } from "@/components/ui/badge";
 import { ApplicationActions } from "@/components/dashboard/application-actions";
 import { DocumentUpload } from "@/components/dashboard/document-upload";
@@ -70,6 +78,13 @@ export default async function ApplicationDetailPage({
     .where(eq(documents.applicationId, id))
     .orderBy(desc(documents.createdAt));
 
+  const sendLogs = await db
+    .select()
+    .from(secretarySendLogs)
+    .where(eq(secretarySendLogs.applicationId, id))
+    .orderBy(desc(secretarySendLogs.createdAt))
+    .limit(8);
+
   const [settings] = await db
     .select()
     .from(systemSettings)
@@ -86,6 +101,14 @@ export default async function ApplicationDetailPage({
   const brokerName = current.brokerId
     ? allUsers.find((b) => b.id === current.brokerId)?.name
     : null;
+
+  const legacyDocs = docs.filter((d) => isLegacyDriveKey(d.driveFileId));
+  const missingStorageDocs = docs.filter(
+    (d) => !d.driveFileId || !isSiteStorageKey(d.driveFileId),
+  );
+  const packageExpired =
+    Boolean(current.packageTokenExpiresAt) &&
+    current.packageTokenExpiresAt!.getTime() < Date.now();
 
   const employmentType = inferEmploymentType(docs);
   const checklist = evaluateChecklist(current.requiredDocumentTypes, docs);
@@ -134,10 +157,66 @@ export default async function ApplicationDetailPage({
             status={current.status}
             isAdmin={session.role === "ADMIN"}
             clientName={current.clientName}
-            hasRelazione={Boolean(current.relazioneStorageKey)}
+            hasRelazione={Boolean(
+              current.relazioneStorageKey &&
+                isSiteStorageKey(current.relazioneStorageKey),
+            )}
+            hasPackageLink={Boolean(current.packageToken)}
           />
         </div>
       </div>
+
+      {current.lastPipelineError ? (
+        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-900">
+          <p className="font-semibold">Operazione fallita — riprova</p>
+          <p className="mt-1">{current.lastPipelineError}</p>
+          {current.lastPipelineErrorAt ? (
+            <p className="mt-1 text-xs text-red-700">
+              {new Date(current.lastPipelineErrorAt).toLocaleString("it-IT")}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
+
+      {legacyDocs.length > 0 || missingStorageDocs.length > 0 ? (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          <p className="font-semibold">
+            File non sullo storage sito ({legacyDocs.length || missingStorageDocs.length})
+          </p>
+          <p className="mt-1">
+            File vecchi (Drive / storage precedente) non finiscono nello ZIP
+            segreteria. Usa <strong>Sostituisci</strong> o ricarica i PDF in
+            File / qui sotto.
+          </p>
+        </div>
+      ) : null}
+
+      {current.packageToken ? (
+        <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 shadow-sm">
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+            Link pacchetto
+          </p>
+          <p className="mt-1">
+            {packageExpired ? (
+              <span className="font-medium text-amber-700">Scaduto</span>
+            ) : current.packageTokenExpiresAt ? (
+              <>
+                Valido fino al{" "}
+                {new Date(current.packageTokenExpiresAt).toLocaleString("it-IT")}{" "}
+                ({PACKAGE_LINK_TTL_DAYS} giorni)
+              </>
+            ) : (
+              "Attivo"
+            )}
+            {current.sentToSecretaryByName
+              ? ` · ultimo invio: ${current.sentToSecretaryByName}`
+              : null}
+            {current.sentToSecretaryAt
+              ? ` (${new Date(current.sentToSecretaryAt).toLocaleString("it-IT")})`
+              : null}
+          </p>
+        </div>
+      ) : null}
 
       <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
         <RequiredDocsEditor
@@ -347,13 +426,28 @@ export default async function ApplicationDetailPage({
                       >
                         <div className="flex flex-wrap items-start justify-between gap-2">
                           <div>
-                            <p className="flex items-center gap-2 font-semibold text-slate-900">
+                            <p className="flex flex-wrap items-center gap-2 font-semibold text-slate-900">
                               {DOCUMENT_TYPE_LABELS[doc.documentType]}
                               {doc.isValid ? (
                                 <CheckCircle2 className="h-4 w-4 text-emerald-600" />
                               ) : (
                                 <AlertCircle className="h-4 w-4 text-red-500" />
                               )}
+                              {isLegacyDriveKey(doc.driveFileId) ? (
+                                <Badge
+                                  variant="outline"
+                                  className="border-amber-200 bg-amber-50 text-amber-800"
+                                >
+                                  Solo Drive — ricarica
+                                </Badge>
+                              ) : !doc.driveFileId ? (
+                                <Badge
+                                  variant="outline"
+                                  className="border-red-200 bg-red-50 text-red-700"
+                                >
+                                  Non in storage
+                                </Badge>
+                              ) : null}
                             </p>
                             <p className="mt-1 text-xs text-slate-500">
                               Originale: {doc.rawFileName}
@@ -391,7 +485,8 @@ export default async function ApplicationDetailPage({
                               </p>
                             )}
                           </div>
-                          {doc.driveFileUrl && (
+                          {doc.driveFileUrl &&
+                          isSiteStorageKey(doc.driveFileId) ? (
                             <a
                               href={doc.driveFileUrl}
                               target="_blank"
@@ -400,7 +495,7 @@ export default async function ApplicationDetailPage({
                             >
                               Scarica
                             </a>
-                          )}
+                          ) : null}
                         </div>
                         {doc.validationIssues?.length > 0 && (
                           <div className="mt-3 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">
@@ -425,9 +520,37 @@ export default async function ApplicationDetailPage({
         </div>
       </section>
 
+      {sendLogs.length > 0 ? (
+        <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+            Audit invii segreteria
+          </p>
+          <ul className="mt-3 space-y-2 text-sm text-slate-700">
+            {sendLogs.map((log) => (
+              <li
+                key={log.id}
+                className="flex flex-wrap items-baseline justify-between gap-2 border-t border-slate-100 pt-2 first:border-0 first:pt-0"
+              >
+                <span>
+                  <span className="font-medium">{log.sentByName}</span>
+                  {" · "}
+                  {new Date(log.createdAt).toLocaleString("it-IT")}
+                </span>
+                <span className="font-mono text-xs text-slate-500">
+                  token …{log.packageToken.slice(-8)}
+                  {log.packageExpiresAt
+                    ? ` · scade ${new Date(log.packageExpiresAt).toLocaleDateString("it-IT")}`
+                    : ""}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+
       <p className="text-xs text-slate-400">
-        Broker: {settings?.brokerName ?? "Euroansa"}, auto-invio segreteria:{" "}
-        {settings?.autoSendToSecretary ? "ON" : "OFF"}
+        Firma default: {settings?.brokerName ?? "Euroansa"}, auto-invio
+        segreteria: {settings?.autoSendToSecretary ? "ON" : "OFF"}
       </p>
     </div>
   );

@@ -52,7 +52,7 @@ export function FolderUploadButton({
             const n = "count" in res ? res.count : 0;
             toast.success(`${n ?? 0} file caricati`);
             if ("errors" in res && res.errors?.length) {
-              toast.message(res.errors.slice(0, 2).join("; "));
+              toast.error(res.errors.slice(0, 2).join("; "));
             }
             router.refresh();
           });
@@ -226,11 +226,13 @@ export function DocumentFileRow({
   name,
   downloadUrl,
   meta,
+  legacyDrive = false,
 }: {
   documentId: string;
   name: string;
   downloadUrl: string | null;
   meta?: string;
+  legacyDrive?: boolean;
 }) {
   const router = useRouter();
   const replaceRef = useRef<HTMLInputElement>(null);
@@ -242,9 +244,14 @@ export function DocumentFileRow({
       <div className="min-w-0">
         <p className="truncate text-sm font-medium text-slate-900">{name}</p>
         {meta ? <p className="text-xs text-slate-500">{meta}</p> : null}
+        {legacyDrive ? (
+          <p className="text-xs font-medium text-amber-700">
+            Solo Drive — usa Sostituisci per metterlo sullo storage sito
+          </p>
+        ) : null}
       </div>
       <div className="flex flex-wrap items-center gap-2">
-        {downloadUrl ? (
+        {downloadUrl && !legacyDrive ? (
           <a
             href={downloadUrl}
             target="_blank"

@@ -1,11 +1,13 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { uploadDocumentsAction } from "@/actions/applications";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
 export function DocumentUpload({ applicationId }: { applicationId: string }) {
+  const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [dragOver, setDragOver] = useState(false);
 
@@ -17,9 +19,28 @@ export function DocumentUpload({ applicationId }: { applicationId: string }) {
     startTransition(async () => {
       try {
         const res = await uploadDocumentsAction(applicationId, formData);
-        toast.success(`${res.count} file elaborati`);
+        if (res && "error" in res && res.error) {
+          toast.error(res.error);
+          router.refresh();
+          return;
+        }
+        const count = "count" in res && typeof res.count === "number" ? res.count : 0;
+        const errors = "errors" in res && res.errors ? res.errors : [];
+        if (count > 0) {
+          toast.success(`${count} file elaborati`);
+        }
+        if (errors.length > 0) {
+          toast.error(
+            errors.slice(0, 2).join("; ") +
+              (errors.length > 2 ? ` (+${errors.length - 2})` : ""),
+          );
+        } else if (count === 0) {
+          toast.message("Nessun file nuovo elaborato");
+        }
+        router.refresh();
       } catch {
-        toast.error("Upload o analisi fallita. Verifica Gemini e storage Blob");
+        toast.error("Upload o analisi fallita. Verifica Gemini e storage R2");
+        router.refresh();
       }
     });
   }

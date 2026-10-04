@@ -2,6 +2,7 @@ import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { applications, documents } from "@/db/schema";
 import { downloadBlob } from "@/lib/storage/blob";
+import { isSiteStorageKey } from "@/lib/storage/paths";
 import {
   getGoogleAuthForUser,
   listConnectedGoogleUsers,
@@ -9,20 +10,11 @@ import {
 } from "@/lib/google/auth";
 import { downloadFileFromDrive } from "@/lib/google/drive";
 
-function looksLikeBlobPath(key: string): boolean {
-  return (
-    key.startsWith("practices/") ||
-    key.includes("/") ||
-    key.startsWith("http://") ||
-    key.startsWith("https://")
-  );
-}
-
 export async function loadPackageFileBuffer(
   storageKey: string,
   brokerId: string | null,
 ): Promise<Buffer> {
-  if (looksLikeBlobPath(storageKey)) {
+  if (isSiteStorageKey(storageKey)) {
     const { buffer } = await downloadBlob(storageKey);
     return buffer;
   }
@@ -49,9 +41,23 @@ export async function loadPackageFileBuffer(
 export type PackageFile = {
   name: string;
   storageKey: string;
+  onSiteStorage: boolean;
 };
 
-export async function getPackageBundle(applicationId: string, token: string) {
+export type PackageBundleResult =
+  | {
+      status: "ok";
+      app: typeof applications.$inferSelect;
+      files: PackageFile[];
+      legacyCount: number;
+    }
+  | { status: "expired"; app: typeof applications.$inferSelect }
+  | { status: "invalid" };
+
+export async function getPackageBundle(
+  applicationId: string,
+  token: string,
+): Promise<PackageBundleResult> {
   const [app] = await db
     .select()
     .from(applications)
@@ -59,7 +65,14 @@ export async function getPackageBundle(applicationId: string, token: string) {
     .limit(1);
 
   if (!app || !app.packageToken || app.packageToken !== token) {
-    return null;
+    return { status: "invalid" };
+  }
+
+  if (
+    app.packageTokenExpiresAt &&
+    app.packageTokenExpiresAt.getTime() < Date.now()
+  ) {
+    return { status: "expired", app };
   }
 
   const docs = await db
@@ -69,6 +82,7 @@ export async function getPackageBundle(applicationId: string, token: string) {
 
   const usedNames = new Set<string>();
   const files: PackageFile[] = [];
+  let legacyCount = 0;
 
   function uniqueName(raw: string): string {
     const base = raw.replace(/[\\/]+/g, "_").trim() || "file.pdf";
@@ -91,21 +105,30 @@ export async function getPackageBundle(applicationId: string, token: string) {
 
   for (const doc of docs) {
     if (!doc.isValid || !doc.driveFileId) continue;
+    const onSite = isSiteStorageKey(doc.driveFileId);
+    if (!onSite) {
+      legacyCount += 1;
+      continue;
+    }
     files.push({
       name: uniqueName(doc.renamedFileName),
       storageKey: doc.driveFileId,
+      onSiteStorage: true,
     });
   }
 
-  if (app.relazioneStorageKey) {
+  if (app.relazioneStorageKey && isSiteStorageKey(app.relazioneStorageKey)) {
     files.push({
       name: uniqueName(app.relazioneFileName ?? `${app.clientName}_relazione.pdf`),
       storageKey: app.relazioneStorageKey,
+      onSiteStorage: true,
     });
   }
 
   return {
+    status: "ok",
     app,
     files,
+    legacyCount,
   };
 }

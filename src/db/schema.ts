@@ -124,7 +124,7 @@ export const applications = pgTable("applications", {
   status: applicationStatusEnum("status")
     .notNull()
     .default("DOCUMENTI_INCOMPLETI"),
-  /** Prefisso storage Blob: practices/{id} (legacy colonna drive_*) */
+  /** Prefisso storage R2: practices/{id} (legacy colonna drive_*) */
   driveFolderId: text("drive_folder_id"),
   /** Link cartella pratica sul sito (dashboard) */
   driveFolderUrl: text("drive_folder_url"),
@@ -146,11 +146,41 @@ export const applications = pgTable("applications", {
   relazioneUploadedAt: timestamp("relazione_uploaded_at", { withTimezone: true }),
   /** Token per download pacchetto senza login CRM */
   packageToken: text("package_token"),
+  /** Scadenza link pacchetto (tipicamente +7 giorni) */
+  packageTokenExpiresAt: timestamp("package_token_expires_at", {
+    withTimezone: true,
+  }),
   brokerId: uuid("broker_id").references(() => users.id, { onDelete: "set null" }),
   isTest: boolean("is_test").notNull().default(false),
   sentToSecretaryAt: timestamp("sent_to_secretary_at", { withTimezone: true }),
+  /** Chi ha inviato l'ultimo pacchetto (null = auto) */
+  sentToSecretaryByUserId: uuid("sent_to_secretary_by_user_id").references(
+    () => users.id,
+    { onDelete: "set null" },
+  ),
+  sentToSecretaryByName: text("sent_to_secretary_by_name"),
+  /** Ultimo errore pipeline (Gemini / Blob / invio segreteria) */
+  lastPipelineError: text("last_pipeline_error"),
+  lastPipelineErrorAt: timestamp("last_pipeline_error_at", {
+    withTimezone: true,
+  }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+/** Audit invii a segreteria (chi / quando / token). */
+export const secretarySendLogs = pgTable("secretary_send_logs", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  applicationId: uuid("application_id")
+    .notNull()
+    .references(() => applications.id, { onDelete: "cascade" }),
+  sentByUserId: uuid("sent_by_user_id").references(() => users.id, {
+    onDelete: "set null",
+  }),
+  sentByName: varchar("sent_by_name", { length: 255 }).notNull(),
+  packageToken: text("package_token").notNull(),
+  packageExpiresAt: timestamp("package_expires_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
 export const documents = pgTable("documents", {
@@ -203,6 +233,7 @@ export type User = typeof users.$inferSelect;
 export type Application = typeof applications.$inferSelect;
 export type Document = typeof documents.$inferSelect;
 export type SystemSettings = typeof systemSettings.$inferSelect;
+export type SecretarySendLog = typeof secretarySendLogs.$inferSelect;
 export type DocumentType = (typeof documentTypeEnum.enumValues)[number];
 export type EmploymentType = (typeof employmentTypeEnum.enumValues)[number];
 export type ApplicationStatus = (typeof applicationStatusEnum.enumValues)[number];

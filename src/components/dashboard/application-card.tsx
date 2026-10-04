@@ -33,6 +33,7 @@ export function ApplicationCard({
   progressPct,
   sentLabel,
   isTest,
+  hasPipelineError,
   brokerId,
   brokers,
   canAssignBroker,
@@ -48,6 +49,7 @@ export function ApplicationCard({
   progressPct: number;
   sentLabel: string;
   isTest?: boolean;
+  hasPipelineError?: boolean;
   brokerId: string | null;
   brokers: Array<{ id: string; name: string; email: string }>;
   canAssignBroker: boolean;
@@ -73,6 +75,14 @@ export function ApplicationCard({
                 className="border-violet-200 bg-violet-50 text-violet-700"
               >
                 Test
+              </Badge>
+            ) : null}
+            {hasPipelineError ? (
+              <Badge
+                variant="outline"
+                className="border-red-200 bg-red-50 text-red-700"
+              >
+                Errore — riprova
               </Badge>
             ) : null}
             <Badge variant="outline" className={statusClass}>

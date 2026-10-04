@@ -20,6 +20,8 @@ import {
   uploadPracticeFile,
 } from "@/lib/storage/blob";
 import { sendApplicationToSecretary } from "@/lib/google/secretary-sender";
+import { setApplicationPipelineError } from "@/lib/applications/errors";
+import { notifySecretarySendFailed } from "@/lib/notify/broker-mail";
 import { getAppBaseUrl } from "@/lib/app-url";
 
 export type IncomingFile = {
@@ -614,7 +616,7 @@ export async function processIncomingFiles(
       });
       storageKey = uploaded.pathname;
     } catch (err) {
-      console.error("Blob upload failed", err);
+      console.error("R2 upload failed", err);
       errors.push(
         `${file.originalFileName}: upload storage fallito — ${
           err instanceof Error ? err.message : String(err)
@@ -718,9 +720,21 @@ export async function refreshApplicationState(applicationId: string) {
 
     if (autoSend && !alreadySent) {
       try {
-        await sendApplicationToSecretary(applicationId);
+        await sendApplicationToSecretary(applicationId, {
+          actorName: "Sistema (auto)",
+          regenerateToken: true,
+        });
       } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
         console.error("auto send secretary failed", err);
+        await setApplicationPipelineError(
+          applicationId,
+          `Invio automatico segreteria fallito: ${msg}`,
+        );
+        void notifySecretarySendFailed({
+          applicationId,
+          errorMessage: msg,
+        }).catch((e) => console.error("notify send fail mail", e));
       }
     }
   }

@@ -45,6 +45,7 @@ export default async function DashboardPage({
         isTest: applications.isTest,
         brokerId: applications.brokerId,
         requiredDocumentTypes: applications.requiredDocumentTypes,
+        lastPipelineError: applications.lastPipelineError,
       })
       .from(applications)
       .orderBy(desc(applications.updatedAt)),
@@ -65,7 +66,7 @@ export default async function DashboardPage({
       .from(users),
   ]);
 
-  // Hub: mail ufficio (OAuth admin). Documenti su Blob.
+  // Hub: mail ufficio (OAuth admin). Documenti su Cloudflare R2.
   // ADMIN = vede tutte + assegna.
   // BROKER = soci minori, solo pratiche assegnate a loro.
   const apps =
@@ -188,6 +189,7 @@ export default async function DashboardPage({
                     : "Non inviata"
                 }
                 isTest={app.isTest}
+                hasPipelineError={Boolean(app.lastPipelineError)}
                 brokerId={app.brokerId}
                 brokers={brokers}
                 canAssignBroker={isAdmin}

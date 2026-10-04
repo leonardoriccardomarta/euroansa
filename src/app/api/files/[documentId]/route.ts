@@ -4,6 +4,7 @@ import { db } from "@/db";
 import { applications, documents } from "@/db/schema";
 import { getSession } from "@/lib/auth";
 import { downloadBlob } from "@/lib/storage/blob";
+import { isLegacyDriveKey, isSiteStorageKey } from "@/lib/storage/paths";
 
 export const maxDuration = 60;
 
@@ -26,6 +27,16 @@ export async function GET(
 
   if (!doc || !doc.driveFileId) {
     return NextResponse.json({ error: "File non trovato" }, { status: 404 });
+  }
+
+  if (isLegacyDriveKey(doc.driveFileId) || !isSiteStorageKey(doc.driveFileId)) {
+    return NextResponse.json(
+      {
+        error:
+          "File ancora su Drive: sostituiscilo o ricaricalo nella sezione File (storage sito)",
+      },
+      { status: 409 },
+    );
   }
 
   const [app] = await db
@@ -55,7 +66,7 @@ export async function GET(
   } catch (err) {
     console.error("file download failed", documentId, err);
     return NextResponse.json(
-      { error: "Download fallito" },
+      { error: "Download fallito dallo storage sito" },
       { status: 500 },
     );
   }

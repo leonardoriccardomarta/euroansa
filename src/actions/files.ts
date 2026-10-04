@@ -15,6 +15,7 @@ import {
 import { getAppBaseUrl } from "@/lib/app-url";
 import { practiceStoragePrefix } from "@/lib/storage/blob";
 import { processIncomingFiles, refreshApplicationState } from "@/lib/pipeline";
+import { setApplicationPipelineError } from "@/lib/applications/errors";
 import {
   deleteBlobByPathname,
   uploadPracticeFile,
@@ -343,11 +344,12 @@ export async function uploadToFolderAction(
         count += 1;
       } catch (err) {
         console.error("folder upload", err);
-        return {
-          error: err instanceof Error ? err.message : "Upload fallito",
-        };
+        const msg = err instanceof Error ? err.message : "Upload fallito";
+        await setApplicationPipelineError(applicationId, `Storage: ${msg}`);
+        return { error: msg };
       }
     }
+    await setApplicationPipelineError(applicationId, null);
     revalidateFiles(applicationId);
     return { ok: true, count };
   }
@@ -376,6 +378,15 @@ export async function uploadToFolderAction(
           eq(documents.rawFileName, file.name),
         ),
       );
+  }
+
+  if (processed.errors.length > 0) {
+    await setApplicationPipelineError(
+      applicationId,
+      processed.errors.slice(0, 3).join("; "),
+    );
+  } else {
+    await setApplicationPipelineError(applicationId, null);
   }
 
   revalidateFiles(applicationId);

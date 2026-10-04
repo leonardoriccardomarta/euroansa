@@ -37,7 +37,7 @@ export default async function SettingsPage({
       <div>
         <h1 className="text-3xl font-bold text-slate-900">Impostazioni</h1>
         <p className="mt-2 text-slate-600">
-          Un solo Google = Gmail ufficio. Documenti sullo storage del sito. Un solo admin CRM = org Euroansa.
+          Un solo Google = Gmail ufficio. Documenti su Cloudflare R2. Un solo admin CRM = org Euroansa.
         </p>
       </div>
 
@@ -118,7 +118,7 @@ export default async function SettingsPage({
             <p className="text-sm text-slate-600">
               Nessun hub collegato. Autorizza la Gmail{" "}
               <strong>ufficio</strong> (una sola). I file delle pratiche stanno
-              sullo storage del sito (link pacchetto per la segreteria).
+              su Cloudflare R2 (link pacchetto per la segreteria).
             </p>
             <a href="/api/google/connect">
               <Button
@@ -139,7 +139,7 @@ export default async function SettingsPage({
         <form action={updateSettingsAction} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="brokerName" className="font-semibold">
-              Nome broker / agenzia
+              Firma email di default
             </Label>
             <Input
               id="brokerName"
@@ -148,6 +148,10 @@ export default async function SettingsPage({
               required
               className="h-10 rounded-lg"
             />
+            <p className="text-xs text-slate-500">
+              Usata in firma se la pratica non ha un broker assegnato. Con
+              broker assegnato la mail usa il suo nome profilo.
+            </p>
           </div>
           <div className="space-y-2">
             <Label htmlFor="secretaryEmail" className="font-semibold">
