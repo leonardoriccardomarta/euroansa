@@ -82,9 +82,11 @@ export async function updateApplicationStatusAction(
     "DOCUMENTI_INCOMPLETI",
     "COMPLETA_DA_INOLTRARE",
     "INVIATA_A_SEGRETERIA",
-    "INVIATA_IN_BANCA",
-    "PERITO_NOMINATO",
-    "DELIBERATA",
+    "DELIBERA_REDDITUALE",
+    "PERIZIA_PRESA",
+    "PERIZIA_EFFETTUATA",
+    "DELIBERA_FINALE",
+    "ROGITATA",
   ];
   if (!allowed.includes(status)) {
     return { error: "Stato non consentito" };
@@ -371,7 +373,7 @@ export async function updateSettingsAction(formData: FormData): Promise<void> {
 }
 
 /**
- * Pratica chiusa (DELIBERATA): tieni i file scelti su R2, cancella gli altri.
+ * Pratica chiusa (ROGITATA): tieni i file scelti, cancella gli altri da storage.
  * Metadati / extracted restano; filePurged = true sui rimossi.
  */
 export async function cleanupClosedPracticeAction(params: {
@@ -392,8 +394,8 @@ export async function cleanupClosedPracticeAction(params: {
   if (session.role !== "ADMIN" && app.brokerId !== session.id) {
     return { error: "Forbidden" };
   }
-  if (app.status !== "DELIBERATA") {
-    return { error: "Disponibile solo a pratica deliberata" };
+  if (app.status !== "ROGITATA") {
+    return { error: "Disponibile solo a pratica rogitata" };
   }
 
   const keepIds = [...new Set(params.keepDocumentIds.filter(Boolean))];

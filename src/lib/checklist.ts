@@ -104,6 +104,12 @@ export function deriveApplicationStatus(
   if (
     [
       "INVIATA_A_SEGRETERIA",
+      "DELIBERA_REDDITUALE",
+      "PERIZIA_PRESA",
+      "PERIZIA_EFFETTUATA",
+      "DELIBERA_FINALE",
+      "ROGITATA",
+      // legacy
       "INVIATA_IN_BANCA",
       "PERITO_NOMINATO",
       "DELIBERATA",

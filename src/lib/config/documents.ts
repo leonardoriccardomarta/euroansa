@@ -391,9 +391,11 @@ export const APPLICATION_STATUS_LABELS: Record<string, string> = {
   DOCUMENTI_INCOMPLETI: "Documenti incompleti",
   COMPLETA_DA_INOLTRARE: "Completa da inoltrare",
   INVIATA_A_SEGRETERIA: "Inviata a segreteria",
-  INVIATA_IN_BANCA: "Inviata in banca",
-  PERITO_NOMINATO: "Perito nominato",
-  DELIBERATA: "Deliberata",
+  DELIBERA_REDDITUALE: "Delibera reddituale",
+  PERIZIA_PRESA: "Perizia presa",
+  PERIZIA_EFFETTUATA: "Perizia effettuata",
+  DELIBERA_FINALE: "Delibera finale",
+  ROGITATA: "Rogitata",
 };
 
 /** Nomi sezioni foglio (preset) */
@@ -404,8 +406,14 @@ export const EMPLOYMENT_TYPE_LABELS: Record<EmploymentType, string> = {
   ALTRO: "DOCUMENTAZIONE ANAGRAFICA",
 };
 
+/** Stati manuali dopo invio a segreteria */
 export const BANK_MANUAL_STATUSES = [
-  "INVIATA_IN_BANCA",
-  "PERITO_NOMINATO",
-  "DELIBERATA",
+  "DELIBERA_REDDITUALE",
+  "PERIZIA_PRESA",
+  "PERIZIA_EFFETTUATA",
+  "DELIBERA_FINALE",
+  "ROGITATA",
 ] as const;
+
+/** Pratica chiusa (nuove mail → nuova pratica) */
+export const CLOSED_APPLICATION_STATUSES = ["ROGITATA"] as const;

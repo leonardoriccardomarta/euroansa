@@ -109,6 +109,15 @@ export const SETUP_STATEMENTS = [
   `ALTER TABLE applications ALTER COLUMN status SET DEFAULT 'DOCUMENTI_INCOMPLETI'`,
   `ALTER TABLE documents ADD COLUMN IF NOT EXISTS file_purged boolean NOT NULL DEFAULT false`,
   `ALTER TABLE documents ADD COLUMN IF NOT EXISTS kept_for_history boolean NOT NULL DEFAULT false`,
+  // Stati post-segreteria (lista Filip)
+  `ALTER TYPE application_status ADD VALUE IF NOT EXISTS 'DELIBERA_REDDITUALE'`,
+  `ALTER TYPE application_status ADD VALUE IF NOT EXISTS 'PERIZIA_PRESA'`,
+  `ALTER TYPE application_status ADD VALUE IF NOT EXISTS 'PERIZIA_EFFETTUATA'`,
+  `ALTER TYPE application_status ADD VALUE IF NOT EXISTS 'DELIBERA_FINALE'`,
+  `ALTER TYPE application_status ADD VALUE IF NOT EXISTS 'ROGITATA'`,
+  `UPDATE applications SET status = 'DELIBERA_REDDITUALE' WHERE status = 'INVIATA_IN_BANCA'`,
+  `UPDATE applications SET status = 'PERIZIA_PRESA' WHERE status = 'PERITO_NOMINATO'`,
+  `UPDATE applications SET status = 'DELIBERA_FINALE' WHERE status = 'DELIBERATA'`,
 ];
 
 export const PACKAGE_LINK_TTL_DAYS = 7;

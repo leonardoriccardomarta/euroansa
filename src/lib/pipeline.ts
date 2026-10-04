@@ -111,8 +111,19 @@ function resolveDocumentType(
 /**
  * Una sola pratica per cliente (stessa email mittente).
  * 2ª mail con allegati mancanti → riusa quella esistente, anche se già inviata a segreteria.
- * Nuova pratica solo se non esiste nulla per quell'email/CF (o solo pratiche DELIBERATA).
+ * Nuova pratica solo se non esiste nulla per quell'email/CF (o solo pratiche ROGITATA).
  */
+
+const POST_SECRETARY_ACTIVE = [
+  "INVIATA_A_SEGRETERIA",
+  "DELIBERA_REDDITUALE",
+  "PERIZIA_PRESA",
+  "PERIZIA_EFFETTUATA",
+  "DELIBERA_FINALE",
+  // legacy
+  "INVIATA_IN_BANCA",
+  "PERITO_NOMINATO",
+] as const;
 async function ensureBrokerOnApp(
   app: typeof applications.$inferSelect,
   brokerId?: string | null,
@@ -169,12 +180,10 @@ async function findOrCreateApplication(params: {
       .where(
         and(
           eq(applications.clientEmail, email),
-          // non riaprire una deliberata chiusa
+          // non riaprire una ROGITATA chiusa
           inArray(applications.status, [
             ...OPEN_STATUSES,
-            "INVIATA_A_SEGRETERIA",
-            "INVIATA_IN_BANCA",
-            "PERITO_NOMINATO",
+            ...POST_SECRETARY_ACTIVE,
           ]),
         ),
       )
@@ -204,9 +213,7 @@ async function findOrCreateApplication(params: {
           eq(applications.clientFiscalCode, fiscalCode),
           inArray(applications.status, [
             ...OPEN_STATUSES,
-            "INVIATA_A_SEGRETERIA",
-            "INVIATA_IN_BANCA",
-            "PERITO_NOMINATO",
+            ...POST_SECRETARY_ACTIVE,
           ]),
         ),
       )
@@ -259,9 +266,7 @@ export async function mergeDuplicateOpenApplicationsByEmail(email: string) {
         eq(applications.clientEmail, normalized),
         inArray(applications.status, [
           ...OPEN_STATUSES,
-          "INVIATA_A_SEGRETERIA",
-          "INVIATA_IN_BANCA",
-          "PERITO_NOMINATO",
+          ...POST_SECRETARY_ACTIVE,
         ]),
       ),
     );

@@ -11,13 +11,18 @@ import { ApplicationCard } from "@/components/dashboard/application-card";
 export const dynamic = "force-dynamic";
 
 function statusBadgeClass(status: string) {
-  if (status === "INVIATA_A_SEGRETERIA" || status === "DELIBERATA")
+  if (status === "INVIATA_A_SEGRETERIA" || status === "ROGITATA")
     return "bg-emerald-100 text-emerald-800 border-emerald-200";
   if (status === "DOCUMENTI_INCOMPLETI")
     return "bg-red-100 text-red-800 border-red-200";
   if (status === "COMPLETA_DA_INOLTRARE")
     return "bg-primary-50 text-primary-700 border-primary-200";
-  if (status === "INVIATA_IN_BANCA" || status === "PERITO_NOMINATO")
+  if (
+    status === "DELIBERA_REDDITUALE" ||
+    status === "PERIZIA_PRESA" ||
+    status === "PERIZIA_EFFETTUATA" ||
+    status === "DELIBERA_FINALE"
+  )
     return "bg-amber-100 text-amber-800 border-amber-200";
   return "bg-slate-100 text-slate-700 border-slate-200";
 }
@@ -100,9 +105,11 @@ export default async function DashboardPage({
   const sent = apps.filter(
     (a) =>
       a.status === "INVIATA_A_SEGRETERIA" ||
-      a.status === "INVIATA_IN_BANCA" ||
-      a.status === "PERITO_NOMINATO" ||
-      a.status === "DELIBERATA",
+      a.status === "DELIBERA_REDDITUALE" ||
+      a.status === "PERIZIA_PRESA" ||
+      a.status === "PERIZIA_EFFETTUATA" ||
+      a.status === "DELIBERA_FINALE" ||
+      a.status === "ROGITATA",
   ).length;
 
   const brokers = brokerRows

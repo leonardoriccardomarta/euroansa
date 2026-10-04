@@ -526,7 +526,7 @@ export default async function ApplicationDetailPage({
         </div>
       </section>
 
-      {current.status === "DELIBERATA" ? (
+      {current.status === "ROGITATA" ? (
         <ClosedPracticeCleanup
           applicationId={current.id}
           documents={docs.map((d) => ({

@@ -25,6 +25,13 @@ export const applicationStatusEnum = pgEnum("application_status", [
   "COMPLETA_DA_INOLTRARE",
   "INVIATA_A_SEGRETERIA",
   "ANOMALIA",
+  // Post segreteria (Filip)
+  "DELIBERA_REDDITUALE",
+  "PERIZIA_PRESA",
+  "PERIZIA_EFFETTUATA",
+  "DELIBERA_FINALE",
+  "ROGITATA",
+  // Legacy (migrati via ensureSchema)
   "INVIATA_IN_BANCA",
   "PERITO_NOMINATO",
   "DELIBERATA",

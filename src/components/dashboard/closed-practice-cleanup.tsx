@@ -63,7 +63,7 @@ export function ClosedPracticeCleanup({
   return (
     <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
       <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-        Pulizia storage (pratica chiusa)
+        Pulizia file (pratica rogitata)
       </p>
       <p className="mt-2 text-sm text-slate-600">
         Spunta i file da <span className="font-medium text-slate-900">tenere</span>{" "}
