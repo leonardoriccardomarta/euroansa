@@ -1,6 +1,6 @@
 "use server";
 
-import { eq } from "drizzle-orm";
+import { and, eq, inArray, notInArray } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { db } from "@/db";
 import {
@@ -21,9 +21,11 @@ import { evaluateChecklist } from "@/lib/checklist";
 import { buildSollecitoMessage } from "@/lib/sollecito";
 import { setApplicationPipelineError } from "@/lib/applications/errors";
 import {
+  deleteBlobByPathname,
   deletePracticeBlobs,
   uploadRelazioneFile,
 } from "@/lib/storage/blob";
+import { isSiteStorageKey } from "@/lib/storage/paths";
 import {
   notifyBrokerAssigned,
   notifySecretarySendFailed,
@@ -366,4 +368,126 @@ export async function updateSettingsAction(formData: FormData): Promise<void> {
   }
 
   revalidatePath("/dashboard/settings");
+}
+
+/**
+ * Pratica chiusa (DELIBERATA): tieni i file scelti su R2, cancella gli altri.
+ * Metadati / extracted restano; filePurged = true sui rimossi.
+ */
+export async function cleanupClosedPracticeAction(params: {
+  applicationId: string;
+  keepDocumentIds: string[];
+  keepRelazione: boolean;
+}) {
+  const session = await requireSession();
+  const [app] = await db
+    .select()
+    .from(applications)
+    .where(eq(applications.id, params.applicationId))
+    .limit(1);
+  if (!app) return { error: "Pratica non trovata" };
+  if (app.isTest && session.role !== "ADMIN") {
+    return { error: "Forbidden" };
+  }
+  if (session.role !== "ADMIN" && app.brokerId !== session.id) {
+    return { error: "Forbidden" };
+  }
+  if (app.status !== "DELIBERATA") {
+    return { error: "Disponibile solo a pratica deliberata" };
+  }
+
+  const keepIds = [...new Set(params.keepDocumentIds.filter(Boolean))];
+  const docs = await db
+    .select()
+    .from(documents)
+    .where(eq(documents.applicationId, params.applicationId));
+
+  let purged = 0;
+  let kept = 0;
+
+  if (keepIds.length > 0) {
+    await db
+      .update(documents)
+      .set({ keptForHistory: true })
+      .where(
+        and(
+          eq(documents.applicationId, params.applicationId),
+          inArray(documents.id, keepIds),
+        ),
+      );
+    kept += keepIds.length;
+  }
+
+  const toPurge = docs.filter(
+    (d) =>
+      !keepIds.includes(d.id) &&
+      !d.filePurged &&
+      d.driveFileId &&
+      isSiteStorageKey(d.driveFileId),
+  );
+
+  for (const doc of toPurge) {
+    try {
+      if (doc.driveFileId) await deleteBlobByPathname(doc.driveFileId);
+    } catch (err) {
+      console.error("cleanup purge blob", doc.id, err);
+    }
+    await db
+      .update(documents)
+      .set({
+        driveFileId: null,
+        driveFileUrl: null,
+        filePurged: true,
+        keptForHistory: false,
+      })
+      .where(eq(documents.id, doc.id));
+    purged += 1;
+  }
+
+  // Documenti già senza file: segna purged se non tenuti
+  if (keepIds.length > 0) {
+    await db
+      .update(documents)
+      .set({ keptForHistory: false })
+      .where(
+        and(
+          eq(documents.applicationId, params.applicationId),
+          notInArray(documents.id, keepIds),
+        ),
+      );
+  } else {
+    await db
+      .update(documents)
+      .set({ keptForHistory: false })
+      .where(eq(documents.applicationId, params.applicationId));
+  }
+
+  if (!params.keepRelazione && app.relazioneStorageKey) {
+    try {
+      await deleteBlobByPathname(app.relazioneStorageKey);
+    } catch (err) {
+      console.error("cleanup relazione", err);
+    }
+    await db
+      .update(applications)
+      .set({
+        relazioneStorageKey: null,
+        relazioneFileName: null,
+        updatedAt: new Date(),
+      })
+      .where(eq(applications.id, params.applicationId));
+    purged += 1;
+  } else if (params.keepRelazione && app.relazioneStorageKey) {
+    kept += 1;
+  }
+
+  await db
+    .update(applications)
+    .set({ updatedAt: new Date() })
+    .where(eq(applications.id, params.applicationId));
+
+  revalidatePath(`/dashboard/applications/${params.applicationId}`);
+  revalidatePath(`/dashboard/files/${params.applicationId}`);
+  revalidatePath("/dashboard");
+  return { ok: true as const, purged, kept };
 }

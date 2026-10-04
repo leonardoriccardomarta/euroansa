@@ -29,6 +29,8 @@ import { isLegacyDriveKey, isSiteStorageKey } from "@/lib/storage/paths";
 import { PACKAGE_LINK_TTL_DAYS } from "@/lib/db/setup-statements";
 import { Badge } from "@/components/ui/badge";
 import { ApplicationActions } from "@/components/dashboard/application-actions";
+import { ClosedPracticeCleanup } from "@/components/dashboard/closed-practice-cleanup";
+import { DocumentPreviewButton } from "@/components/dashboard/document-preview";
 import { DocumentUpload } from "@/components/dashboard/document-upload";
 import { RelazioneUpload } from "@/components/dashboard/relazione-upload";
 import { RequiredDocsEditor } from "@/components/dashboard/required-docs-editor";
@@ -433,6 +435,20 @@ export default async function ApplicationDetailPage({
                                 >
                                   Solo Drive — ricarica
                                 </Badge>
+                              ) : doc.filePurged ? (
+                                <Badge
+                                  variant="outline"
+                                  className="border-slate-200 bg-slate-50 text-slate-600"
+                                >
+                                  Storico
+                                </Badge>
+                              ) : doc.keptForHistory ? (
+                                <Badge
+                                  variant="outline"
+                                  className="border-emerald-200 bg-emerald-50 text-emerald-800"
+                                >
+                                  Tenuto
+                                </Badge>
                               ) : !doc.driveFileId ? (
                                 <Badge
                                   variant="outline"
@@ -480,14 +496,11 @@ export default async function ApplicationDetailPage({
                           </div>
                           {doc.driveFileUrl &&
                           isSiteStorageKey(doc.driveFileId) ? (
-                            <a
-                              href={doc.driveFileUrl}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="text-sm font-medium text-primary-600 hover:underline"
-                            >
-                              Scarica
-                            </a>
+                            <DocumentPreviewButton
+                              src={doc.driveFileUrl}
+                              fileName={doc.renamedFileName}
+                              label="Anteprima"
+                            />
                           ) : null}
                         </div>
                         {doc.validationIssues?.length > 0 && (
@@ -512,6 +525,22 @@ export default async function ApplicationDetailPage({
           </div>
         </div>
       </section>
+
+      {current.status === "DELIBERATA" ? (
+        <ClosedPracticeCleanup
+          applicationId={current.id}
+          documents={docs.map((d) => ({
+            id: d.id,
+            name: d.renamedFileName || d.rawFileName,
+            filePurged: Boolean(d.filePurged),
+            hasFile: Boolean(d.driveFileId && isSiteStorageKey(d.driveFileId)),
+          }))}
+          hasRelazione={Boolean(
+            current.relazioneStorageKey &&
+              isSiteStorageKey(current.relazioneStorageKey),
+          )}
+        />
+      ) : null}
 
       {sendLogs.length > 0 ? (
         <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">

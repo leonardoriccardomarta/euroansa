@@ -198,6 +198,10 @@ export const documents = pgTable("documents", {
   /** Nome cartella storage: es. "ALI DOC", "BANCA", "IMMOBILE" */
   storageSubfolder: text("storage_subfolder"),
   isValid: boolean("is_valid").notNull().default(false),
+  /** File fisico rimosso da R2; metadati / extracted restano */
+  filePurged: boolean("file_purged").notNull().default(false),
+  /** Segnato da tenere nello storico a pratica chiusa */
+  keptForHistory: boolean("kept_for_history").notNull().default(false),
   extractedData: jsonb("extracted_data").$type<ExtractedDocumentData>(),
   validationIssues: text("validation_issues").array().notNull().default([]),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),

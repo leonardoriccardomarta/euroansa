@@ -26,7 +26,14 @@ export async function GET(
     .limit(1);
 
   if (!doc || !doc.driveFileId) {
-    return NextResponse.json({ error: "File non trovato" }, { status: 404 });
+    return NextResponse.json(
+      {
+        error: doc?.filePurged
+          ? "File rimosso dallo storage (resta solo lo storico)"
+          : "File non trovato",
+      },
+      { status: doc?.filePurged ? 410 : 404 },
+    );
   }
 
   if (isLegacyDriveKey(doc.driveFileId) || !isSiteStorageKey(doc.driveFileId)) {

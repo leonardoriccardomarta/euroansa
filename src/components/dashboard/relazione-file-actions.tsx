@@ -8,6 +8,7 @@ import {
 } from "@/actions/files";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { DocumentPreviewButton } from "@/components/dashboard/document-preview";
 import { toast } from "sonner";
 
 export function RelazioneFileActions({
@@ -29,16 +30,14 @@ export function RelazioneFileActions({
       <div>
         <p className="text-sm font-semibold text-slate-900">Relazione</p>
         {hasRelazione ? (
-          <p className="mt-1 text-sm text-emerald-700">
-            <a
-              href={`/api/applications/${applicationId}/relazione`}
-              target="_blank"
-              rel="noreferrer"
-              className="underline"
-            >
-              {fileName ?? "relazione.pdf"}
-            </a>
-          </p>
+          <div className="mt-1 flex flex-wrap items-center gap-3 text-sm text-emerald-700">
+            <span>{fileName ?? "relazione.pdf"}</span>
+            <DocumentPreviewButton
+              src={`/api/applications/${applicationId}/relazione`}
+              fileName={fileName ?? "relazione.pdf"}
+              label="Anteprima"
+            />
+          </div>
         ) : (
           <p className="mt-1 text-sm text-amber-700">Mancante</p>
         )}

@@ -12,6 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { uploadFilesDirectToR2 } from "@/lib/storage/direct-upload";
+import { DocumentPreviewButton } from "@/components/dashboard/document-preview";
 import { toast } from "sonner";
 
 /** Allineato a upload server: AI solo su DOC / BANCA / IMMOBILE */
@@ -259,14 +260,11 @@ export function DocumentFileRow({
       </div>
       <div className="flex flex-wrap items-center gap-2">
         {downloadUrl && !legacyDrive ? (
-          <a
-            href={downloadUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="text-sm font-medium text-primary-600 hover:underline"
-          >
-            Apri
-          </a>
+          <DocumentPreviewButton
+            src={downloadUrl}
+            fileName={name}
+            label="Anteprima"
+          />
         ) : null}
         <input
           ref={replaceRef}
