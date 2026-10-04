@@ -15,8 +15,11 @@ export const metadata: Metadata = {
   title: `${APP_NAME} — ${APP_TAGLINE}`,
   description: APP_TAGLINE,
   icons: {
-    icon: [{ url: "/favicon.jpg", type: "image/jpeg" }],
-    apple: [{ url: "/icon.jpg", type: "image/jpeg" }],
+    icon: [
+      { url: "/favicon.ico", sizes: "any" },
+      { url: "/icon-192.png", type: "image/png", sizes: "192x192" },
+    ],
+    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180" }],
   },
 };
 
