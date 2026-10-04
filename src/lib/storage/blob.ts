@@ -87,6 +87,21 @@ export function practiceStoragePrefix(applicationId: string): string {
   return `practices/${applicationId}`;
 }
 
+function wrapR2Error(err: unknown): never {
+  const msg = err instanceof Error ? err.message : String(err);
+  if (
+    msg.includes("EPROTO") ||
+    msg.includes("handshake failure") ||
+    msg.includes("SSL") ||
+    msg.includes("alert number 40")
+  ) {
+    throw new Error(
+      "R2: certificato SSL dell'account non ancora pronto (normale su account/bucket nuovi). Riprova tra 1–3 ore, oppure verifica su Cloudflare che l'endpoint S3 risponda.",
+    );
+  }
+  throw err instanceof Error ? err : new Error(msg);
+}
+
 async function putObject(
   pathname: string,
   buffer: Buffer,
@@ -94,14 +109,18 @@ async function putObject(
 ): Promise<StoredBlob> {
   const { bucket } = requireR2Config();
   const client = getR2Client();
-  await client.send(
-    new PutObjectCommand({
-      Bucket: bucket,
-      Key: pathname,
-      Body: buffer,
-      ContentType: contentType || "application/octet-stream",
-    }),
-  );
+  try {
+    await client.send(
+      new PutObjectCommand({
+        Bucket: bucket,
+        Key: pathname,
+        Body: buffer,
+        ContentType: contentType || "application/octet-stream",
+      }),
+    );
+  } catch (err) {
+    wrapR2Error(err);
+  }
   // URL interno non pubblico: i download passano da /api/files
   return { pathname, url: `r2://${bucket}/${pathname}` };
 }
