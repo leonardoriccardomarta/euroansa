@@ -67,7 +67,7 @@ export function ClosedPracticeCleanup({
       </p>
       <p className="mt-2 text-sm text-slate-600">
         Spunta i file da <span className="font-medium text-slate-900">tenere</span>{" "}
-        nello storico. Gli altri verranno cancellati da R2; i dati estratti
+        nello storico. Gli altri file verranno eliminati; i dati estratti
         restano in anagrafica.
       </p>
 
@@ -131,8 +131,8 @@ export function ClosedPracticeCleanup({
         open={confirm}
         onOpenChange={setConfirm}
         title="Pulire i file non tenuti?"
-        description="I file non spuntati verranno cancellati da R2. I metadati e i dati AI restano. I file spuntati restano disponibili."
-        confirmLabel="Pulisci storage"
+        description="I file non spuntati verranno eliminati. Restano i dati della pratica e i file che hai scelto di tenere."
+        confirmLabel="Elimina gli altri"
         destructive
         pending={pending}
         onConfirm={() => {

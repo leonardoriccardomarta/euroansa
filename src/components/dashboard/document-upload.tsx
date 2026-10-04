@@ -34,7 +34,7 @@ export function DocumentUpload({ applicationId }: { applicationId: string }) {
         }
         router.refresh();
       } catch {
-        toast.error("Upload o analisi fallita. Verifica Gemini e storage R2");
+        toast.error("Caricamento o analisi fallita. Riprova");
         router.refresh();
       }
     });

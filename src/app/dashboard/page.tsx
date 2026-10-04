@@ -123,7 +123,7 @@ export default async function DashboardPage({
         </h1>
         <p className="mt-2 max-w-2xl text-slate-600">
           {isAdmin
-            ? "Mail ufficio + storage sito. Vedi tutte le pratiche e assegna i broker."
+            ? "Vedi tutte le pratiche e assegna i broker."
             : "Le pratiche assegnate a te."}
         </p>
       </div>

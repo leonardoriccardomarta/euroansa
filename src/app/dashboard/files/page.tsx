@@ -57,8 +57,8 @@ export default async function FilesIndexPage() {
       <div>
         <h1 className="text-3xl font-bold text-slate-900">File</h1>
         <p className="mt-2 text-slate-600">
-          Storage documenti: crea cartelle, carica file, sostituisci o elimina.
-          Come un drive interno.
+          Crea cartelle, carica file, sostituisci o elimina i documenti delle
+          pratiche.
         </p>
       </div>
 

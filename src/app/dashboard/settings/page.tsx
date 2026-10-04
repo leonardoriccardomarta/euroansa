@@ -37,14 +37,13 @@ export default async function SettingsPage({
       <div>
         <h1 className="text-3xl font-bold text-slate-900">Impostazioni</h1>
         <p className="mt-2 text-slate-600">
-          Un solo Google = Gmail ufficio. Documenti su Cloudflare R2. Un solo admin CRM.
+          Collega la Gmail di ufficio e imposta i dati agenzia.
         </p>
       </div>
 
       {params.google === "ok" ? (
         <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
-          Google collegato. Eventuali altri OAuth admin sono stati scollegati
-          (hub unico).
+          Google collegato. Resta attiva solo questa casella di ufficio.
         </p>
       ) : null}
       {params.google === "denied" ? (
@@ -80,18 +79,19 @@ export default async function SettingsPage({
               ) : null}
             </p>
             <p className="text-xs text-slate-500">
-              Hub gestito dall&apos;admin CRM{" "}
+              Gestita da{" "}
               <span className="font-medium">{hub?.email}</span>
-              {connectedByMe ? " (tu)" : ""}. Solo questa casella viene letta;
-              non collegare una seconda mail diversa a meno che non sia
-              intenzionale (Ricollega sostituisce l&apos;hub).
+              {connectedByMe ? " (tu)" : ""}. Solo questa casella viene usata
+              per leggere le mail e scrivere alla segreteria.
             </p>
-            <p className="text-xs text-slate-500">
-              Tag oggetto:{" "}
-              <code className="rounded bg-slate-100 px-1">
-                {process.env.GMAIL_SUBJECT_TAG || "(non impostato)"}
-              </code>
-            </p>
+            {process.env.GMAIL_SUBJECT_TAG ? (
+              <p className="text-xs text-slate-500">
+                Oggetto mail clienti:{" "}
+                <code className="rounded bg-slate-100 px-1">
+                  {process.env.GMAIL_SUBJECT_TAG}
+                </code>
+              </p>
+            ) : null}
             <div className="flex flex-wrap gap-2">
               <a href="/api/google/connect">
                 <Button
@@ -99,7 +99,7 @@ export default async function SettingsPage({
                   variant="outline"
                   className="h-10 rounded-lg"
                 >
-                  {connectedByMe ? "Ricollega Google" : "Prendi hub Google"}
+                  {connectedByMe ? "Ricollega Google" : "Collega questa Google"}
                 </Button>
               </a>
               <form action={disconnectGoogleAction}>
@@ -116,9 +116,9 @@ export default async function SettingsPage({
         ) : (
           <div className="space-y-4">
             <p className="text-sm text-slate-600">
-              Nessun hub collegato. Autorizza la Gmail{" "}
-              <strong>ufficio</strong> (una sola). I file delle pratiche stanno
-              su Cloudflare R2 (link pacchetto per la segreteria).
+              Nessuna casella collegata. Autorizza la Gmail di{" "}
+              <strong>ufficio</strong> (una sola) per leggere le mail clienti e
+              inviare i pacchetti alla segreteria.
             </p>
             <a href="/api/google/connect">
               <Button
