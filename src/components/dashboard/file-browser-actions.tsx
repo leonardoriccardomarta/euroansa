@@ -186,6 +186,7 @@ export function CreateClientFolderForm() {
 
   return (
     <form
+      data-tour="tour-create-folder"
       className="flex flex-wrap items-end gap-2 rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
       onSubmit={(e) => {
         e.preventDefault();

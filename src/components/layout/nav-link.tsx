@@ -21,16 +21,18 @@ export function NavLink({
   href,
   className,
   children,
+  ...rest
 }: {
   href: string;
   className?: string;
   children: React.ReactNode;
-}) {
+} & React.ComponentPropsWithoutRef<"a">) {
   return (
     <Link
       href={href}
       prefetch
       className={cn("relative cursor-pointer", className)}
+      {...rest}
     >
       {children}
       <PendingHint />

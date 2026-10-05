@@ -27,6 +27,7 @@ import {
 } from "@/lib/config/documents";
 import { isLegacyDriveKey, isSiteStorageKey } from "@/lib/storage/paths";
 import { PACKAGE_LINK_TTL_DAYS } from "@/lib/db/setup-statements";
+import { isTutorialPractice } from "@/lib/tutorial";
 import { Badge } from "@/components/ui/badge";
 import { ApplicationActions } from "@/components/dashboard/application-actions";
 import { ClosedPracticeCleanup } from "@/components/dashboard/closed-practice-cleanup";
@@ -130,6 +131,14 @@ export default async function ApplicationDetailPage({
             {brokerName ? `, ${brokerName}` : ""}
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
+            {isTutorialPractice(current) ? (
+              <Badge
+                variant="outline"
+                className="border-sky-200 bg-sky-50 text-sky-800"
+              >
+                Guida
+              </Badge>
+            ) : null}
             {current.isTest ? (
               <Badge
                 variant="outline"

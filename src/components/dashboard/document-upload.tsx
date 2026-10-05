@@ -42,6 +42,7 @@ export function DocumentUpload({ applicationId }: { applicationId: string }) {
 
   return (
     <div
+      data-tour="tour-upload"
       className={`rounded-lg border-2 border-dashed p-6 text-center transition ${
         dragOver
           ? "border-primary-600 bg-primary-50"

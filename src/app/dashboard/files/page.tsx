@@ -6,6 +6,8 @@ import { getSession } from "@/lib/auth";
 import { db } from "@/db";
 import { applications, documents } from "@/db/schema";
 import { CreateClientFolderForm } from "@/components/dashboard/file-browser-actions";
+import { isTutorialPractice } from "@/lib/tutorial";
+import { Badge } from "@/components/ui/badge";
 
 export const dynamic = "force-dynamic";
 
@@ -85,9 +87,27 @@ export default async function FilesIndexPage() {
                   <Folder className="h-6 w-6" />
                 </span>
                 <div className="min-w-0">
-                  <p className="truncate font-semibold text-slate-900">
-                    {app.clientName}
-                  </p>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="truncate font-semibold text-slate-900">
+                      {app.clientName}
+                    </p>
+                    {isTutorialPractice(app) ? (
+                      <Badge
+                        variant="outline"
+                        className="border-sky-200 bg-sky-50 text-sky-800"
+                      >
+                        Guida
+                      </Badge>
+                    ) : null}
+                    {app.isTest ? (
+                      <Badge
+                        variant="outline"
+                        className="border-violet-200 bg-violet-50 text-violet-700"
+                      >
+                        Test
+                      </Badge>
+                    ) : null}
+                  </div>
                   <p className="truncate text-xs text-slate-500">
                     {app.clientEmail}
                   </p>

@@ -66,7 +66,7 @@ export function RequiredDocsEditor({
   }
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-5" data-tour="tour-checklist">
       <div className="flex flex-wrap gap-2">
         {PRESET_ORDER.map((preset) => (
           <Button

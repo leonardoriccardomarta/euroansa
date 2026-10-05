@@ -51,6 +51,7 @@ export const SETUP_STATEMENTS = [
   `ALTER TABLE users ADD COLUMN IF NOT EXISTS google_refresh_token text`,
   `ALTER TABLE users ADD COLUMN IF NOT EXISTS google_email varchar(255)`,
   `ALTER TABLE users ADD COLUMN IF NOT EXISTS google_connected_at timestamptz`,
+  `ALTER TABLE users ADD COLUMN IF NOT EXISTS tutorial_completed_at timestamptz`,
   `ALTER TABLE applications ADD COLUMN IF NOT EXISTS required_document_types text[] DEFAULT '{}' NOT NULL`,
   `ALTER TABLE applications ADD COLUMN IF NOT EXISTS relazione_storage_key text`,
   `ALTER TABLE applications ADD COLUMN IF NOT EXISTS relazione_file_name text`,

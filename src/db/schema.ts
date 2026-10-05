@@ -117,6 +117,10 @@ export const users = pgTable("users", {
   /** Email Gmail collegata (può differire dal login CRM). */
   googleEmail: varchar("google_email", { length: 255 }),
   googleConnectedAt: timestamp("google_connected_at", { withTimezone: true }),
+  /** Guida interattiva completata / saltata (null = mostrare al primo accesso). */
+  tutorialCompletedAt: timestamp("tutorial_completed_at", {
+    withTimezone: true,
+  }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
 

@@ -23,7 +23,10 @@ export function RelazioneUpload({
   const [localName, setLocalName] = useState<string | null>(null);
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+    <div
+      data-tour="tour-relazione"
+      className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm"
+    >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h3 className="font-semibold text-slate-900">Relazione broker</h3>

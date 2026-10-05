@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { Suspense } from "react";
 import { usePathname } from "next/navigation";
 import {
   FolderKanban,
@@ -11,6 +12,7 @@ import {
 } from "lucide-react";
 import { logoutAction } from "@/actions/auth";
 import { NavLink } from "@/components/layout/nav-link";
+import { AppTour } from "@/components/onboarding/app-tour";
 import { APP_NAME } from "@/lib/brand";
 import { cn } from "@/lib/utils";
 
@@ -18,26 +20,49 @@ type NavItem = {
   href: string;
   label: string;
   icon: React.ComponentType<{ className?: string }>;
+  tourId?: string;
 };
 
 export function AppShell({
   children,
   userName,
   isAdmin,
+  tutorialDone,
 }: {
   children: React.ReactNode;
   userName: string;
   isAdmin: boolean;
+  tutorialDone: boolean;
 }) {
   const pathname = usePathname();
 
   const nav: NavItem[] = [
-    { href: "/dashboard", label: "Pratiche", icon: FolderKanban },
-    { href: "/dashboard/files", label: "File", icon: HardDrive },
+    {
+      href: "/dashboard",
+      label: "Pratiche",
+      icon: FolderKanban,
+      tourId: "nav-pratiche",
+    },
+    {
+      href: "/dashboard/files",
+      label: "File",
+      icon: HardDrive,
+      tourId: "nav-files",
+    },
     ...(isAdmin
       ? [
-          { href: "/dashboard/settings", label: "Impostazioni", icon: Settings },
-          { href: "/dashboard/users", label: "Utenti", icon: Users },
+          {
+            href: "/dashboard/settings",
+            label: "Impostazioni",
+            icon: Settings,
+            tourId: "nav-settings",
+          },
+          {
+            href: "/dashboard/users",
+            label: "Utenti",
+            icon: Users,
+            tourId: "nav-users",
+          },
         ]
       : []),
   ];
@@ -79,6 +104,7 @@ export function AppShell({
                 <NavLink
                   key={item.href}
                   href={item.href}
+                  data-tour={item.tourId}
                   className={cn(
                     "flex min-h-10 items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors active:scale-95",
                     active
@@ -123,6 +149,7 @@ export function AppShell({
             <NavLink
               key={item.href}
               href={item.href}
+              data-tour={item.tourId}
               className={cn(
                 "flex min-h-14 flex-1 flex-col items-center justify-center gap-0.5 text-[11px] font-semibold active:scale-95",
                 active ? "text-primary-700" : "text-slate-500",
@@ -134,6 +161,10 @@ export function AppShell({
           );
         })}
       </nav>
+
+      <Suspense fallback={null}>
+        <AppTour isAdmin={isAdmin} tutorialDone={tutorialDone} />
+      </Suspense>
     </div>
   );
 }

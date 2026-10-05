@@ -9,6 +9,7 @@ import {
 } from "@/actions/applications";
 import type { ApplicationStatus } from "@/db/schema";
 import { APPLICATION_STATUS_LABELS } from "@/lib/config/documents";
+import { isTutorialPractice } from "@/lib/tutorial";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 
@@ -58,6 +59,7 @@ export function ApplicationCard({
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
+  const isGuida = isTutorialPractice({ clientName, clientEmail });
 
   return (
     <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-primary-200 hover:shadow-md sm:p-5">
@@ -71,6 +73,14 @@ export function ApplicationCard({
             <h3 className="truncate text-base font-semibold text-slate-900">
               {clientName}
             </h3>
+            {isGuida ? (
+              <Badge
+                variant="outline"
+                className="border-sky-200 bg-sky-50 text-sky-800"
+              >
+                Guida
+              </Badge>
+            ) : null}
             {isTest ? (
               <Badge
                 variant="outline"
@@ -141,7 +151,7 @@ export function ApplicationCard({
           </div>
 
           {canAssignBroker ? (
-            <div>
+            <div data-tour="tour-broker-assign">
               <label className="mb-1 block text-[11px] font-medium text-slate-500">
                 Broker
               </label>

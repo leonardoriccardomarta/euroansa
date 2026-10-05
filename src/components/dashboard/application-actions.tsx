@@ -39,7 +39,10 @@ export function ApplicationActions({
     status === "INVIATA_A_SEGRETERIA";
 
   return (
-    <div className="flex w-full flex-col gap-2 sm:w-auto sm:items-end">
+    <div
+      data-tour="tour-actions"
+      className="flex w-full flex-col gap-2 sm:w-auto sm:items-end"
+    >
       <div className="flex w-full flex-wrap gap-2 sm:w-auto">
         {canSendToSecretary ? (
           <Button
