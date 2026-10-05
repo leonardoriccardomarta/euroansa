@@ -250,20 +250,113 @@ export const documents = pgTable("documents", {
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
+export type BudgetProductTarget = {
+  erogato: number;
+  pezzi: number;
+  rate: number;
+};
+
+export type BudgetTargets = {
+  mutui: BudgetProductTarget;
+  cqs: BudgetProductTarget;
+  polizze: BudgetProductTarget;
+  prestiti: BudgetProductTarget;
+};
+
+export const DEFAULT_BUDGET_TARGETS: BudgetTargets = {
+  mutui: { erogato: 3_000_000, pezzi: 30, rate: 0.03 },
+  cqs: { erogato: 360_000, pezzi: 15, rate: 0.07 },
+  polizze: { erogato: 65_000, pezzi: 25, rate: 0.5 },
+  prestiti: { erogato: 50_000, pezzi: 5, rate: 0.05 },
+};
+
 export const systemSettings = pgTable("system_settings", {
   id: varchar("id", { length: 50 }).primaryKey().default("global"),
   secretaryEmail: varchar("secretary_email", { length: 255 }).notNull(),
   brokerName: varchar("broker_name", { length: 255 }).notNull(),
   autoSendToSecretary: boolean("auto_send_to_secretary").notNull().default(true),
-  /** Quota collaboratore sul fatturato pratica (es. 0.35 = 35%) */
   collaboratorSharePercent: real("collaborator_share_percent")
     .notNull()
     .default(0.35),
-  /** Elenco provenienze / agenzie per tendina */
   provenanceOptions: text("provenance_options")
     .array()
     .notNull()
     .default([]),
+  budgetTargets: jsonb("budget_targets").$type<BudgetTargets>(),
+  budgetYear: varchar("budget_year", { length: 4 }).default("2026"),
+});
+
+export const leadOutcomeEnum = pgEnum("lead_outcome", [
+  "NN_RISP",
+  "NN_INT",
+  "INT",
+  "APP",
+]);
+
+export const agencyDevPhaseEnum = pgEnum("agency_dev_phase", [
+  "CONTATTO",
+  "CONSOLIDAMENTO",
+]);
+
+/** LEADS — chiamate a freddo */
+export const leads = pgTable("leads", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  brokerId: uuid("broker_id").references(() => users.id, { onDelete: "set null" }),
+  clientName: varchar("client_name", { length: 255 }).notNull(),
+  phone: varchar("phone", { length: 40 }),
+  email: varchar("email", { length: 255 }),
+  provenance: varchar("provenance", { length: 255 }),
+  outcome: leadOutcomeEnum("outcome"),
+  notes: text("notes"),
+  activityMonth: timestamp("activity_month", { withTimezone: true }).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+/** APPUNTAMENTI — prime visite / consulenze */
+export const appointments = pgTable("appointments", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  brokerId: uuid("broker_id").references(() => users.id, { onDelete: "set null" }),
+  clientName: varchar("client_name", { length: 255 }).notNull(),
+  phone: varchar("phone", { length: 40 }),
+  email: varchar("email", { length: 255 }),
+  provenance: varchar("provenance", { length: 255 }),
+  operationType: varchar("operation_type", { length: 120 }),
+  amount: real("amount"),
+  propertyAmount: real("property_amount"),
+  notes: text("notes"),
+  hasMandate: boolean("has_mandate").notNull().default(false),
+  appointmentAt: timestamp("appointment_at", { withTimezone: true }).notNull(),
+  leadId: uuid("lead_id").references(() => leads.id, { onDelete: "set null" }),
+  applicationId: uuid("application_id").references(() => applications.id, {
+    onDelete: "set null",
+  }),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+/** SVILUPPO — rapporti agenzie immobiliari */
+export const agencyDevelopment = pgTable("agency_development", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  brokerId: uuid("broker_id").references(() => users.id, { onDelete: "set null" }),
+  name: varchar("name", { length: 255 }).notNull(),
+  typology: varchar("typology", { length: 120 }),
+  phone: varchar("phone", { length: 40 }),
+  email: varchar("email", { length: 255 }),
+  ownerName: varchar("owner_name", { length: 255 }),
+  phase: agencyDevPhaseEnum("phase").notNull().default("CONTATTO"),
+  week1: real("week1").notNull().default(0),
+  week2: real("week2").notNull().default(0),
+  week3: real("week3").notNull().default(0),
+  week4: real("week4").notNull().default(0),
+  clientDone: real("client_done").notNull().default(0),
+  visitCount: real("visit_count").notNull().default(0),
+  appointmentCount: real("appointment_count").notNull().default(0),
+  collaboration: real("collaboration").notNull().default(0),
+  appCount: real("app_count").notNull().default(0),
+  notes: text("notes"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
 export const usersRelations = relations(users, ({ many }) => ({
@@ -290,6 +383,11 @@ export type Application = typeof applications.$inferSelect;
 export type Document = typeof documents.$inferSelect;
 export type SystemSettings = typeof systemSettings.$inferSelect;
 export type SecretarySendLog = typeof secretarySendLogs.$inferSelect;
+export type Lead = typeof leads.$inferSelect;
+export type Appointment = typeof appointments.$inferSelect;
+export type AgencyDevelopmentRow = typeof agencyDevelopment.$inferSelect;
 export type DocumentType = (typeof documentTypeEnum.enumValues)[number];
 export type EmploymentType = (typeof employmentTypeEnum.enumValues)[number];
 export type ApplicationStatus = (typeof applicationStatusEnum.enumValues)[number];
+export type LeadOutcomeDb = (typeof leadOutcomeEnum.enumValues)[number];
+export type AgencyDevPhase = (typeof agencyDevPhaseEnum.enumValues)[number];

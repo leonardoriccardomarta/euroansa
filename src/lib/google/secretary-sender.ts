@@ -131,6 +131,8 @@ export async function sendApplicationToSecretary(
       autoSendToSecretary: true,
       collaboratorSharePercent: 0.35,
       provenanceOptions: [],
+      budgetTargets: null,
+      budgetYear: "2026",
     };
   }
 

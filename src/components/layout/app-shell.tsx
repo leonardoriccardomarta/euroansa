@@ -4,12 +4,16 @@ import Image from "next/image";
 import { Suspense } from "react";
 import { usePathname } from "next/navigation";
 import {
+  CalendarDays,
   CircleDollarSign,
   FolderKanban,
   HardDrive,
+  LineChart,
   LogOut,
+  Phone,
   Settings,
   Users,
+  Building2,
 } from "lucide-react";
 import { logoutAction } from "@/actions/auth";
 import { NavLink } from "@/components/layout/nav-link";
@@ -49,6 +53,26 @@ export function AppShell({
       label: "Rogitate",
       icon: CircleDollarSign,
       tourId: "nav-rogitate",
+    },
+    {
+      href: "/dashboard/appointments",
+      label: "Appuntamenti",
+      icon: CalendarDays,
+    },
+    {
+      href: "/dashboard/leads",
+      label: "Leads",
+      icon: Phone,
+    },
+    {
+      href: "/dashboard/budget",
+      label: "Budget",
+      icon: LineChart,
+    },
+    {
+      href: "/dashboard/sviluppo",
+      label: "Sviluppo",
+      icon: Building2,
     },
     {
       href: "/dashboard/files",
@@ -148,7 +172,7 @@ export function AppShell({
         {children}
       </main>
 
-      <nav className="fixed bottom-0 left-0 right-0 z-40 flex border-t border-slate-200 bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden">
+      <nav className="fixed bottom-0 left-0 right-0 z-40 flex overflow-x-auto border-t border-slate-200 bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden">
         {nav.map((item) => {
           const active = isActive(item.href);
           const Icon = item.icon;
@@ -158,7 +182,7 @@ export function AppShell({
               href={item.href}
               data-tour={item.tourId}
               className={cn(
-                "flex min-h-14 flex-1 flex-col items-center justify-center gap-0.5 text-[11px] font-semibold active:scale-95",
+                "flex min-h-14 min-w-[4.5rem] flex-1 flex-col items-center justify-center gap-0.5 px-1 text-[10px] font-semibold active:scale-95",
                 active ? "text-primary-700" : "text-slate-500",
               )}
             >

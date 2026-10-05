@@ -34,6 +34,34 @@ export const DEFAULT_PROVENANCE_OPTIONS = [
   "PROFESSIONE CASA VAPRIO",
   "IP IMMOBILIARE",
   "SAMUELE CURTI",
+  "GABETTI MONZA",
+  "STUDIO VI",
+  "RG REAL ESTATE",
+  "EUROSERVICE",
+  "PR IMMOBILIARE",
+  "SPAGNOLI",
+  "VIVERE CASA",
+  "LURECO",
+  "SOGNOCASA",
+  "BB CARUGATE",
+  "FABIO IMMOBILIARE TREVIGLIO",
+  "TEMPOCASA CARAVAGGIO",
+  "LOMBARDIA IMMOBILI",
+  "ITALCASA",
+  "HOMS",
+  "RAFFAELLA CORTESI",
+  "MATTIA RAVASI",
+] as const;
+
+/** Tipi operazione (anche solo CQS / prestito senza mutuo) */
+export const OPERATION_TYPES = [
+  "MUTUO",
+  "SURROGA",
+  "MUTUO+CQS",
+  "CQS",
+  "PRESTITO",
+  "POLIZZA",
+  "ALTRO",
 ] as const;
 
 export type CommissionInputs = {
@@ -51,9 +79,42 @@ function n(v: number | null | undefined): number {
 }
 
 /**
+ * Accetta "2500", "1.500,50", "1000+500", "1000+500 !" (stile note Filip).
+ * Somma solo termini numerici; "!" e testo vengono ignorati.
+ */
+export function parseEuroExpression(raw: unknown): number | null {
+  if (raw == null) return null;
+  let s = String(raw).trim();
+  if (!s) return null;
+  s = s.replace(/!/g, " ").replace(/\s+/g, "");
+  // 1.500,50 europeo → 1500.50
+  if (s.includes(",") && s.includes(".")) {
+    s = s.replace(/\./g, "").replace(",", ".");
+  } else if (s.includes(",")) {
+    s = s.replace(",", ".");
+  }
+  if (/^[+-]?(\d+(\.\d+)?)$/.test(s)) {
+    const v = Number(s);
+    return Number.isFinite(v) ? v : null;
+  }
+  // Espressione tipo 1000+500 o 1000+500-100
+  if (!/^[\d.+\-]+$/.test(s)) return null;
+  const parts = s.match(/[+-]?[\d.]+/g);
+  if (!parts?.length) return null;
+  let sum = 0;
+  for (const p of parts) {
+    const v = Number(p);
+    if (!Number.isFinite(v)) return null;
+    sum += v;
+  }
+  return sum;
+}
+
+/**
  * Fatturato pratica (formula Filip):
  * (POLIZZA / 2) + CQS + BANCA + CLIENTE + PRESTITI
  * Notaio escluso dal totale (campo a parte).
+ * Funziona anche senza mutuo (solo CQS / prestiti / polizza).
  */
 export function practiceRevenue(c: CommissionInputs): number {
   return (
@@ -72,7 +133,7 @@ export function collaboratorPayout(
   return revenue * sharePercent;
 }
 
-/** % ricavo su mutuo erogato */
+/** % ricavo su mutuo erogato (null se mutuo assente / 0 — tipico CQS-only) */
 export function revenueOnLoanPercent(
   revenue: number,
   loanAmount: number | null | undefined,
@@ -110,3 +171,12 @@ export const AUDIT_FIELDS = [
   { key: "auditOriginalsVerified", label: "Verifica originali" },
   { key: "auditArchive", label: "Archivio" },
 ] as const;
+
+export const LEAD_OUTCOMES = [
+  { key: "NN_RISP", label: "Non risponde" },
+  { key: "NN_INT", label: "Non interessato" },
+  { key: "INT", label: "Interessato" },
+  { key: "APP", label: "Appuntamento" },
+] as const;
+
+export type LeadOutcome = (typeof LEAD_OUTCOMES)[number]["key"];

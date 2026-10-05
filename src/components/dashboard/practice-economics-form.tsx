@@ -8,8 +8,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   AUDIT_FIELDS,
+  OPERATION_TYPES,
   collaboratorPayout,
   formatEuro,
+  parseEuroExpression,
   practiceRevenue,
   revenueOnLoanPercent,
 } from "@/lib/economics";
@@ -89,11 +91,10 @@ export function PracticeEconomicsForm({
     key: keyof typeof live,
     raw: string,
   ) {
-    const cleaned = raw.trim().replace(",", ".");
-    const n = cleaned === "" ? null : Number(cleaned);
+    const n = parseEuroExpression(raw);
     setLive((prev) => ({
       ...prev,
-      [key]: n != null && Number.isFinite(n) ? n : null,
+      [key]: n,
     }));
   }
 
@@ -146,13 +147,22 @@ export function PracticeEconomicsForm({
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="operationType">Operazione</Label>
-            <Input
+            <select
               id="operationType"
               name="operationType"
               defaultValue={values.operationType ?? "MUTUO"}
-              placeholder="MUTUO, SURROGA, MUTUO+CQS…"
-              className="h-10"
-            />
+              className="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm"
+            >
+              {OPERATION_TYPES.map((t) => (
+                <option key={t} value={t}>
+                  {t}
+                </option>
+              ))}
+            </select>
+            <p className="text-[11px] text-slate-500">
+              Per solo CQS / prestito lascia mutuo vuoto: il fatturato usa
+              comunque polizza/CQS/prestiti.
+            </p>
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="phone">Cellulare</Label>
@@ -231,7 +241,9 @@ export function PracticeEconomicsForm({
         </p>
         <p className="mt-1 text-xs text-slate-500">
           Fatturato = (Polizza ÷ 2) + CQS + Banca + Cliente + Prestiti. Quota
-          collaboratore: {(collaboratorSharePercent * 100).toFixed(0)}%.
+          collaboratore: {(collaboratorSharePercent * 100).toFixed(0)}%. Puoi
+          scrivere anche <code className="rounded bg-slate-100 px-1">1000+500</code>{" "}
+          (come sul foglio).
         </p>
         <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {(

@@ -30,6 +30,7 @@ import {
   notifyBrokerAssigned,
   notifySecretarySendFailed,
 } from "@/lib/notify/broker-mail";
+import { parseEuroExpression } from "@/lib/economics";
 
 export async function assignBrokerAction(
   applicationId: string,
@@ -416,11 +417,7 @@ export async function updateSettingsAction(formData: FormData): Promise<void> {
 }
 
 function parseOptionalEuro(raw: FormDataEntryValue | null): number | null {
-  const s = String(raw ?? "").trim().replace(/\s/g, "").replace(",", ".");
-  if (!s) return null;
-  const n = Number(s);
-  if (!Number.isFinite(n)) return null;
-  return n;
+  return parseEuroExpression(raw);
 }
 
 export async function updatePracticeEconomicsAction(
