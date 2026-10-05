@@ -35,7 +35,12 @@ import { DocumentPreviewButton } from "@/components/dashboard/document-preview";
 import { DocumentUpload } from "@/components/dashboard/document-upload";
 import { RelazioneUpload } from "@/components/dashboard/relazione-upload";
 import { RequiredDocsEditor } from "@/components/dashboard/required-docs-editor";
+import { PracticeEconomicsForm } from "@/components/dashboard/practice-economics-form";
 import { TutorialPracticeBanner } from "@/components/onboarding/tutorial-practice-banner";
+import {
+  DEFAULT_COLLABORATOR_SHARE,
+  DEFAULT_PROVENANCE_OPTIONS,
+} from "@/lib/economics";
 
 export const dynamic = "force-dynamic";
 
@@ -535,6 +540,54 @@ export default async function ApplicationDetailPage({
           <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
             <DocumentUpload applicationId={current.id} />
           </div>
+        </div>
+      </section>
+
+      <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+        <h2 className="text-lg font-semibold text-slate-900">
+          Economia e audit
+        </h2>
+        <p className="mt-1 text-sm text-slate-600">
+          Provvigioni e spunte conformità — da compilare a mano (il sistema non
+          le conosce). Totale e quota si calcolano in automatico.
+        </p>
+        <div className="mt-5">
+          <PracticeEconomicsForm
+            applicationId={current.id}
+            collaboratorSharePercent={
+              settings?.collaboratorSharePercent ?? DEFAULT_COLLABORATOR_SHARE
+            }
+            provenanceOptions={
+              settings?.provenanceOptions?.length
+                ? settings.provenanceOptions
+                : [...DEFAULT_PROVENANCE_OPTIONS]
+            }
+            values={{
+              provenance: current.provenance,
+              bankName: current.bankName,
+              operationType: current.operationType,
+              phone: current.phone,
+              loanAmount: current.loanAmount,
+              propertyAmount: current.propertyAmount,
+              ltvPercent: current.ltvPercent,
+              notaryName: current.notaryName,
+              appraiserName: current.appraiserName,
+              commissionClient: current.commissionClient,
+              commissionBank: current.commissionBank,
+              commissionPolicy: current.commissionPolicy,
+              commissionCqs: current.commissionCqs,
+              commissionLoans: current.commissionLoans,
+              commissionNotary: current.commissionNotary,
+              rogitoAt: current.rogitoAt,
+              auditPrivacy: current.auditPrivacy,
+              auditContractSigned: current.auditContractSigned,
+              auditInstituteSheet: current.auditInstituteSheet,
+              auditDdmBank: current.auditDdmBank,
+              auditOriginalsVerified: current.auditOriginalsVerified,
+              auditArchive: current.auditArchive,
+              economicNotes: current.economicNotes,
+            }}
+          />
         </div>
       </section>
 

@@ -91,12 +91,30 @@ export async function updateApplicationStatusAction(
   if (!allowed.includes(status)) {
     return { error: "Stato non consentito" };
   }
+
+  const [current] = await db
+    .select({ status: applications.status, rogitoAt: applications.rogitoAt })
+    .from(applications)
+    .where(eq(applications.id, applicationId))
+    .limit(1);
+
+  const patch: {
+    status: ApplicationStatus;
+    updatedAt: Date;
+    rogitoAt?: Date;
+  } = { status, updatedAt: new Date() };
+
+  if (status === "ROGITATA" && !current?.rogitoAt) {
+    patch.rogitoAt = new Date();
+  }
+
   await db
     .update(applications)
-    .set({ status, updatedAt: new Date() })
+    .set(patch)
     .where(eq(applications.id, applicationId));
   revalidatePath(`/dashboard/applications/${applicationId}`);
   revalidatePath("/dashboard");
+  revalidatePath("/dashboard/rogitate");
   return { ok: true };
 }
 
@@ -348,6 +366,22 @@ export async function updateSettingsAction(formData: FormData): Promise<void> {
   const secretaryEmail = String(formData.get("secretaryEmail") ?? "").trim();
   const brokerName = String(formData.get("brokerName") ?? "").trim();
   const autoSendToSecretary = formData.get("autoSendToSecretary") === "on";
+  const shareRaw = String(formData.get("collaboratorSharePercent") ?? "35").trim();
+  let collaboratorSharePercent = Number(shareRaw.replace(",", "."));
+  if (!Number.isFinite(collaboratorSharePercent)) collaboratorSharePercent = 35;
+  // Accetta 35 oppure 0.35
+  if (collaboratorSharePercent > 1) collaboratorSharePercent /= 100;
+  collaboratorSharePercent = Math.min(1, Math.max(0, collaboratorSharePercent));
+
+  const provenanceRaw = String(formData.get("provenanceOptions") ?? "");
+  const provenanceOptions = [
+    ...new Set(
+      provenanceRaw
+        .split("\n")
+        .map((s) => s.trim())
+        .filter(Boolean),
+    ),
+  ];
 
   const [existing] = await db
     .select()
@@ -358,7 +392,13 @@ export async function updateSettingsAction(formData: FormData): Promise<void> {
   if (existing) {
     await db
       .update(systemSettings)
-      .set({ secretaryEmail, brokerName, autoSendToSecretary })
+      .set({
+        secretaryEmail,
+        brokerName,
+        autoSendToSecretary,
+        collaboratorSharePercent,
+        provenanceOptions,
+      })
       .where(eq(systemSettings.id, "global"));
   } else {
     await db.insert(systemSettings).values({
@@ -366,10 +406,89 @@ export async function updateSettingsAction(formData: FormData): Promise<void> {
       secretaryEmail,
       brokerName,
       autoSendToSecretary,
+      collaboratorSharePercent,
+      provenanceOptions,
     });
   }
 
   revalidatePath("/dashboard/settings");
+  revalidatePath("/dashboard/rogitate");
+}
+
+function parseOptionalEuro(raw: FormDataEntryValue | null): number | null {
+  const s = String(raw ?? "").trim().replace(/\s/g, "").replace(",", ".");
+  if (!s) return null;
+  const n = Number(s);
+  if (!Number.isFinite(n)) return null;
+  return n;
+}
+
+export async function updatePracticeEconomicsAction(
+  applicationId: string,
+  formData: FormData,
+) {
+  const session = await requireSession();
+  const [app] = await db
+    .select({
+      id: applications.id,
+      brokerId: applications.brokerId,
+      isTest: applications.isTest,
+      status: applications.status,
+      rogitoAt: applications.rogitoAt,
+    })
+    .from(applications)
+    .where(eq(applications.id, applicationId))
+    .limit(1);
+
+  if (!app) return { error: "Pratica non trovata" };
+  if (app.isTest && session.role !== "ADMIN") return { error: "Forbidden" };
+  if (session.role !== "ADMIN" && app.brokerId !== session.id) {
+    return { error: "Forbidden" };
+  }
+
+  const rogitoRaw = String(formData.get("rogitoAt") ?? "").trim();
+  let rogitoAt: Date | null = null;
+  if (rogitoRaw) {
+    const d = new Date(rogitoRaw);
+    if (!Number.isNaN(d.getTime())) rogitoAt = d;
+  } else if (app.status === "ROGITATA" && app.rogitoAt) {
+    rogitoAt = app.rogitoAt;
+  }
+
+  await db
+    .update(applications)
+    .set({
+      provenance: String(formData.get("provenance") ?? "").trim() || null,
+      bankName: String(formData.get("bankName") ?? "").trim() || null,
+      operationType: String(formData.get("operationType") ?? "").trim() || null,
+      phone: String(formData.get("phone") ?? "").trim() || null,
+      loanAmount: parseOptionalEuro(formData.get("loanAmount")),
+      propertyAmount: parseOptionalEuro(formData.get("propertyAmount")),
+      ltvPercent: parseOptionalEuro(formData.get("ltvPercent")),
+      notaryName: String(formData.get("notaryName") ?? "").trim() || null,
+      appraiserName: String(formData.get("appraiserName") ?? "").trim() || null,
+      commissionClient: parseOptionalEuro(formData.get("commissionClient")),
+      commissionBank: parseOptionalEuro(formData.get("commissionBank")),
+      commissionPolicy: parseOptionalEuro(formData.get("commissionPolicy")),
+      commissionCqs: parseOptionalEuro(formData.get("commissionCqs")),
+      commissionLoans: parseOptionalEuro(formData.get("commissionLoans")),
+      commissionNotary: parseOptionalEuro(formData.get("commissionNotary")),
+      rogitoAt,
+      auditPrivacy: formData.get("auditPrivacy") === "on",
+      auditContractSigned: formData.get("auditContractSigned") === "on",
+      auditInstituteSheet: formData.get("auditInstituteSheet") === "on",
+      auditDdmBank: formData.get("auditDdmBank") === "on",
+      auditOriginalsVerified: formData.get("auditOriginalsVerified") === "on",
+      auditArchive: formData.get("auditArchive") === "on",
+      economicNotes: String(formData.get("economicNotes") ?? "").trim() || null,
+      updatedAt: new Date(),
+    })
+    .where(eq(applications.id, applicationId));
+
+  revalidatePath(`/dashboard/applications/${applicationId}`);
+  revalidatePath("/dashboard");
+  revalidatePath("/dashboard/rogitate");
+  return { ok: true };
 }
 
 /**

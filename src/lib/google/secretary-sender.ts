@@ -129,6 +129,8 @@ export async function sendApplicationToSecretary(
         process.env.SECRETARY_EMAIL_DEFAULT ?? "segreteria@example.com",
       brokerName: "Broker",
       autoSendToSecretary: true,
+      collaboratorSharePercent: 0.35,
+      provenanceOptions: [],
     };
   }
 

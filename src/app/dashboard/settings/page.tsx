@@ -9,6 +9,10 @@ import { getOfficeGoogleHub } from "@/lib/google/auth";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import {
+  DEFAULT_COLLABORATOR_SHARE,
+  DEFAULT_PROVENANCE_OPTIONS,
+} from "@/lib/economics";
 
 export const dynamic = "force-dynamic";
 
@@ -31,6 +35,14 @@ export default async function SettingsPage({
     .from(systemSettings)
     .where(eq(systemSettings.id, "global"))
     .limit(1);
+
+  const sharePct = Math.round(
+    (settings?.collaboratorSharePercent ?? DEFAULT_COLLABORATOR_SHARE) * 100,
+  );
+  const provenances =
+    settings?.provenanceOptions?.length
+      ? settings.provenanceOptions.join("\n")
+      : DEFAULT_PROVENANCE_OPTIONS.join("\n");
 
   return (
     <div className="mx-auto max-w-lg space-y-8">
@@ -181,6 +193,39 @@ export default async function SettingsPage({
             />
             Invio automatico a segreteria quando la checklist è completa
           </label>
+          <div className="space-y-2">
+            <Label htmlFor="collaboratorSharePercent" className="font-semibold">
+              Quota collaboratore (%)
+            </Label>
+            <Input
+              id="collaboratorSharePercent"
+              name="collaboratorSharePercent"
+              type="number"
+              min={0}
+              max={100}
+              step={1}
+              defaultValue={sharePct}
+              className="h-10 rounded-lg"
+            />
+            <p className="text-xs text-slate-500">
+              Percentuale sul fatturato pratica (formula Filip). Default 35.
+            </p>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="provenanceOptions" className="font-semibold">
+              Provenienze / agenzie (una per riga)
+            </Label>
+            <textarea
+              id="provenanceOptions"
+              name="provenanceOptions"
+              rows={10}
+              defaultValue={provenances}
+              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
+            />
+            <p className="text-xs text-slate-500">
+              Comparono nella tendina Provenienza di ogni pratica.
+            </p>
+          </div>
           <Button
             type="submit"
             className="h-10 rounded-lg bg-primary-600 font-semibold shadow-md hover:bg-primary-700"

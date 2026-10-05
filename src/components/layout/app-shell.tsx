@@ -4,6 +4,7 @@ import Image from "next/image";
 import { Suspense } from "react";
 import { usePathname } from "next/navigation";
 import {
+  CircleDollarSign,
   FolderKanban,
   HardDrive,
   LogOut,
@@ -42,6 +43,12 @@ export function AppShell({
       label: "Pratiche",
       icon: FolderKanban,
       tourId: "nav-pratiche",
+    },
+    {
+      href: "/dashboard/rogitate",
+      label: "Rogitate",
+      icon: CircleDollarSign,
+      tourId: "nav-rogitate",
     },
     {
       href: "/dashboard/files",

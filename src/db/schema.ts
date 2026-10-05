@@ -7,6 +7,7 @@ import {
   timestamp,
   jsonb,
   pgEnum,
+  real,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 
@@ -175,6 +176,37 @@ export const applications = pgTable("applications", {
   lastPipelineErrorAt: timestamp("last_pipeline_error_at", {
     withTimezone: true,
   }),
+  /** Provenienza lead / agenzia (tendina da settings) */
+  provenance: varchar("provenance", { length: 255 }),
+  /** Banca istituto */
+  bankName: varchar("bank_name", { length: 255 }),
+  /** Es. MUTUO, SURROGA, MUTUO+CQS */
+  operationType: varchar("operation_type", { length: 120 }),
+  phone: varchar("phone", { length: 40 }),
+  loanAmount: real("loan_amount"),
+  propertyAmount: real("property_amount"),
+  ltvPercent: real("ltv_percent"),
+  notaryName: varchar("notary_name", { length: 255 }),
+  appraiserName: varchar("appraiser_name", { length: 255 }),
+  /** Provvigioni manuali (€) — stile foglio Filip */
+  commissionClient: real("commission_client"),
+  commissionBank: real("commission_bank"),
+  commissionPolicy: real("commission_policy"),
+  commissionCqs: real("commission_cqs"),
+  commissionLoans: real("commission_loans"),
+  commissionNotary: real("commission_notary"),
+  /** Data rogito (per resoconto mese) */
+  rogitoAt: timestamp("rogito_at", { withTimezone: true }),
+  /** Audit conformità Euroansa / Kiron */
+  auditPrivacy: boolean("audit_privacy").notNull().default(false),
+  auditContractSigned: boolean("audit_contract_signed").notNull().default(false),
+  auditInstituteSheet: boolean("audit_institute_sheet").notNull().default(false),
+  auditDdmBank: boolean("audit_ddm_bank").notNull().default(false),
+  auditOriginalsVerified: boolean("audit_originals_verified")
+    .notNull()
+    .default(false),
+  auditArchive: boolean("audit_archive").notNull().default(false),
+  economicNotes: text("economic_notes"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });
@@ -223,6 +255,15 @@ export const systemSettings = pgTable("system_settings", {
   secretaryEmail: varchar("secretary_email", { length: 255 }).notNull(),
   brokerName: varchar("broker_name", { length: 255 }).notNull(),
   autoSendToSecretary: boolean("auto_send_to_secretary").notNull().default(true),
+  /** Quota collaboratore sul fatturato pratica (es. 0.35 = 35%) */
+  collaboratorSharePercent: real("collaborator_share_percent")
+    .notNull()
+    .default(0.35),
+  /** Elenco provenienze / agenzie per tendina */
+  provenanceOptions: text("provenance_options")
+    .array()
+    .notNull()
+    .default([]),
 });
 
 export const usersRelations = relations(users, ({ many }) => ({
