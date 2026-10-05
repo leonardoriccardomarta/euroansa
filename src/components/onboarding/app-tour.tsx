@@ -4,13 +4,10 @@ import { useCallback, useEffect, useMemo, useState, useTransition } from "react"
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   BookOpen,
-  CheckCircle2,
   ChevronLeft,
   ChevronRight,
-  FolderKanban,
-  Mail,
+  Info,
   Sparkles,
-  Users,
   X,
 } from "lucide-react";
 import {
@@ -27,127 +24,131 @@ type TourStep = {
   id: string;
   title: string;
   body: string;
-  /** Ancora opzionale (data-tour) da evidenziare */
+  /** Box “in produzione vs demo” */
+  callout?: string;
   anchor?: string;
-  /** Percorso consigliato */
   path?: string;
-  /** CTA secondaria: apre pratica demo */
-  openDemo?: boolean;
+  /** Porta alla pratica Guida (dettaglio), non a File */
+  goDemo?: boolean;
+  /** Mostra CTA “Apri pratica Guida” */
+  showDemoCta?: boolean;
+  primaryLabel?: string;
 };
 
 function stepsForRole(isAdmin: boolean): TourStep[] {
-  const commonStart: TourStep[] = [
+  const start: TourStep[] = [
     {
       id: "welcome",
-      title: `Benvenuto in ${APP_NAME}`,
-      body: isAdmin
-        ? "Questa guida interattiva ti mostra il CRM delle pratiche mutuo: dalla casella Gmail di ufficio all’invio in segreteria. Ci vuole pochi minuti."
-        : "Sei un broker: vedi solo le pratiche assegnate a te. Questa guida ti spiega checklist, documenti, relazione e invio in segreteria.",
-    },
-    {
-      id: "roles",
-      title: isAdmin ? "Il tuo ruolo: Admin" : "Il tuo ruolo: Broker",
-      body: isAdmin
-        ? "Come admin gestisci tutto: utenti broker, Impostazioni (Gmail ufficio), tutte le pratiche e l’assegnazione. I broker vedono solo le proprie."
-        : "Non vedi le pratiche degli altri né Impostazioni/Utenti. Quando un admin ti assegna una pratica, ricevi una email con il link.",
-      anchor: isAdmin ? "nav-users" : "nav-pratiche",
+      title: `Come si lavora con ${APP_NAME}`,
+      body: "Segui il percorso come in ufficio: arriva una mail cliente → si apre la pratica → il broker completa → si invia in segreteria. Questa guida ti accompagna passo passo.",
       path: "/dashboard",
     },
-  ];
-
-  const adminOnly: TourStep[] = [
     {
-      id: "users",
-      title: "Crea i broker",
-      body: "In Utenti crei le credenziali dei colleghi. Solo l’admin collega Google (una casella ufficio per tutti).",
-      anchor: "nav-users",
-      path: "/dashboard/users",
-    },
-    {
-      id: "settings",
-      title: "Impostazioni e Gmail",
-      body: "Qui colleghi la Gmail di ufficio e l’email di segreteria. Le nuove richieste arrivano dalle mail con il tag oggetto configurato.",
-      anchor: "nav-settings",
-      path: "/dashboard/settings",
-    },
-    {
-      id: "assign",
-      title: "Assegna al broker",
-      body: "Su ogni card pratica (o nel dettaglio) scegli il broker. Al salvataggio parte un’email di notifica con il link alla pratica.",
-      anchor: "tour-broker-assign",
+      id: "auto",
+      title: "1. Le pratiche nascono da sole",
+      body: "Il cliente (o il broker) scrive alla Gmail di ufficio con il tag oggetto configurato e allega i PDF. Il sistema crea la pratica, le cartelle e classifica i documenti con l’AI. Non crei nulla a mano, di solito.",
+      callout:
+        "La pratica «Guida — Cliente Demo» è vuota di proposito (0/9): è un banco prova. In produzione checklist e file si riempiono dalle email.",
       path: "/dashboard",
+      showDemoCta: true,
     },
-  ];
-
-  const flow: TourStep[] = [
     {
       id: "pratiche",
-      title: "Elenco pratiche",
-      body: "Qui trovi tutte le pratiche (admin) o solo le tue (broker). Filtra per stato: documenti incompleti, da inoltrare, in segreteria, fino a Rogitata.",
+      title: "2. Elenco Pratiche",
+      body: isAdmin
+        ? "Qui vedi tutte le pratiche. Filtra per stato (incompleti, da inoltrare, segreteria, rogitata…). Ogni card ha stato e, per te admin, il menu Broker."
+        : "Qui vedi solo le pratiche assegnate a te. Le altre non compaiono: l’admin te le assegna quando tocca a te.",
       anchor: "nav-pratiche",
       path: "/dashboard",
     },
+  ];
+
+  const adminMiddle: TourStep[] = [
     {
-      id: "files",
-      title: "File e cartelle",
-      body: "In File puoi creare una cartella cliente a mano (senza email). Serve per pratiche già avviate o per caricare documenti offline. Prova anche la pratica Guida.",
-      anchor: "tour-create-folder",
-      path: "/dashboard/files",
-      openDemo: true,
+      id: "assign",
+      title: "3. Assegna il broker",
+      body: "Sulla card (menu Broker) scegli il collega. Al salvataggio parte un’email con il link alla pratica. Il broker vede solo quella.",
+      callout: "Provalo sulla card Guida: assegna un broker e poi togli l’assegnazione se era solo prova.",
+      anchor: "tour-broker-assign",
+      path: "/dashboard",
+      showDemoCta: true,
     },
     {
-      id: "demo",
-      title: "Pratica Guida (demo)",
-      body: "Abbiamo preparato «Guida — Cliente Demo»: checklist già impostata, cartelle pronte, stato Documenti incompleti. Aprila e esplora senza rischi.",
-      openDemo: true,
+      id: "users-settings",
+      title: "Utenti e Impostazioni",
+      body: "In Utenti crei i login dei broker. In Impostazioni colleghi la Gmail ufficio e l’email di segreteria. Solo l’admin fa queste due cose.",
+      anchor: "nav-settings",
+      path: "/dashboard/settings",
+    },
+  ];
+
+  const brokerMiddle: TourStep[] = [
+    {
+      id: "notify",
+      title: "3. Quando ti assegnano",
+      body: "Ricevi un’email con il link. Apri Pratiche e lavori solo sulla tua. Se l’invio in segreteria fallisce, arriva un’altra mail di alert.",
       path: "/dashboard",
+    },
+  ];
+
+  const practiceSteps: TourStep[] = [
+    {
+      id: "open-demo",
+      title: "4. Apri la pratica Guida",
+      body: "Ora entriamo nel dettaglio di una pratica finta. Serve a toccare checklist, upload e relazione senza rischiare dati reali.",
+      callout:
+        "Ricorda: incompleta = normale nella demo. Con le mail vere documenti e cartelle arrivano già, e tu sistematici i pezzi mancanti.",
+      goDemo: true,
+      showDemoCta: true,
+      primaryLabel: "Apri e continua",
     },
     {
       id: "checklist",
       title: "Checklist documenti",
-      body: "Nel dettaglio pratica scegli i documenti richiesti per quella banca. La barra di avanzamento si aggiorna quando carichi PDF validi (l’AI li classifica).",
+      body: "Qui segni cosa serve per quella banca. In produzione spesso parte già popolata o la regoli tu. La barra 0/9 della demo dice solo «mancano ancora i PDF».",
+      callout: "Puoi togliere/aggiungere voci: è sicuro, è la pratica Guida.",
       anchor: "tour-checklist",
-      openDemo: true,
+      goDemo: true,
     },
     {
       id: "upload",
-      title: "Carica documenti",
-      body: "Trascina o seleziona i PDF. Vengono salvati nello storage del sito, analizzati e rinominati. Se manca qualcosa, la pratica resta incompleta.",
+      title: "Documenti mancanti",
+      body: "Se manca qualcosa (o la mail non aveva tutti gli allegati), carichi qui i PDF. L’AI li legge, li rinomina e aggiorna la checklist.",
+      callout:
+        "Nella demo non ci sono file: prova a caricare un PDF qualsiasi, oppure vai avanti senza.",
       anchor: "tour-upload",
-      openDemo: true,
+      goDemo: true,
     },
     {
-      id: "relazione",
-      title: "Relazione broker",
-      body: "Prima dell’invio serve la relazione (PDF). Senza relazione non puoi mandare il pacchetto in segreteria.",
+      id: "relazione-send",
+      title: "Relazione e invio segreteria",
+      body: "Carichi la relazione PDF (obbligatoria), poi «Invia a segreteria». Parte un link pacchetto valido 7 giorni. Senza relazione il pulsante resta bloccato.",
       anchor: "tour-relazione",
-      openDemo: true,
+      goDemo: true,
     },
     {
-      id: "send",
-      title: "Invio in segreteria",
-      body: "Quando checklist e relazione sono ok, invii il pacchetto: la segreteria riceve un link (valido 7 giorni). Se l’invio fallisce, il broker titolare riceve una mail di alert.",
-      anchor: "tour-actions",
-      openDemo: true,
-    },
-    {
-      id: "notify",
-      title: "Notifiche email",
-      body: "Due casi principali: 1) assegnazione pratica → mail al broker; 2) fallimento invio segreteria → mail al broker (o all’admin). Non arrivano mail per ogni upload.",
-      path: "/dashboard",
+      id: "files-alt",
+      title: "File = scorciatoia manuale",
+      body: "La voce File non è il flusso principale. Serve se vuoi creare una cartella cliente a mano (senza mail) o navigare i PDF già salvati.",
+      callout:
+        "Non confonderla con «apri pratica»: la pratica si lavora da Pratiche → Apri. File è solo archivio / creazione cartella.",
+      anchor: "tour-create-folder",
+      path: "/dashboard/files",
     },
     {
       id: "done",
-      title: "Sei pronto",
+      title: "Fatto",
       body: isAdmin
-        ? "Rivedi la guida quando vuoi dal pulsante Guida in alto. La pratica demo resta in elenco (badge Test/Guida) e puoi cancellarla dopo."
-        : "Rivedi la guida dal pulsante Guida. La pratica «Guida — Cliente Demo» è tua: usala per esercitarti, poi lavoraci sulle pratiche reali.",
+        ? "Flusso reale: mail → pratica → assegna broker → checklist/relazione → segreteria. Riapri la guida dal pulsante Guida. Puoi cancellare la pratica demo quando vuoi."
+        : "Flusso reale: ti assegnano → lavori documenti e relazione → invii in segreteria. Riapri la guida dal pulsante Guida.",
+      path: "/dashboard",
+      primaryLabel: "Ho capito",
     },
   ];
 
   return isAdmin
-    ? [...commonStart, ...adminOnly, ...flow]
-    : [...commonStart, ...flow];
+    ? [...start, ...adminMiddle, ...practiceSteps]
+    : [...start, ...brokerMiddle, ...practiceSteps];
 }
 
 export function AppTour({
@@ -185,20 +186,31 @@ export function AppTour({
     });
   }, [router]);
 
-  const openDemo = useCallback(() => {
-    startTransition(async () => {
-      const res = await ensureTutorialPracticeAction();
-      if ("error" in res && res.error) {
-        toast.error(res.error);
-        return;
-      }
-      if (res.ok && res.applicationId) {
-        toast.success("Pratica Guida pronta");
-        router.push(`/dashboard/applications/${res.applicationId}`);
-        router.refresh();
-      }
+  const ensureDemoAndGo = useCallback(() => {
+    return new Promise<string | null>((resolve) => {
+      startTransition(async () => {
+        const res = await ensureTutorialPracticeAction();
+        if ("error" in res && res.error) {
+          toast.error(res.error);
+          resolve(null);
+          return;
+        }
+        if (res.ok && res.applicationId) {
+          router.push(`/dashboard/applications/${res.applicationId}`);
+          router.refresh();
+          resolve(res.applicationId);
+          return;
+        }
+        resolve(null);
+      });
     });
   }, [router]);
+
+  const openDemo = useCallback(() => {
+    void ensureDemoAndGo().then((id) => {
+      if (id) toast.message("Pratica Guida — è incompleta di proposito");
+    });
+  }, [ensureDemoAndGo]);
 
   const goNext = useCallback(() => {
     if (isLast) {
@@ -209,31 +221,27 @@ export function AppTour({
     setIndex((i) => Math.min(i + 1, steps.length - 1));
     if (!next) return;
 
-    if (next.openDemo && next.anchor?.startsWith("tour-")) {
-      startTransition(async () => {
-        const res = await ensureTutorialPracticeAction();
-        if (res.ok && res.applicationId) {
-          router.push(`/dashboard/applications/${res.applicationId}`);
-          router.refresh();
-        } else if (next.path && next.path !== pathname) {
-          router.push(next.path);
-        }
-      });
+    if (next.goDemo) {
+      void ensureDemoAndGo();
       return;
     }
-
     if (next.path && next.path !== pathname) {
       router.push(next.path);
     }
-  }, [finish, index, isLast, pathname, router, steps]);
+  }, [ensureDemoAndGo, finish, index, isLast, pathname, router, steps]);
 
   const goPrev = useCallback(() => {
     const prev = steps[index - 1];
-    if (prev?.path && prev.path !== pathname) {
+    setIndex((i) => Math.max(i - 1, 0));
+    if (!prev) return;
+    if (prev.goDemo) {
+      void ensureDemoAndGo();
+      return;
+    }
+    if (prev.path && prev.path !== pathname) {
       router.push(prev.path);
     }
-    setIndex((i) => Math.max(i - 1, 0));
-  }, [index, pathname, router, steps]);
+  }, [ensureDemoAndGo, index, pathname, router, steps]);
 
   useEffect(() => {
     if (forceOpen) {
@@ -297,11 +305,15 @@ export function AppTour({
 
   return (
     <>
-      <div className="fixed inset-0 z-[60] bg-slate-900/55" aria-hidden />
+      {/* Overlay non blocca i click: puoi usare l’app mentre leggi */}
+      <div
+        className="pointer-events-none fixed inset-0 z-[60] bg-slate-900/35"
+        aria-hidden
+      />
 
       {highlight ? (
         <div
-          className="pointer-events-none fixed z-[65] rounded-xl ring-4 ring-primary-400 ring-offset-2 ring-offset-slate-900/40 transition-all"
+          className="pointer-events-none fixed z-[65] rounded-xl ring-4 ring-primary-400 ring-offset-2 ring-offset-transparent transition-all"
           style={{
             top: highlight.top - 6,
             left: highlight.left - 6,
@@ -313,11 +325,11 @@ export function AppTour({
 
       <div
         role="dialog"
-        aria-modal="true"
+        aria-modal="false"
         aria-labelledby="tour-title"
         className="fixed inset-x-4 bottom-4 z-[70] mx-auto max-w-lg rounded-2xl border border-slate-200 bg-white p-5 shadow-2xl sm:inset-x-auto sm:bottom-8 sm:right-8 sm:p-6"
       >
-        <div className="mb-4 flex items-start justify-between gap-3">
+        <div className="mb-3 flex items-start justify-between gap-3">
           <div className="flex items-center gap-2 text-primary-700">
             <Sparkles className="h-5 w-5" />
             <span className="text-xs font-semibold uppercase tracking-wide">
@@ -347,44 +359,23 @@ export function AppTour({
         >
           {step.title}
         </h2>
-        <p className="mt-2 text-sm leading-relaxed text-slate-600 sm:text-[0.95rem]">
+        <p className="mt-2 text-sm leading-relaxed text-slate-600">
           {step.body}
         </p>
 
-        {step.id === "roles" || step.id === "notify" ? (
-          <ul className="mt-4 space-y-2 rounded-xl border border-slate-100 bg-slate-50 p-3 text-sm text-slate-700">
-            {isAdmin ? (
-              <>
-                <li className="flex gap-2">
-                  <Users className="mt-0.5 h-4 w-4 shrink-0 text-primary-600" />
-                  Admin: tutte le pratiche + assegna broker
-                </li>
-                <li className="flex gap-2">
-                  <FolderKanban className="mt-0.5 h-4 w-4 shrink-0 text-primary-600" />
-                  Broker: solo pratiche proprie
-                </li>
-                <li className="flex gap-2">
-                  <Mail className="mt-0.5 h-4 w-4 shrink-0 text-primary-600" />
-                  Notifica email all’assegnazione
-                </li>
-              </>
-            ) : (
-              <>
-                <li className="flex gap-2">
-                  <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-primary-600" />
-                  Solo pratiche assegnate a te
-                </li>
-                <li className="flex gap-2">
-                  <Mail className="mt-0.5 h-4 w-4 shrink-0 text-primary-600" />
-                  Email quando ti assegnano una pratica
-                </li>
-              </>
-            )}
-          </ul>
+        {step.callout ? (
+          <div className="mt-3 flex gap-2 rounded-xl border border-sky-100 bg-sky-50 px-3 py-2.5 text-sm text-sky-950">
+            <Info className="mt-0.5 h-4 w-4 shrink-0 text-sky-600" />
+            <p>{step.callout}</p>
+          </div>
         ) : null}
 
+        <p className="mt-3 text-xs text-slate-500">
+          Puoi cliccare l’app dietro questa scheda mentre segui la guida.
+        </p>
+
         <div className="mt-5 flex flex-wrap items-center gap-2">
-          {step.openDemo ? (
+          {step.showDemoCta ? (
             <Button
               type="button"
               variant="outline"
@@ -409,11 +400,21 @@ export function AppTour({
             <Button
               type="button"
               disabled={pending}
-              onClick={goNext}
+              onClick={() => {
+                if (step.id === "open-demo") {
+                  void ensureDemoAndGo().then(() => {
+                    if (!isLast) setIndex((i) => i + 1);
+                  });
+                  return;
+                }
+                goNext();
+              }}
               className={cn("min-h-10 bg-primary-600 hover:bg-primary-700")}
             >
-              {isLast ? "Fine" : "Avanti"}
-              {!isLast ? <ChevronRight className="h-4 w-4" /> : null}
+              {step.primaryLabel ?? (isLast ? "Fine" : "Avanti")}
+              {!isLast && !step.primaryLabel ? (
+                <ChevronRight className="h-4 w-4" />
+              ) : null}
             </Button>
           </div>
         </div>

@@ -60,7 +60,11 @@ export default async function FilesIndexPage() {
         <h1 className="text-3xl font-bold text-slate-900">File</h1>
         <p className="mt-2 text-slate-600">
           Crea cartelle, carica file, sostituisci o elimina i documenti delle
-          pratiche.
+          pratiche.{" "}
+          <span className="text-slate-500">
+            Il flusso principale resta Pratiche (le mail creano tutto da sole):
+            qui è l&apos;archivio e la creazione manuale.
+          </span>
         </p>
       </div>
 

@@ -35,6 +35,7 @@ import { DocumentPreviewButton } from "@/components/dashboard/document-preview";
 import { DocumentUpload } from "@/components/dashboard/document-upload";
 import { RelazioneUpload } from "@/components/dashboard/relazione-upload";
 import { RequiredDocsEditor } from "@/components/dashboard/required-docs-editor";
+import { TutorialPracticeBanner } from "@/components/onboarding/tutorial-practice-banner";
 
 export const dynamic = "force-dynamic";
 
@@ -120,6 +121,8 @@ export default async function ApplicationDetailPage({
 
   return (
     <div className="space-y-10">
+      {isTutorialPractice(current) ? <TutorialPracticeBanner /> : null}
+
       <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
         <div>
           <h1 className="text-3xl font-bold text-slate-900 md:text-4xl">
