@@ -96,6 +96,23 @@ export type PreScoringData = {
   notes: string[];
 };
 
+export type PreventivoData = {
+  propertyAmount?: number | null;
+  loanAmount?: number | null;
+  durationYears?: number | null;
+  monthlyInstallment?: number | null;
+  ratePercent?: number | null;
+  rateNote?: string | null;
+  bankName?: string | null;
+  productNote?: string | null;
+  feeIstruttoria?: number | null;
+  feeImposta?: number | null;
+  feeMediazione?: number | null;
+  feeOther?: number | null;
+  feeOtherLabel?: string | null;
+  notes?: string | null;
+};
+
 export type ExtractedDocumentData = {
   firstName?: string | null;
   lastName?: string | null;
@@ -207,6 +224,12 @@ export const applications = pgTable("applications", {
     .default(false),
   auditArchive: boolean("audit_archive").notNull().default(false),
   economicNotes: text("economic_notes"),
+  /** Bozza relazione (testo editabile prima del PDF) */
+  relazioneDraftText: text("relazione_draft_text"),
+  /** Preventivo PDF generato */
+  preventivoStorageKey: text("preventivo_storage_key"),
+  preventivoFileName: text("preventivo_file_name"),
+  preventivoData: jsonb("preventivo_data").$type<PreventivoData>(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });
@@ -335,6 +358,42 @@ export const appointments = pgTable("appointments", {
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
+export const resourceCategoryEnum = pgEnum("resource_category", [
+  "MODULISTICA",
+  "TEMPLATE",
+  "POLICY",
+  "PORTALI",
+  "ALTRO",
+]);
+
+/** RISORSE — archivio agenzia (sostituisce Drive modulistica/template) */
+export const agencyResources = pgTable("agency_resources", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  title: varchar("title", { length: 255 }).notNull(),
+  category: resourceCategoryEnum("category").notNull().default("ALTRO"),
+  fileName: text("file_name").notNull(),
+  storageKey: text("storage_key").notNull(),
+  mimeType: varchar("mime_type", { length: 120 }),
+  uploadedByUserId: uuid("uploaded_by_user_id").references(() => users.id, {
+    onDelete: "set null",
+  }),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+export type BankPolicyRow = { label: string; value: string };
+
+/** SCHEDA BANCHE — policy consultabili in-app */
+export const bankPolicies = pgTable("bank_policies", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  bankName: varchar("bank_name", { length: 120 }).notNull().unique(),
+  slug: varchar("slug", { length: 120 }).notNull().unique(),
+  summary: text("summary"),
+  rows: jsonb("rows").$type<BankPolicyRow[]>().notNull().default([]),
+  sortOrder: real("sort_order").notNull().default(0),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
 /** SVILUPPO — rapporti agenzie immobiliari */
 export const agencyDevelopment = pgTable("agency_development", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -386,8 +445,11 @@ export type SecretarySendLog = typeof secretarySendLogs.$inferSelect;
 export type Lead = typeof leads.$inferSelect;
 export type Appointment = typeof appointments.$inferSelect;
 export type AgencyDevelopmentRow = typeof agencyDevelopment.$inferSelect;
+export type AgencyResource = typeof agencyResources.$inferSelect;
+export type BankPolicy = typeof bankPolicies.$inferSelect;
 export type DocumentType = (typeof documentTypeEnum.enumValues)[number];
 export type EmploymentType = (typeof employmentTypeEnum.enumValues)[number];
 export type ApplicationStatus = (typeof applicationStatusEnum.enumValues)[number];
 export type LeadOutcomeDb = (typeof leadOutcomeEnum.enumValues)[number];
 export type AgencyDevPhase = (typeof agencyDevPhaseEnum.enumValues)[number];
+export type ResourceCategory = (typeof resourceCategoryEnum.enumValues)[number];

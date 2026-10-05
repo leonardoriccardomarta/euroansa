@@ -125,6 +125,16 @@ export async function getPackageBundle(
     });
   }
 
+  if (app.preventivoStorageKey && isSiteStorageKey(app.preventivoStorageKey)) {
+    files.push({
+      name: uniqueName(
+        app.preventivoFileName ?? `${app.clientName}_preventivo.pdf`,
+      ),
+      storageKey: app.preventivoStorageKey,
+      onSiteStorage: true,
+    });
+  }
+
   return {
     status: "ok",
     app,

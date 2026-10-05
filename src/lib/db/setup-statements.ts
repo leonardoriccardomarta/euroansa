@@ -202,6 +202,32 @@ export const SETUP_STATEMENTS = [
     created_at timestamptz DEFAULT now() NOT NULL,
     updated_at timestamptz DEFAULT now() NOT NULL
   )`,
+  // Fase 3: risorse agenzia, scheda banche, relazione/preventivo
+  `ALTER TABLE applications ADD COLUMN IF NOT EXISTS relazione_draft_text text`,
+  `ALTER TABLE applications ADD COLUMN IF NOT EXISTS preventivo_storage_key text`,
+  `ALTER TABLE applications ADD COLUMN IF NOT EXISTS preventivo_file_name text`,
+  `ALTER TABLE applications ADD COLUMN IF NOT EXISTS preventivo_data jsonb`,
+  `DO $$ BEGIN CREATE TYPE resource_category AS ENUM ('MODULISTICA', 'TEMPLATE', 'POLICY', 'PORTALI', 'ALTRO'); EXCEPTION WHEN duplicate_object THEN NULL; END $$`,
+  `CREATE TABLE IF NOT EXISTS agency_resources (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+    title varchar(255) NOT NULL,
+    category resource_category NOT NULL DEFAULT 'ALTRO',
+    file_name text NOT NULL,
+    storage_key text NOT NULL,
+    mime_type varchar(120),
+    uploaded_by_user_id uuid REFERENCES users(id) ON DELETE SET NULL,
+    created_at timestamptz DEFAULT now() NOT NULL
+  )`,
+  `CREATE TABLE IF NOT EXISTS bank_policies (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+    bank_name varchar(120) NOT NULL UNIQUE,
+    slug varchar(120) NOT NULL UNIQUE,
+    summary text,
+    rows jsonb NOT NULL DEFAULT '[]'::jsonb,
+    sort_order real NOT NULL DEFAULT 0,
+    created_at timestamptz DEFAULT now() NOT NULL,
+    updated_at timestamptz DEFAULT now() NOT NULL
+  )`,
 ];
 
 export const PACKAGE_LINK_TTL_DAYS = 7;

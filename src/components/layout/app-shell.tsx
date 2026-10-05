@@ -4,11 +4,13 @@ import Image from "next/image";
 import { Suspense } from "react";
 import { usePathname } from "next/navigation";
 import {
+  BookOpen,
   Building2,
   CalendarDays,
   CircleDollarSign,
   FolderKanban,
   HardDrive,
+  Landmark,
   LineChart,
   LogOut,
   Phone,
@@ -79,6 +81,16 @@ export function AppShell({
       label: "File",
       icon: HardDrive,
       tourId: "nav-files",
+    },
+    {
+      href: "/dashboard/risorse",
+      label: "Risorse",
+      icon: BookOpen,
+    },
+    {
+      href: "/dashboard/banche",
+      label: "Banche",
+      icon: Landmark,
     },
     ...(isAdmin
       ? [

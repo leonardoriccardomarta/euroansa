@@ -201,6 +201,34 @@ export async function uploadPracticeFile(params: {
   );
 }
 
+export async function uploadAgencyResourceFile(params: {
+  resourceId: string;
+  fileName: string;
+  mimeType: string;
+  buffer: Buffer;
+}): Promise<StoredBlob> {
+  const safeName = params.fileName.replace(/[\\/]+/g, "_");
+  const pathname = `resources/${params.resourceId}/${safeName}`;
+  return putObject(
+    pathname,
+    params.buffer,
+    params.mimeType || "application/octet-stream",
+  );
+}
+
+export async function uploadPreventivoFile(params: {
+  applicationId: string;
+  clientName: string;
+  buffer: Buffer;
+}): Promise<StoredBlob> {
+  const base =
+    params.clientName.trim().replace(/[\\/]+/g, " ").replace(/\s+/g, " ") ||
+    "Cliente";
+  const fileName = `${base}_preventivo.pdf`;
+  const pathname = `${practiceStoragePrefix(params.applicationId)}/${fileName}`;
+  return putObject(pathname, params.buffer, "application/pdf");
+}
+
 export async function uploadRelazioneFile(params: {
   applicationId: string;
   clientName: string;

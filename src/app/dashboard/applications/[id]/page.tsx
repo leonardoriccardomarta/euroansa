@@ -33,7 +33,9 @@ import { ApplicationActions } from "@/components/dashboard/application-actions";
 import { ClosedPracticeCleanup } from "@/components/dashboard/closed-practice-cleanup";
 import { DocumentPreviewButton } from "@/components/dashboard/document-preview";
 import { DocumentUpload } from "@/components/dashboard/document-upload";
-import { RelazioneUpload } from "@/components/dashboard/relazione-upload";
+import { RelazioneStudio } from "@/components/dashboard/relazione-studio";
+import { PreventivoForm } from "@/components/dashboard/preventivo-form";
+import { BankPolicyPanel } from "@/components/dashboard/bank-policy-panel";
 import { RequiredDocsEditor } from "@/components/dashboard/required-docs-editor";
 import { PracticeEconomicsForm } from "@/components/dashboard/practice-economics-form";
 import { TutorialPracticeBanner } from "@/components/onboarding/tutorial-practice-banner";
@@ -372,12 +374,35 @@ export default async function ApplicationDetailPage({
         </div>
       )}
 
-      <RelazioneUpload
+      <RelazioneStudio
         applicationId={current.id}
-        hasRelazione={Boolean(current.relazioneStorageKey)}
+        hasRelazione={Boolean(
+          current.relazioneStorageKey &&
+            isSiteStorageKey(current.relazioneStorageKey),
+        )}
         fileName={current.relazioneFileName}
         uploadedAt={current.relazioneUploadedAt}
+        initialDraft={current.relazioneDraftText}
       />
+
+      <PreventivoForm
+        applicationId={current.id}
+        clientName={current.clientName}
+        defaults={{
+          ...(current.preventivoData ?? {}),
+          bankName: current.preventivoData?.bankName ?? current.bankName,
+          propertyAmount:
+            current.preventivoData?.propertyAmount ?? current.propertyAmount,
+          loanAmount: current.preventivoData?.loanAmount ?? current.loanAmount,
+        }}
+        hasPdf={Boolean(
+          current.preventivoStorageKey &&
+            isSiteStorageKey(current.preventivoStorageKey),
+        )}
+        fileName={current.preventivoFileName}
+      />
+
+      <BankPolicyPanel bankName={current.bankName} />
 
       <section id="files">
         <h2 className="mb-2 text-xl font-bold text-slate-900">
