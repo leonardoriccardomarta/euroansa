@@ -119,11 +119,12 @@ function buildStandardizedFileName(
 
 function resolveModels(): string[] {
   const preferred = process.env.GEMINI_MODEL?.trim();
+  // Solo modelli Gemini 3 stable (2.0 è shut down; 2.5 limitato ai legacy users)
   const fallbacks = [
     "gemini-3.8-flash",
-    "gemini-2.0-flash",
-    "gemini-flash-lite-latest",
-    "gemini-2.0-flash-lite",
+    "gemini-3.7-flash",
+    "gemini-3.5-flash",
+    "gemini-3.5-flash-lite",
   ];
   const list = preferred ? [preferred, ...fallbacks] : fallbacks;
   return [...new Set(list)];
