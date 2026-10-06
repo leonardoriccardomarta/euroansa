@@ -147,20 +147,36 @@ export async function buildPreventivoPdf(params: {
       { fontSize: 8, lineGap: 2 },
     );
 
-    doc.moveDown(1.4);
-    const sigY = doc.y;
-    doc
-      .moveTo(left, sigY)
-      .lineTo(left + 220, sigY)
-      .strokeColor("#cbd5e1")
-      .lineWidth(0.8)
-      .stroke();
-    doc.moveDown(0.35);
+    // Blocco firma in basso a destra, senza barra decorativa
+    const sigWidth = 220;
+    const sigX = left + usable - sigWidth;
+    const bottom = doc.page.height - doc.page.margins.bottom;
+    let sigY = bottom - 56;
+    if (params.brokerPhone) sigY -= 12;
+    if (params.brokerEmail) sigY -= 12;
+    if (sigY < doc.y + 24) sigY = doc.y + 28;
+
     doc.font("Helvetica-Bold").fontSize(11).fillColor("#0f172a");
-    doc.text(params.brokerName.toUpperCase());
+    doc.text(params.brokerName.toUpperCase(), sigX, sigY, {
+      width: sigWidth,
+      align: "right",
+    });
     doc.font("Helvetica").fontSize(9).fillColor("#475569");
-    doc.text("Consulente del credito e assicurativo");
-    if (params.brokerEmail) doc.text(params.brokerEmail);
-    if (params.brokerPhone) doc.text(`Tel. ${params.brokerPhone}`);
+    doc.text("Consulente del credito e assicurativo", sigX, doc.y, {
+      width: sigWidth,
+      align: "right",
+    });
+    if (params.brokerEmail) {
+      doc.text(params.brokerEmail, sigX, doc.y, {
+        width: sigWidth,
+        align: "right",
+      });
+    }
+    if (params.brokerPhone) {
+      doc.text(`Tel. ${params.brokerPhone}`, sigX, doc.y, {
+        width: sigWidth,
+        align: "right",
+      });
+    }
   });
 }
