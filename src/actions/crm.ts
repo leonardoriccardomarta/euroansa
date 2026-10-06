@@ -25,12 +25,22 @@ async function assertOwnBroker(
   session: SessionUser,
   brokerId: string | null | undefined,
 ) {
-  if (session.role === "ADMIN") return true;
+  if (session.role === "ADMIN") return false;
   return brokerId === session.id;
 }
 
-export async function upsertLeadAction(formData: FormData) {
+/** Leads / appuntamenti / sviluppo: solo broker. */
+async function requireBroker(): Promise<SessionUser | { error: string }> {
   const session = await requireSession();
+  if (session.role === "ADMIN") {
+    return { error: "Sezione riservata ai broker" };
+  }
+  return session;
+}
+
+export async function upsertLeadAction(formData: FormData) {
+  const session = await requireBroker();
+  if ("error" in session) return session;
   const id = String(formData.get("id") ?? "").trim() || null;
   const clientName = String(formData.get("clientName") ?? "").trim();
   if (!clientName) return { error: "Nome cliente obbligatorio" };
@@ -70,7 +80,8 @@ export async function upsertLeadAction(formData: FormData) {
 }
 
 export async function deleteLeadAction(id: string) {
-  const session = await requireSession();
+  const session = await requireBroker();
+  if ("error" in session) return session;
   const [row] = await db.select().from(leads).where(eq(leads.id, id)).limit(1);
   if (!row) return { error: "Lead non trovato" };
   if (!(await assertOwnBroker(session, row.brokerId))) return { error: "Forbidden" };
@@ -80,7 +91,8 @@ export async function deleteLeadAction(id: string) {
 }
 
 export async function upsertAppointmentAction(formData: FormData) {
-  const session = await requireSession();
+  const session = await requireBroker();
+  if ("error" in session) return session;
   const id = String(formData.get("id") ?? "").trim() || null;
   const clientName = String(formData.get("clientName") ?? "").trim();
   if (!clientName) return { error: "Nome cliente obbligatorio" };
@@ -130,7 +142,8 @@ export async function upsertAppointmentAction(formData: FormData) {
 }
 
 export async function deleteAppointmentAction(id: string) {
-  const session = await requireSession();
+  const session = await requireBroker();
+  if ("error" in session) return session;
   const [row] = await db
     .select()
     .from(appointments)
@@ -144,7 +157,8 @@ export async function deleteAppointmentAction(id: string) {
 }
 
 export async function createPracticeFromAppointmentAction(appointmentId: string) {
-  const session = await requireSession();
+  const session = await requireBroker();
+  if ("error" in session) return session;
   const [row] = await db
     .select()
     .from(appointments)
@@ -157,7 +171,10 @@ export async function createPracticeFromAppointmentAction(appointmentId: string)
     return { ok: true as const, applicationId: row.applicationId };
   }
 
-  const created = await createClientFolderAction(row.clientName);
+  const created = await createClientFolderAction(
+    row.clientName,
+    row.email,
+  );
   if (created && "error" in created && created.error) {
     return { error: created.error };
   }
@@ -171,6 +188,7 @@ export async function createPracticeFromAppointmentAction(appointmentId: string)
     .set({ applicationId, updatedAt: new Date() })
     .where(eq(appointments.id, appointmentId));
 
+  const clientEmail = row.email?.trim().toLowerCase() || null;
   await db
     .update(applications)
     .set({
@@ -179,7 +197,10 @@ export async function createPracticeFromAppointmentAction(appointmentId: string)
       operationType: row.operationType,
       loanAmount: row.amount,
       propertyAmount: row.propertyAmount,
-      brokerId: session.id,
+      brokerId: row.brokerId ?? session.id,
+      ...(clientEmail && !clientEmail.endsWith("@prontopratica.local")
+        ? { clientEmail }
+        : {}),
       updatedAt: new Date(),
     })
     .where(eq(applications.id, applicationId));
@@ -190,7 +211,8 @@ export async function createPracticeFromAppointmentAction(appointmentId: string)
 }
 
 export async function upsertAgencyDevAction(formData: FormData) {
-  const session = await requireSession();
+  const session = await requireBroker();
+  if ("error" in session) return session;
   const id = String(formData.get("id") ?? "").trim() || null;
   const name = String(formData.get("name") ?? "").trim();
   if (!name) return { error: "Nome agenzia obbligatorio" };
@@ -244,7 +266,8 @@ export async function upsertAgencyDevAction(formData: FormData) {
 }
 
 export async function deleteAgencyDevAction(id: string) {
-  const session = await requireSession();
+  const session = await requireBroker();
+  if ("error" in session) return session;
   const [row] = await db
     .select()
     .from(agencyDevelopment)

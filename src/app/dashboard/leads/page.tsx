@@ -11,15 +11,14 @@ export const dynamic = "force-dynamic";
 export default async function LeadsPage() {
   const session = await getSession();
   if (!session) redirect("/login");
-
-  const where =
-    session.role === "ADMIN" ? undefined : eq(leads.brokerId, session.id);
+  if (session.role === "ADMIN") redirect("/dashboard");
 
   const [rows, settings] = await Promise.all([
-    (where
-      ? db.select().from(leads).where(where)
-      : db.select().from(leads)
-    ).orderBy(desc(leads.updatedAt)),
+    db
+      .select()
+      .from(leads)
+      .where(eq(leads.brokerId, session.id))
+      .orderBy(desc(leads.updatedAt)),
     db
       .select()
       .from(systemSettings)
@@ -37,8 +36,7 @@ export default async function LeadsPage() {
       <div>
         <h1 className="text-3xl font-bold text-slate-900">Leads</h1>
         <p className="mt-2 text-slate-600">
-          Chiamate a freddo: esito e note. Solo i tuoi lead
-          {session.role === "ADMIN" ? " (admin: tutti)" : ""}.
+          Le tue chiamate a freddo: esito e note.
         </p>
       </div>
       <LeadsClient rows={rows} provenanceOptions={provenance} />

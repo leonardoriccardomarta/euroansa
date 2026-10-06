@@ -18,6 +18,7 @@ type Row = {
   id: string;
   clientName: string;
   phone: string | null;
+  email: string | null;
   provenance: string | null;
   operationType: string | null;
   amount: number | null;
@@ -72,6 +73,10 @@ export function AppointmentsClient({
         <div className="space-y-1">
           <Label>Cellulare</Label>
           <Input name="phone" className="h-10" />
+        </div>
+        <div className="space-y-1">
+          <Label>Email cliente</Label>
+          <Input name="email" type="email" className="h-10" />
         </div>
         <div className="space-y-1">
           <Label>Data</Label>
@@ -160,6 +165,9 @@ export function AppointmentsClient({
                   <td className="px-3 py-2 font-medium">
                     {r.clientName}
                     <div className="text-xs text-slate-500">{r.phone}</div>
+                    {r.email ? (
+                      <div className="text-xs text-slate-400">{r.email}</div>
+                    ) : null}
                   </td>
                   <td className="px-3 py-2">
                     {new Date(r.appointmentAt).toLocaleDateString("it-IT")}
@@ -192,7 +200,7 @@ export function AppointmentsClient({
                               return;
                             }
                             toast.success("Pratica creata");
-                            if (res.ok && res.applicationId) {
+                            if ("applicationId" in res && res.applicationId) {
                               router.push(
                                 `/dashboard/applications/${res.applicationId}`,
                               );

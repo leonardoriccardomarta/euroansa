@@ -452,9 +452,19 @@ export async function updatePracticeEconomicsAction(
     rogitoAt = app.rogitoAt;
   }
 
+  const clientName = String(formData.get("clientName") ?? "").trim();
+  const clientEmail = String(formData.get("clientEmail") ?? "")
+    .trim()
+    .toLowerCase();
+  if (clientEmail && !clientEmail.includes("@")) {
+    return { error: "Email cliente non valida" };
+  }
+
   await db
     .update(applications)
     .set({
+      ...(clientName ? { clientName } : {}),
+      ...(clientEmail ? { clientEmail } : {}),
       provenance: String(formData.get("provenance") ?? "").trim() || null,
       bankName: String(formData.get("bankName") ?? "").trim() || null,
       operationType: String(formData.get("operationType") ?? "").trim() || null,

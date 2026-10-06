@@ -109,11 +109,7 @@ export function LeadsClient({
         </div>
         <div className="space-y-1 sm:col-span-2 lg:col-span-3">
           <Label>Note (con data)</Label>
-          <Input
-            name="notes"
-            placeholder="01_01 …"
-            className="h-10"
-          />
+          <Input name="notes" placeholder="01_01 …" className="h-10" />
         </div>
         <Button
           type="submit"

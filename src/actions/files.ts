@@ -226,13 +226,20 @@ export async function deleteStorageFolderAction(
   return { ok: true, deletedFiles: docs.length };
 }
 
-export async function createClientFolderAction(clientName: string) {
+export async function createClientFolderAction(
+  clientName: string,
+  clientEmail?: string | null,
+) {
   const session = await requireSession();
   const name = sanitizeFolderName(clientName);
   if (!name) return { error: "Inserisci il nome cliente / cartella" };
 
   const folders = defaultStorageFolders(name);
-  const email = `cartella.${Date.now()}@prontopratica.local`;
+  const emailRaw = clientEmail?.trim().toLowerCase() || "";
+  const email =
+    emailRaw && emailRaw.includes("@")
+      ? emailRaw
+      : `cartella.${Date.now()}@prontopratica.local`;
 
   const [created] = await db
     .insert(applications)

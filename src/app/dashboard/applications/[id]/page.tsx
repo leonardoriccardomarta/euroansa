@@ -588,6 +588,8 @@ export default async function ApplicationDetailPage({
                 : [...DEFAULT_PROVENANCE_OPTIONS]
             }
             values={{
+              clientName: current.clientName,
+              clientEmail: current.clientEmail,
               provenance: current.provenance,
               bankName: current.bankName,
               operationType: current.operationType,

@@ -18,6 +18,8 @@ import {
 import { toast } from "sonner";
 
 type EconomicsValues = {
+  clientName: string;
+  clientEmail: string;
   provenance: string | null;
   bankName: string | null;
   operationType: string | null;
@@ -115,6 +117,41 @@ export function PracticeEconomicsForm({
         });
       }}
     >
+      <div>
+        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+          Anagrafica (match mail documenti)
+        </p>
+        <div className="mt-3 grid gap-3 sm:grid-cols-2">
+          <div className="space-y-1.5">
+            <Label htmlFor="clientName">Nome cliente</Label>
+            <Input
+              id="clientName"
+              name="clientName"
+              defaultValue={values.clientName}
+              className="h-10"
+              required
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="clientEmail">Email cliente</Label>
+            <Input
+              id="clientEmail"
+              name="clientEmail"
+              type="email"
+              defaultValue={values.clientEmail}
+              className="h-10"
+              required
+            />
+            <p className="text-[11px] text-slate-500">
+              Deve essere la mail da cui il cliente manda i documenti: così
+              finiscono in questa pratica. Se vedi{" "}
+              <code className="text-[10px]">@prontopratica.local</code>,
+              sostituiscila con l&apos;email reale.
+            </p>
+          </div>
+        </div>
+      </div>
+
       <div>
         <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
           Operazione e provenienza

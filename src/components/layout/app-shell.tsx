@@ -43,6 +43,27 @@ export function AppShell({
 }) {
   const pathname = usePathname();
 
+  /** CRM operativo (leads / appuntamenti / sviluppo) solo broker. */
+  const brokerCrm: NavItem[] = isAdmin
+    ? []
+    : [
+        {
+          href: "/dashboard/appointments",
+          label: "Appuntamenti",
+          icon: CalendarDays,
+        },
+        {
+          href: "/dashboard/leads",
+          label: "Leads",
+          icon: Phone,
+        },
+        {
+          href: "/dashboard/sviluppo",
+          label: "Sviluppo",
+          icon: Building2,
+        },
+      ];
+
   const nav: NavItem[] = [
     {
       href: "/dashboard",
@@ -56,25 +77,11 @@ export function AppShell({
       icon: CircleDollarSign,
       tourId: "nav-rogitate",
     },
-    {
-      href: "/dashboard/appointments",
-      label: "Appuntamenti",
-      icon: CalendarDays,
-    },
-    {
-      href: "/dashboard/leads",
-      label: "Leads",
-      icon: Phone,
-    },
+    ...brokerCrm,
     {
       href: "/dashboard/budget",
       label: "Budget",
       icon: LineChart,
-    },
-    {
-      href: "/dashboard/sviluppo",
-      label: "Sviluppo",
-      icon: Building2,
     },
     {
       href: "/dashboard/files",

@@ -10,23 +10,20 @@ export const dynamic = "force-dynamic";
 export default async function SviluppoPage() {
   const session = await getSession();
   if (!session) redirect("/login");
+  if (session.role === "ADMIN") redirect("/dashboard");
 
-  const where =
-    session.role === "ADMIN"
-      ? undefined
-      : eq(agencyDevelopment.brokerId, session.id);
-
-  const rows = await (where
-    ? db.select().from(agencyDevelopment).where(where)
-    : db.select().from(agencyDevelopment)
-  ).orderBy(desc(agencyDevelopment.updatedAt));
+  const rows = await db
+    .select()
+    .from(agencyDevelopment)
+    .where(eq(agencyDevelopment.brokerId, session.id))
+    .orderBy(desc(agencyDevelopment.updatedAt));
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold text-slate-900">Sviluppo</h1>
         <p className="mt-2 text-slate-600">
-          Rapporti con agenzie partner: fase contatto e consolidamento.
+          I tuoi rapporti con agenzie partner: fase contatto e consolidamento.
         </p>
       </div>
       <SviluppoClient rows={rows} />
