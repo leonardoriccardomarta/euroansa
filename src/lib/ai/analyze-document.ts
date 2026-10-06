@@ -73,6 +73,11 @@ const responseSchema = {
         netSalary: { type: Type.NUMBER, nullable: true },
         loanDeductions: { type: Type.NUMBER, nullable: true },
         grossIncomeAnnual: { type: Type.NUMBER, nullable: true },
+        alsoCovers: {
+          type: Type.ARRAY,
+          nullable: true,
+          items: { type: Type.STRING, enum: DOCUMENT_TYPES },
+        },
       },
     },
     validationIssues: {
@@ -161,31 +166,30 @@ export async function analyzeDocument(params: {
   const base64 = params.buffer.toString("base64");
 
   const prompt = `Sei un esperto di istruttoria mutui in Italia (mediatore creditizio).
-Analizza questo documento (PDF o immagine) e restituisci JSON strutturato.
+Analizza il CONTENUTO reale di questo PDF/immagine (non fidarti solo del nome file).
 
-documentType: identifica il tipo tra quelli ammessi (lista documenti pratica).
-- Buste paga: BUSTA_PAGA_1/2/3 (più recente = 1); se non chiaro BUSTA_PAGA_1.
-- CUD → MODELLO_CUD; 730 → MODELLO_730 (non usare CUD_730 se puoi distinguere).
-- Modello Unico: MODELLO_UNICO_1 (più recente) o MODELLO_UNICO_2; se un solo file senza anno → MODELLO_UNICO_1.
-- Carta d'identità / tessera sanitaria: anche se è solo fronte o solo retro (file separati) usa comunque CARTA_IDENTITA / TESSERA_SANITARIA. Un PDF con fronte+retro insieme è lo stesso tipo.
-- Estratto conto ufficiale → ESTRATTO_CONTO; lista movimenti 3 mesi → LISTA_MOVIMENTI_3_MESI.
-- OBIS M pensionati → MODELLO_OBIS_M.
-- Atto provenienza immobile → ATTO_IMMOBILE; preliminare/proposta → PRELIMINARE_COMPRAVENDITA.
+documentType = tipo PRINCIPALE del documento (uno solo, il più importante per la checklist).
+alsoCovers (in extractedData) = altri tipi checklist presenti nello STESSO file (array, può essere vuoto).
 
-isValid = true SOLO se il documento è utilizzabile in istruttoria. Imposta false e popola validationIssues se:
-1) Foto/scansione non leggibile, sfuocata, tagliata, troppo scura o con riflessi
-2) Documento scaduto (es. carta d'identità / permesso oltre data scadenza)
-3) Documento errato rispetto a quello atteso / tipo non coerente col contenuto
-4) Lista movimenti / estratto conto: senza saldo, date sbagliate o incoerenti, periodo incompleto
-5) Estratto conto con movimenti sospetti: grossi prelievi, grossi versamenti, bonifici ad amici/terzi non giustificati
-6) Busta paga con trattenute critiche da segnalare: cassa integrazione (CIG), cessione del quinto, pignoramenti, altre trattenute finanziamenti rilevanti (indica anche l'importo in loanDeductions se possibile)
-7) Dati anagrafici assenti quando attesi (nome/cognome/CF)
+Regole classificazione (guarda il contenuto):
+- Certificato ANPR / "stato di famiglia" / "certificato contestuale" / residenza anagrafica → STATO_FAMIGLIA; se include anche residenza metti CERTIFICATO_RESIDENZA in alsoCovers. NON è mai una busta paga. Il nome "cumulativo" NON significa busta paga.
+- 3 buste paga nello stesso PDF → documentType BUSTA_PAGA_1 e alsoCovers [BUSTA_PAGA_2, BUSTA_PAGA_3] (o i mesi presenti).
+- Carta d'identità + tessera sanitaria (codice fiscale) nello stesso PDF → documentType CARTA_IDENTITA e alsoCovers [TESSERA_SANITARIA]. Fronte+retro CI = solo CARTA_IDENTITA.
+- CI + permesso di soggiorno insieme → CARTA_IDENTITA + alsoCovers PERMESSO_SOGGIORNO.
+- CUD → MODELLO_CUD; 730 → MODELLO_730.
+- Modello Unico: MODELLO_UNICO_1 / _2.
+- Estratto conto → ESTRATTO_CONTO; lista movimenti → LISTA_MOVIMENTI_3_MESI.
+- Atto provenienza → ATTO_IMMOBILE; preliminare/proposta → PRELIMINARE_COMPRAVENDITA.
+- Fogli firmati mediatore (privacy, DDM, mandato) → SCONOSCIUTO (non tipizzare come documenti reddito).
 
-Nota: trattenute/cessione del quinto → documento può restare "valido" per tipo ma DEVI elencare il problema in validationIssues e valorizzare loanDeductions. isValid=false se il documento è illeggibile o chiaramente inutilizzabile.
+isValid = true SOLO se utilizzabile in istruttoria. False + validationIssues se:
+1) Illeggibile / scaduto / tipo incoerente col contenuto
+2) Estratto/lista movimenti incompleti o sospetti
+3) Busta con CIG/cessione/pignoramenti rilevanti (segnala in validationIssues e loanDeductions; isValid può restare true se leggibile)
 
-Estrai: nome, cognome, codice fiscale, data scadenza (CI), mese riferimento (buste), stipendio netto, trattenute finanziamenti/cessioni/CIG, reddito lordo annuale (CUD/Unico).
-Numeri in formato numerico (non stringhe con €). validationIssues in italiano, frasi chiare per il broker.
-File originale: ${params.originalFileName}`;
+Estrai: nome, cognome, CF, scadenza CI, mese buste, netto, trattenute, lordo annuale.
+Numeri numerici. validationIssues in italiano.
+File originale (solo hint): ${params.originalFileName}`;
 
   const mimeType =
     params.mimeType === "application/octet-stream" &&
@@ -230,14 +234,34 @@ File originale: ${params.originalFileName}`;
           ? parsed.documentType
           : "SCONOSCIUTO";
 
+        const rawAlso = parsed.extractedData?.alsoCovers ?? [];
+        const alsoCovers = [
+          ...new Set(
+            (Array.isArray(rawAlso) ? rawAlso : [])
+              .filter(
+                (t): t is DocumentType =>
+                  typeof t === "string" &&
+                  DOCUMENT_TYPES.includes(t as DocumentType) &&
+                  t !== "SCONOSCIUTO" &&
+                  t !== documentType,
+              )
+              .map((t) => t as DocumentType),
+          ),
+        ];
+
+        const extractedData: ExtractedDocumentData = {
+          ...(parsed.extractedData ?? {}),
+          alsoCovers: alsoCovers.length ? alsoCovers : null,
+        };
+
         return {
           documentType,
           isValid: Boolean(parsed.isValid) && documentType !== "SCONOSCIUTO",
-          extractedData: parsed.extractedData ?? {},
+          extractedData,
           validationIssues: parsed.validationIssues ?? [],
           standardizedFileName: buildStandardizedFileName(
             documentType,
-            parsed.extractedData ?? {},
+            extractedData,
             params.originalFileName,
           ),
         };

@@ -8,7 +8,11 @@ export type PracticeAlertInput = {
   status: ApplicationStatus;
   updatedAt: Date;
   requiredDocumentTypes: DocumentType[] | null;
-  docs: { documentType: DocumentType; isValid: boolean }[];
+  docs: {
+    documentType: DocumentType;
+    isValid: boolean;
+    extractedData?: { alsoCovers?: DocumentType[] | null } | null;
+  }[];
   lastPipelineError?: string | null;
 };
 

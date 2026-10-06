@@ -122,6 +122,11 @@ export type ExtractedDocumentData = {
   netSalary?: number | null;
   loanDeductions?: number | null;
   grossIncomeAnnual?: number | null;
+  /**
+   * Altri tipi checklist soddisfatti dallo stesso PDF
+   * (es. CI+TS insieme, 3 buste in un file, certificato contestuale).
+   */
+  alsoCovers?: DocumentType[] | null;
 };
 
 export const users = pgTable("users", {

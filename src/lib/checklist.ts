@@ -45,23 +45,47 @@ export function inferEmploymentType(
   return "DIPENDENTE_INDETERMINATO";
 }
 
+type ChecklistDoc = {
+  documentType: DocumentType;
+  isValid: boolean;
+  extractedData?: { alsoCovers?: DocumentType[] | null } | null;
+};
+
+function coveredTypes(
+  docs: ChecklistDoc[],
+): { valid: Set<DocumentType>; present: Set<DocumentType> } {
+  const valid = new Set<DocumentType>();
+  const present = new Set<DocumentType>();
+
+  for (const d of docs) {
+    if (d.documentType && d.documentType !== "SCONOSCIUTO") {
+      present.add(d.documentType);
+      if (d.isValid) valid.add(d.documentType);
+    }
+    const extra = d.extractedData?.alsoCovers ?? [];
+    for (const t of extra) {
+      if (!t || t === "SCONOSCIUTO") continue;
+      present.add(t);
+      if (d.isValid) valid.add(t);
+    }
+  }
+  return { valid, present };
+}
+
 /**
  * Checklist per pratica: usa solo i tipi segnati su quella pratica.
- * Non usa più la lista fissa per profilo lavorativo.
+ * Un file può coprire più voci via extractedData.alsoCovers.
  */
 export function evaluateChecklist(
   requiredTypes: DocumentType[] | null | undefined,
-  docs: Pick<Document, "documentType" | "isValid">[],
+  docs: ChecklistDoc[],
 ): ChecklistResult {
   const required = (requiredTypes ?? []).filter(
     (t) => t && t !== "SCONOSCIUTO",
   );
   const isUnset = required.length === 0;
 
-  const validTypes = new Set(
-    docs.filter((d) => d.isValid).map((d) => d.documentType),
-  );
-  const presentTypes = new Set(docs.map((d) => d.documentType));
+  const { valid: validTypes, present: presentTypes } = coveredTypes(docs);
 
   const presentValid = required.filter((t) => validTypes.has(t));
   const missing = required.filter((t) => !presentTypes.has(t));
@@ -91,14 +115,14 @@ export function evaluateChecklist(
 /** @deprecated usa evaluateChecklist(requiredTypes, docs) */
 export function evaluateChecklistByEmployment(
   employmentType: EmploymentType,
-  docs: Pick<Document, "documentType" | "isValid">[],
-): ChecklistResult {
+  docs: ChecklistDoc[],
+) {
   return evaluateChecklist(CHECKLIST_PRESETS[employmentType] ?? [], docs);
 }
 
 export function deriveApplicationStatus(
   requiredTypes: DocumentType[] | null | undefined,
-  docs: Pick<Document, "documentType" | "isValid">[],
+  docs: ChecklistDoc[],
   currentStatus: string,
 ): "DOCUMENTI_INCOMPLETI" | "COMPLETA_DA_INOLTRARE" | null {
   if (
@@ -109,7 +133,6 @@ export function deriveApplicationStatus(
       "PERIZIA_EFFETTUATA",
       "DELIBERA_FINALE",
       "ROGITATA",
-      // legacy
       "INVIATA_IN_BANCA",
       "PERITO_NOMINATO",
       "DELIBERATA",

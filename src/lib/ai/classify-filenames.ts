@@ -109,6 +109,7 @@ Regole nomi tipici Drive:
 - residenza → CERTIFICATO_RESIDENZA
 - visura → VISURA_CAMERALE
 - APE, DDM, privacy, avvenuta consegna, firmati → SCONOSCIUTO
+- "cumulativo" / contestuale / ANPR / stato di famiglia → STATO_FAMIGLIA (MAI busta paga)
 
 Solo tipi della lista enum. File:
 ${list}`;

@@ -10,6 +10,7 @@ import {
   inferEmploymentType,
 } from "@/lib/checklist";
 import {
+  defaultStorageFolders,
   FILE_NAME_PREFIX,
   storageFolderKindForDocument,
   storageSubfolderLabel,
@@ -231,6 +232,7 @@ async function findOrCreateApplication(params: {
       status: "DOCUMENTI_INCOMPLETI",
       isTest: params.isTest ?? false,
       brokerId: params.brokerId ?? null,
+      storageFolders: defaultStorageFolders(params.clientName),
     })
     .returning();
 

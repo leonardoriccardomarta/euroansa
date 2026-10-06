@@ -1,6 +1,7 @@
 import {
   AlertCircle,
   CheckCircle2,
+  Folder,
 } from "lucide-react";
 import type { Document } from "@/db/schema";
 import {
@@ -13,9 +14,19 @@ import {
 import { isLegacyDriveKey, isSiteStorageKey } from "@/lib/storage/paths";
 import { Badge } from "@/components/ui/badge";
 import { DocumentPreviewButton } from "@/components/dashboard/document-preview";
-import { DocumentUpload } from "@/components/dashboard/document-upload";
+import { FolderUploadButton } from "@/components/dashboard/file-browser-actions";
+
+function folderHint(kind: StorageFolderKind): string {
+  if (kind === "DOC") return "Documenti cliente (checklist): CI, buste, CUD…";
+  if (kind === "BANCA") return "Estratti, movimenti, pratica banca";
+  if (kind === "IMMOBILE") return "Atto, catastale, preliminare…";
+  return "Fogli firmati (fuori checklist): privacy, contratto, DDM…";
+}
 
 function DocRow({ doc }: { doc: Document }) {
+  const also =
+    doc.extractedData?.alsoCovers?.filter((t) => t && t !== "SCONOSCIUTO") ??
+    [];
   return (
     <div className="border-t border-slate-100 pt-3 first:border-0 first:pt-0">
       <div className="flex flex-wrap items-start justify-between gap-2">
@@ -57,38 +68,18 @@ function DocRow({ doc }: { doc: Document }) {
               </Badge>
             ) : null}
           </p>
+          {also.length > 0 ? (
+            <p className="mt-1 text-xs text-primary-700">
+              Copre anche:{" "}
+              {also.map((t) => DOCUMENT_TYPE_LABELS[t] ?? t).join(", ")}
+            </p>
+          ) : null}
           <p className="mt-1 text-xs text-slate-500">
             Originale: {doc.rawFileName}
           </p>
           <p className="text-xs text-slate-500">
             Rinominato: {doc.renamedFileName}
           </p>
-          {doc.extractedData ? (
-            <p className="mt-2 text-xs text-slate-600">
-              {[
-                doc.extractedData.lastName || doc.extractedData.firstName
-                  ? `${doc.extractedData.lastName ?? ""} ${doc.extractedData.firstName ?? ""}`.trim()
-                  : null,
-                doc.extractedData.fiscalCode
-                  ? `CF ${doc.extractedData.fiscalCode}`
-                  : null,
-                doc.extractedData.referenceMonth
-                  ? `Mese ${doc.extractedData.referenceMonth}`
-                  : null,
-                typeof doc.extractedData.netSalary === "number"
-                  ? `Netto €${doc.extractedData.netSalary.toFixed(2)}`
-                  : null,
-                typeof doc.extractedData.grossIncomeAnnual === "number"
-                  ? `Lordo €${doc.extractedData.grossIncomeAnnual.toFixed(2)}`
-                  : null,
-                doc.extractedData.expiryDate
-                  ? `Scad. ${doc.extractedData.expiryDate}`
-                  : null,
-              ]
-                .filter(Boolean)
-                .join(", ")}
-            </p>
-          ) : null}
         </div>
         {doc.driveFileUrl && isSiteStorageKey(doc.driveFileId) ? (
           <DocumentPreviewButton
@@ -111,39 +102,6 @@ function DocRow({ doc }: { doc: Document }) {
   );
 }
 
-function FolderBlock({
-  title,
-  hint,
-  list,
-  accent,
-}: {
-  title: string;
-  hint?: string;
-  list: Document[];
-  accent: "client" | "signed" | "ops";
-}) {
-  if (!list.length) return null;
-  const border =
-    accent === "signed"
-      ? "border-primary-200 bg-primary-50/40"
-      : accent === "client"
-        ? "border-slate-200 bg-white"
-        : "border-slate-200 bg-slate-50/80";
-  return (
-    <div className={`rounded-xl border p-5 shadow-sm ${border}`}>
-      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-        {title}
-      </p>
-      {hint ? <p className="mt-1 text-sm text-slate-600">{hint}</p> : null}
-      <div className="mt-3 space-y-3">
-        {list.map((doc) => (
-          <DocRow key={doc.id} doc={doc} />
-        ))}
-      </div>
-    </div>
-  );
-}
-
 export function PracticeDocumentsSection({
   applicationId,
   clientName,
@@ -154,9 +112,6 @@ export function PracticeDocumentsSection({
   docs: Document[];
 }) {
   const defaultDocLabel = storageSubfolderLabel("DOC", clientName);
-  const euroansaLabel = storageSubfolderLabel("EUROANSA", clientName);
-  const bancaLabel = storageSubfolderLabel("BANCA", clientName);
-  const immobileLabel = storageSubfolderLabel("IMMOBILE", clientName);
 
   const byFolder = new Map<string, Document[]>();
   for (const doc of docs) {
@@ -166,29 +121,30 @@ export function PracticeDocumentsSection({
     byFolder.set(key, list);
   }
 
-  const clientDocs = byFolder.get(defaultDocLabel) ?? [];
-  const signedDocs = [
-    ...(byFolder.get(euroansaLabel) ?? []),
-    ...[...byFolder.entries()]
-      .filter(
-        ([k]) =>
-          isEuroansaFolder(k) &&
-          k !== euroansaLabel,
-      )
-      .flatMap(([, list]) => list),
-  ];
-  const bancaDocs = byFolder.get(bancaLabel) ?? [];
-  const immobileDocs = byFolder.get(immobileLabel) ?? [];
+  const mainFolders = STORAGE_FOLDER_KINDS.map((kind) => {
+    const label = storageSubfolderLabel(kind, clientName);
+    let list = byFolder.get(label) ?? [];
+    if (kind === "EUROANSA") {
+      const legacy = [...byFolder.entries()]
+        .filter(
+          ([k]) => isEuroansaFolder(k) && k !== label,
+        )
+        .flatMap(([, rows]) => rows);
+      list = [...list, ...legacy];
+    }
+    return { kind, label, list };
+  });
 
-  const known = new Set([
-    defaultDocLabel,
-    euroansaLabel,
-    bancaLabel,
-    immobileLabel,
-    "EUROANSA",
-    "UFFICIO",
-  ]);
-  const otherFolders = [...byFolder.entries()].filter(([k]) => !known.has(k) && !isEuroansaFolder(k));
+  const mainLabels = new Set(
+    mainFolders.flatMap((f) =>
+      f.kind === "EUROANSA"
+        ? [f.label, "EUROANSA", "UFFICIO"]
+        : [f.label],
+    ),
+  );
+  const otherFolders = [...byFolder.entries()].filter(
+    ([k]) => !mainLabels.has(k) && !isEuroansaFolder(k),
+  );
 
   return (
     <section id="files" className="space-y-4">
@@ -197,56 +153,70 @@ export function PracticeDocumentsSection({
           Cartella documenti
         </h2>
         <p className="text-sm text-slate-600">
-          Quattro cartelle file: DOC (anagrafica/reddito), BANCA (estratti,
-          pratiche banca), IMMOBILE, EUROANSA (solo fogli firmati). La checklist
-          sopra guarda i tipi documento, non le cartelle. Relazione e firmati
-          EUROANSA non entrano in checklist.
+          Stesse 4 cartelle di File. Mail/AI riempie DOC/BANCA/IMMOBILE e
+          aggiorna la checklist. Per i firmati scegli EUROANSA (solo salvataggio
+          + rinomina, fuori checklist). Relazione ha il blocco dedicato sopra.
         </p>
       </div>
 
-      {docs.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-slate-300 bg-white p-8 text-center text-sm text-slate-500">
-          Nessun documento caricato.
-        </div>
-      ) : null}
-
-      <FolderBlock
-        title="Documenti dal cliente"
-        hint={`Cartella ${defaultDocLabel}: CUD, CI, buste paga…`}
-        list={clientDocs}
-        accent="client"
-      />
-      <FolderBlock
-        title="Banca"
-        hint="Documentazione istituto / istruttoria"
-        list={bancaDocs}
-        accent="ops"
-      />
-      <FolderBlock
-        title="Immobile"
-        hint="Atto, catastale, preliminare…"
-        list={immobileDocs}
-        accent="ops"
-      />
-      <FolderBlock
-        title="Fogli firmati"
-        hint="Cartella EUROANSA: privacy, contratto, DDM… Entrano nel pacchetto segreteria."
-        list={signedDocs}
-        accent="signed"
-      />
-
-      {otherFolders.map(([label, list]) => (
-        <FolderBlock
+      {mainFolders.map(({ kind, label, list }) => (
+        <div
           key={label}
-          title={label}
-          list={list}
-          accent="ops"
-        />
+          className={`rounded-xl border p-5 shadow-sm ${
+            kind === "EUROANSA"
+              ? "border-primary-200 bg-primary-50/40"
+              : "border-slate-200 bg-white"
+          }`}
+        >
+          <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
+            <div className="flex items-start gap-2">
+              <Folder className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
+              <div>
+                <p className="font-semibold text-slate-900">{label}</p>
+                <p className="text-xs text-slate-500">{folderHint(kind)}</p>
+                <p className="text-xs text-slate-400">{list.length} file</p>
+              </div>
+            </div>
+            <FolderUploadButton
+              applicationId={applicationId}
+              folderName={label}
+              label={kind === "EUROANSA" ? "Carica firmati" : "Nuovo file"}
+            />
+          </div>
+          {list.length === 0 ? (
+            <p className="text-sm text-slate-500">Cartella vuota.</p>
+          ) : (
+            <div className="space-y-3">
+              {list.map((doc) => (
+                <DocRow key={doc.id} doc={doc} />
+              ))}
+            </div>
+          )}
+        </div>
       ))}
 
-      <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-        <DocumentUpload applicationId={applicationId} />
-      </div>
+      {otherFolders.map(([label, list]) => (
+        <div
+          key={label}
+          className="rounded-xl border border-slate-200 bg-slate-50/80 p-5 shadow-sm"
+        >
+          <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p className="font-semibold text-slate-900">{label}</p>
+              <p className="text-xs text-slate-400">{list.length} file</p>
+            </div>
+            <FolderUploadButton
+              applicationId={applicationId}
+              folderName={label}
+            />
+          </div>
+          <div className="space-y-3">
+            {list.map((doc) => (
+              <DocRow key={doc.id} doc={doc} />
+            ))}
+          </div>
+        </div>
+      ))}
     </section>
   );
 }

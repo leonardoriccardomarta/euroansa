@@ -88,6 +88,7 @@ export default async function DashboardPage({
             applicationId: documents.applicationId,
             documentType: documents.documentType,
             isValid: documents.isValid,
+            extractedData: documents.extractedData,
           })
           .from(documents)
           .where(inArray(documents.applicationId, appIds));

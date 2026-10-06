@@ -41,8 +41,14 @@ export function guessDocumentTypeFromFileName(fileName: string): DocumentType {
     return "TESSERA_SANITARIA";
   }
   if (/passaport/.test(n)) return "PASSAPORTO";
+  // ANPR / contestuale / "cumulativo" anagrafico — NON busta paga
+  if (
+    /stato.?famig|contestuale|anagrafe|anpr|cumulativo/.test(n) ||
+    (/residenza/.test(n) && /famig|stato|certificat/.test(n))
+  ) {
+    return "STATO_FAMIGLIA";
+  }
   if (/residenza/.test(n)) return "CERTIFICATO_RESIDENZA";
-  if (/stato.?famig/.test(n)) return "STATO_FAMIGLIA";
   if (/stato.?liber/.test(n)) return "CERTIFICATO_STATO_LIBERO";
   if (/matrimon/.test(n)) return "ATTO_MATRIMONIO";
   if (/vedov/.test(n)) return "CERTIFICATO_VEDOVANZA";
@@ -56,7 +62,6 @@ export function guessDocumentTypeFromFileName(fileName: string): DocumentType {
     if (/([_\s-]|^)(1|01|genn)([_\s.-]|$)/.test(n)) return "BUSTA_PAGA_1";
     return "BUSTA_PAGA_1";
   }
-  if (/cumulativo/.test(n)) return "BUSTA_PAGA_1";
 
   if (/\b730\b|modello.?730/.test(n)) return "MODELLO_730";
   if (/\bcud\b|modello.?cu\b|(^|[_\s-])cu([_\s-]|$)|cud\d*/.test(n))

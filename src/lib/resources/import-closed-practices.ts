@@ -433,14 +433,28 @@ export async function reclassifyImportedDocuments(): Promise<{
   let typesUpdated = 0;
 
   for (const row of rows) {
-    if (row.documentType !== "SCONOSCIUTO") continue;
-    const guess = guessDocumentTypeFromFileName(
-      row.rawFileName || row.renamedFileName,
-    );
+    const name = row.rawFileName || row.renamedFileName;
+    const guess = guessDocumentTypeFromFileName(name);
     if (guess === "SCONOSCIUTO") continue;
+    // Sovrascrivi SCONOSCIUTO, oppure errori noti (es. cumulativo → busta paga)
+    const forceFix =
+      row.documentType !== guess &&
+      (/cumulativo|contestuale|stato.?famig|anagrafe|anpr/i.test(name) ||
+        row.documentType === "SCONOSCIUTO");
+    if (!forceFix) continue;
     await db
       .update(documents)
-      .set({ documentType: guess, isValid: true })
+      .set({
+        documentType: guess,
+        isValid: true,
+        ...(guess === "STATO_FAMIGLIA" && /residenza|contestuale/i.test(name)
+          ? {
+              extractedData: {
+                alsoCovers: ["CERTIFICATO_RESIDENZA" as const],
+              },
+            }
+          : {}),
+      })
       .where(eq(documents.id, row.id));
     row.documentType = guess;
     typesUpdated += 1;
