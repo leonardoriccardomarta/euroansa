@@ -235,7 +235,7 @@ export function PracticeDocumentsSection({
                   key={doc.id}
                   doc={doc}
                   classifyOptions={classifyOptions}
-                  allowClassify={kind !== "EUROANSA"}
+                  allowClassify={kind === "DOC" || kind === "IMMOBILE"}
                 />
               ))}
             </div>
@@ -264,7 +264,7 @@ export function PracticeDocumentsSection({
                 key={doc.id}
                 doc={doc}
                 classifyOptions={classifyOptions}
-                allowClassify
+                allowClassify={false}
               />
             ))}
           </div>
