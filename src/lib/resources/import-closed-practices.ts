@@ -266,6 +266,7 @@ export async function importClosedPracticesFromDrive(params: {
   skipped: number;
   junkRemoved: number;
   docsAttached: number;
+  typesUpdated: number;
   errors: string[];
 }> {
   const year = params.year ?? 2026;
@@ -274,6 +275,7 @@ export async function importClosedPracticesFromDrive(params: {
   let skipped = 0;
   let junkRemoved = 0;
   let docsAttached = 0;
+  let typesUpdated = 0;
   const errors: string[] = [];
 
   const jobs: { label: "FILIPPO" | "MARCO"; sheetId: string }[] = [
@@ -381,7 +383,88 @@ export async function importClosedPracticesFromDrive(params: {
     }
   }
 
-  return { created, updated, skipped, junkRemoved, docsAttached, errors };
+  // Rivaluta tipi da nome file (es. ESLAM_bp 03 → busta paga) e aggiorna checklist
+  try {
+    const re = await reclassifyImportedDocuments();
+    typesUpdated = re.typesUpdated;
+  } catch (err) {
+    errors.push(
+      `riclassifica: ${err instanceof Error ? err.message : "errore"}`,
+    );
+  }
+
+  return {
+    created,
+    updated,
+    skipped,
+    junkRemoved,
+    docsAttached,
+    typesUpdated,
+    errors,
+  };
+}
+
+/** Rivaluta documentType da filename e allinea requiredDocumentTypes. */
+export async function reclassifyImportedDocuments(): Promise<{
+  typesUpdated: number;
+  checklistsUpdated: number;
+}> {
+  const rows = await db
+    .select({
+      id: documents.id,
+      applicationId: documents.applicationId,
+      rawFileName: documents.rawFileName,
+      renamedFileName: documents.renamedFileName,
+      documentType: documents.documentType,
+      isValid: documents.isValid,
+    })
+    .from(documents);
+
+  let typesUpdated = 0;
+
+  for (const row of rows) {
+    const guess = guessDocumentTypeFromFileName(
+      row.rawFileName || row.renamedFileName,
+    );
+    if (guess === "SCONOSCIUTO") continue;
+    if (row.documentType !== "SCONOSCIUTO") continue;
+
+    await db
+      .update(documents)
+      .set({ documentType: guess, isValid: true })
+      .where(eq(documents.id, row.id));
+    typesUpdated += 1;
+  }
+
+  let checklistsUpdated = 0;
+  const appIds = [...new Set(rows.map((r) => r.applicationId))];
+  for (const appId of appIds) {
+    const docs = await db
+      .select({
+        documentType: documents.documentType,
+        isValid: documents.isValid,
+      })
+      .from(documents)
+      .where(eq(documents.applicationId, appId));
+    const types = [
+      ...new Set(
+        docs
+          .filter((d) => d.isValid && d.documentType !== "SCONOSCIUTO")
+          .map((d) => d.documentType),
+      ),
+    ];
+    if (types.length === 0) continue;
+    await db
+      .update(applications)
+      .set({
+        requiredDocumentTypes: types,
+        updatedAt: new Date(),
+      })
+      .where(eq(applications.id, appId));
+    checklistsUpdated += 1;
+  }
+
+  return { typesUpdated, checklistsUpdated };
 }
 
 async function syncPracticeFoldersFromBrokerRoot(params: {

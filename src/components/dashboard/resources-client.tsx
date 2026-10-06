@@ -2,7 +2,10 @@
 
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
-import { syncClosedPracticesFromDriveAction } from "@/actions/drive-import";
+import {
+  reclassifyImportedDocsAction,
+  syncClosedPracticesFromDriveAction,
+} from "@/actions/drive-import";
 import {
   deleteResourceAction,
   syncResourcesFromDriveAction,
@@ -119,6 +122,27 @@ export function ResourcesClient({
             }}
           >
             Sync pratiche chiuse 2026
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            className="min-h-10"
+            disabled={pending}
+            onClick={() => {
+              startTransition(async () => {
+                const res = await reclassifyImportedDocsAction();
+                if (!res || !("ok" in res) || !res.ok) {
+                  toast.error("Riconoscimento tipi fallito");
+                  return;
+                }
+                toast.success(
+                  `Tipi riconosciuti: ${res.typesUpdated} · checklist aggiornate: ${res.checklistsUpdated}`,
+                );
+                router.refresh();
+              });
+            }}
+          >
+            Riconosci tipi da nomi file
           </Button>
         </div>
       ) : null}

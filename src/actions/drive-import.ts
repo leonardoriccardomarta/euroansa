@@ -6,7 +6,10 @@ import {
   listConnectedGoogleUsers,
   oauthClientFromRefreshToken,
 } from "@/lib/google/auth";
-import { importClosedPracticesFromDrive } from "@/lib/resources/import-closed-practices";
+import {
+  importClosedPracticesFromDrive,
+  reclassifyImportedDocuments,
+} from "@/lib/resources/import-closed-practices";
 
 export async function syncClosedPracticesFromDriveAction() {
   await requireAdmin();
@@ -22,6 +25,16 @@ export async function syncClosedPracticesFromDriveAction() {
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/rogitate");
   revalidatePath("/dashboard/files");
+  revalidatePath("/dashboard/risorse");
+  return { ok: true as const, ...result };
+}
+
+/** Solo riclassifica tipi da nome file + checklist (senza ridepositare da Drive). */
+export async function reclassifyImportedDocsAction() {
+  await requireAdmin();
+  const result = await reclassifyImportedDocuments();
+  revalidatePath("/dashboard");
+  revalidatePath("/dashboard/rogitate");
   revalidatePath("/dashboard/risorse");
   return { ok: true as const, ...result };
 }
