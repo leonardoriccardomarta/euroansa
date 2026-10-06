@@ -238,3 +238,28 @@ export async function listDriveFolderFileIds(
   } while (pageToken);
   return ids;
 }
+
+/** Elenca sottocartelle Drive (non ricorsivo). */
+export async function listDriveChildFolders(
+  folderId: string,
+  auth?: GoogleOAuthClient,
+): Promise<{ id: string; name: string }[]> {
+  const drive = getDriveClient(auth);
+  const out: { id: string; name: string }[] = [];
+  let pageToken: string | undefined;
+  do {
+    const page = await drive.files.list({
+      q: `'${folderId}' in parents and trashed = false and mimeType = 'application/vnd.google-apps.folder'`,
+      fields: "nextPageToken, files(id,name)",
+      pageSize: 100,
+      pageToken,
+      supportsAllDrives: true,
+      includeItemsFromAllDrives: true,
+    });
+    for (const f of page.data.files ?? []) {
+      if (f.id && f.name) out.push({ id: f.id, name: f.name });
+    }
+    pageToken = page.data.nextPageToken ?? undefined;
+  } while (pageToken);
+  return out;
+}

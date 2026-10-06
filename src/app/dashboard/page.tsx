@@ -5,8 +5,10 @@ import { db } from "@/db";
 import { applications, documents, users } from "@/db/schema";
 import { evaluateChecklist } from "@/lib/checklist";
 import { APPLICATION_STATUS_LABELS } from "@/lib/config/documents";
+import { buildPracticeAlerts } from "@/lib/practice-alerts";
 import { StatusFilter } from "@/components/dashboard/status-filter";
 import { ApplicationCard } from "@/components/dashboard/application-card";
+import { PracticeAlertsPanel } from "@/components/dashboard/practice-alerts-panel";
 
 export const dynamic = "force-dynamic";
 
@@ -58,6 +60,7 @@ export default async function DashboardPage({
       brokerId: applications.brokerId,
       requiredDocumentTypes: applications.requiredDocumentTypes,
       lastPipelineError: applications.lastPipelineError,
+      updatedAt: applications.updatedAt,
     })
     .from(applications)
     .$dynamic();
@@ -115,6 +118,20 @@ export default async function DashboardPage({
 
   const isAdmin = session.role === "ADMIN";
 
+  const alerts = buildPracticeAlerts(
+    apps
+      .filter((a) => !a.isTest)
+      .map((a) => ({
+        id: a.id,
+        clientName: a.clientName,
+        status: a.status,
+        updatedAt: a.updatedAt,
+        requiredDocumentTypes: a.requiredDocumentTypes,
+        docs: docsByApp.get(a.id) ?? [],
+        lastPipelineError: a.lastPipelineError,
+      })),
+  );
+
   return (
     <div className="space-y-8">
       <div>
@@ -127,6 +144,8 @@ export default async function DashboardPage({
             : "Le pratiche assegnate a te."}
         </p>
       </div>
+
+      <PracticeAlertsPanel alerts={alerts} />
 
       <div className="grid gap-3 sm:grid-cols-3">
         <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">

@@ -1,5 +1,5 @@
 import { notFound, redirect } from "next/navigation";
-import { desc, eq } from "drizzle-orm";
+import { asc, desc, eq } from "drizzle-orm";
 import {
   AlertCircle,
   CheckCircle2,
@@ -9,11 +9,13 @@ import { getSession } from "@/lib/auth";
 import { db } from "@/db";
 import {
   applications,
+  bankPolicies,
   documents,
   secretarySendLogs,
   systemSettings,
   users,
 } from "@/db/schema";
+import { ensureBankPolicySeed } from "@/lib/banks/ensure-seed";
 import {
   evaluateChecklist,
   inferEmploymentType,
@@ -21,9 +23,7 @@ import {
 import {
   DOCUMENT_TYPE_LABELS,
   EMPLOYMENT_TYPE_LABELS,
-  STORAGE_FOLDER_KINDS,
   sheetRowsForRequired,
-  storageSubfolderLabel,
 } from "@/lib/config/documents";
 import { isLegacyDriveKey, isSiteStorageKey } from "@/lib/storage/paths";
 import { PACKAGE_LINK_TTL_DAYS } from "@/lib/db/setup-statements";
@@ -31,11 +31,9 @@ import { isTutorialPractice } from "@/lib/tutorial";
 import { Badge } from "@/components/ui/badge";
 import { ApplicationActions } from "@/components/dashboard/application-actions";
 import { ClosedPracticeCleanup } from "@/components/dashboard/closed-practice-cleanup";
-import { DocumentPreviewButton } from "@/components/dashboard/document-preview";
-import { DocumentUpload } from "@/components/dashboard/document-upload";
+import { PracticeDocumentsSection } from "@/components/dashboard/practice-documents-section";
 import { RelazioneUpload } from "@/components/dashboard/relazione-upload";
 import { PreventivoForm } from "@/components/dashboard/preventivo-form";
-import { BankPolicyPanel } from "@/components/dashboard/bank-policy-panel";
 import { RequiredDocsEditor } from "@/components/dashboard/required-docs-editor";
 import { PracticeEconomicsForm } from "@/components/dashboard/practice-economics-form";
 import { TutorialPracticeBanner } from "@/components/onboarding/tutorial-practice-banner";
@@ -75,7 +73,9 @@ export default async function ApplicationDetailPage({
   // Refresh stato solo dopo upload/mutazioni (pipeline), non a ogni apertura pagina
   const current = app;
 
-  const [docs, sendLogs, settingsRow, allUsers] = await Promise.all([
+  await ensureBankPolicySeed();
+
+  const [docs, sendLogs, settingsRow, allUsers, bankRows] = await Promise.all([
     db
       .select()
       .from(documents)
@@ -100,6 +100,15 @@ export default async function ApplicationDetailPage({
         overrideOnOthersPercent: users.overrideOnOthersPercent,
       })
       .from(users),
+    db
+      .select({
+        bankName: bankPolicies.bankName,
+        summary: bankPolicies.summary,
+        rows: bankPolicies.rows,
+        detailText: bankPolicies.detailText,
+      })
+      .from(bankPolicies)
+      .orderBy(asc(bankPolicies.sortOrder), asc(bankPolicies.bankName)),
   ]);
 
   const [settings] = settingsRow;
@@ -404,6 +413,7 @@ export default async function ApplicationDetailPage({
       <PreventivoForm
         applicationId={current.id}
         clientName={current.clientName}
+        banks={bankRows}
         defaults={{
           ...(current.preventivoData ?? {}),
           bankName: current.preventivoData?.bankName ?? current.bankName,
@@ -418,172 +428,11 @@ export default async function ApplicationDetailPage({
         fileName={current.preventivoFileName}
       />
 
-      <BankPolicyPanel bankName={current.bankName} />
-
-      <section id="files">
-        <h2 className="mb-2 text-xl font-bold text-slate-900">
-          Cartella documenti
-        </h2>
-        <p className="mb-4 text-sm text-slate-600">
-          Cartelle:{" "}
-          {STORAGE_FOLDER_KINDS.map((k) =>
-            storageSubfolderLabel(k, current.clientName),
-          ).join(", ")}
-          {", relazione. In EUROANSA metti i fogli firmati (privacy, contratto,"}
-          {" DDM…): entrano nel pacchetto segreteria."}
-        </p>
-        <div className="space-y-3">
-          {docs.length === 0 && (
-            <div className="rounded-xl border border-dashed border-slate-300 bg-white p-8 text-center text-sm text-slate-500">
-              Nessun documento caricato.
-            </div>
-          )}
-          {(() => {
-            const defaultDocLabel = storageSubfolderLabel(
-              "DOC",
-              current.clientName,
-            );
-            const byFolder = new Map<string, typeof docs>();
-            for (const doc of docs) {
-              const key = doc.storageSubfolder?.trim() || defaultDocLabel;
-              const list = byFolder.get(key) ?? [];
-              list.push(doc);
-              byFolder.set(key, list);
-            }
-            const orderedLabels = [
-              ...STORAGE_FOLDER_KINDS.map((k) =>
-                storageSubfolderLabel(k, current.clientName),
-              ),
-              ...[...byFolder.keys()].filter(
-                (k) =>
-                  !STORAGE_FOLDER_KINDS.map((kind) =>
-                    storageSubfolderLabel(kind, current.clientName),
-                  ).includes(k),
-              ),
-            ];
-            return orderedLabels.map((label) => {
-              const list = byFolder.get(label);
-              if (!list?.length) return null;
-              return (
-                <div
-                  key={label}
-                  className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm"
-                >
-                  <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                    {label}
-                  </p>
-                  <div className="space-y-3">
-                    {list.map((doc) => (
-                      <div
-                        key={doc.id}
-                        className="border-t border-slate-100 pt-3 first:border-0 first:pt-0"
-                      >
-                        <div className="flex flex-wrap items-start justify-between gap-2">
-                          <div>
-                            <p className="flex flex-wrap items-center gap-2 font-semibold text-slate-900">
-                              {DOCUMENT_TYPE_LABELS[doc.documentType]}
-                              {doc.isValid ? (
-                                <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                              ) : (
-                                <AlertCircle className="h-4 w-4 text-red-500" />
-                              )}
-                              {isLegacyDriveKey(doc.driveFileId) ? (
-                                <Badge
-                                  variant="outline"
-                                  className="border-amber-200 bg-amber-50 text-amber-800"
-                                >
-                                  Solo Drive   ricarica
-                                </Badge>
-                              ) : doc.filePurged ? (
-                                <Badge
-                                  variant="outline"
-                                  className="border-slate-200 bg-slate-50 text-slate-600"
-                                >
-                                  Storico
-                                </Badge>
-                              ) : doc.keptForHistory ? (
-                                <Badge
-                                  variant="outline"
-                                  className="border-emerald-200 bg-emerald-50 text-emerald-800"
-                                >
-                                  Tenuto
-                                </Badge>
-                              ) : !doc.driveFileId ? (
-                                <Badge
-                                  variant="outline"
-                                  className="border-red-200 bg-red-50 text-red-700"
-                                >
-                                  Non in storage
-                                </Badge>
-                              ) : null}
-                            </p>
-                            <p className="mt-1 text-xs text-slate-500">
-                              Originale: {doc.rawFileName}
-                            </p>
-                            <p className="text-xs text-slate-500">
-                              Rinominato: {doc.renamedFileName}
-                            </p>
-                            {doc.extractedData && (
-                              <p className="mt-2 text-xs text-slate-600">
-                                {[
-                                  doc.extractedData.lastName ||
-                                  doc.extractedData.firstName
-                                    ? `${doc.extractedData.lastName ?? ""} ${doc.extractedData.firstName ?? ""}`.trim()
-                                    : null,
-                                  doc.extractedData.fiscalCode
-                                    ? `CF ${doc.extractedData.fiscalCode}`
-                                    : null,
-                                  doc.extractedData.referenceMonth
-                                    ? `Mese ${doc.extractedData.referenceMonth}`
-                                    : null,
-                                  typeof doc.extractedData.netSalary ===
-                                  "number"
-                                    ? `Netto €${doc.extractedData.netSalary.toFixed(2)}`
-                                    : null,
-                                  typeof doc.extractedData
-                                    .grossIncomeAnnual === "number"
-                                    ? `Lordo €${doc.extractedData.grossIncomeAnnual.toFixed(2)}`
-                                    : null,
-                                  doc.extractedData.expiryDate
-                                    ? `Scad. ${doc.extractedData.expiryDate}`
-                                    : null,
-                                ]
-                                  .filter(Boolean)
-                                  .join(", ")}
-                              </p>
-                            )}
-                          </div>
-                          {doc.driveFileUrl &&
-                          isSiteStorageKey(doc.driveFileId) ? (
-                            <DocumentPreviewButton
-                              src={doc.driveFileUrl}
-                              fileName={doc.renamedFileName}
-                              label="Anteprima"
-                            />
-                          ) : null}
-                        </div>
-                        {doc.validationIssues?.length > 0 && (
-                          <div className="mt-3 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">
-                            <ul className="list-disc pl-4">
-                              {doc.validationIssues.map((issue) => (
-                                <li key={issue}>{issue}</li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              );
-            });
-          })()}
-
-          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-            <DocumentUpload applicationId={current.id} />
-          </div>
-        </div>
-      </section>
+      <PracticeDocumentsSection
+        applicationId={current.id}
+        clientName={current.clientName}
+        docs={docs}
+      />
 
       <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
         <h2 className="text-lg font-semibold text-slate-900">

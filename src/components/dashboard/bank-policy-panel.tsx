@@ -1,13 +1,43 @@
-import Link from "next/link";
-import { db } from "@/db";
-import { bankPolicies } from "@/db/schema";
-import { ensureBankPolicySeed } from "@/lib/banks/ensure-seed";
+"use client";
 
-export async function BankPolicyPanel({ bankName }: { bankName: string | null }) {
+import Link from "next/link";
+import type { BankPolicyRow } from "@/db/schema";
+
+export type BankPolicyOption = {
+  bankName: string;
+  summary: string | null;
+  rows: BankPolicyRow[];
+  detailText: string | null;
+};
+
+function matchBank(
+  banks: BankPolicyOption[],
+  bankName: string | null,
+): BankPolicyOption | null {
+  if (!bankName?.trim()) return null;
+  const needle = bankName.trim().toLowerCase();
+  return (
+    banks.find((b) => b.bankName.toLowerCase() === needle) ??
+    banks.find(
+      (b) =>
+        b.bankName.toLowerCase().includes(needle) ||
+        needle.includes(b.bankName.toLowerCase()),
+    ) ??
+    null
+  );
+}
+
+export function BankPolicyPanel({
+  banks,
+  bankName,
+}: {
+  banks: BankPolicyOption[];
+  bankName: string | null;
+}) {
   if (!bankName?.trim()) {
     return (
       <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
-        Imposta la banca nella scheda economia per vedere la policy inline.{" "}
+        Scegli una banca nel preventivo per vedere la policy.{" "}
         <Link href="/dashboard/banche" className="font-medium text-primary-700 underline">
           Apri scheda banche
         </Link>
@@ -15,16 +45,7 @@ export async function BankPolicyPanel({ bankName }: { bankName: string | null })
     );
   }
 
-  await ensureBankPolicySeed();
-  const needle = bankName.trim().toLowerCase();
-  const all = await db.select().from(bankPolicies);
-  const match =
-    all.find((b) => b.bankName.toLowerCase() === needle) ??
-    all.find(
-      (b) =>
-        b.bankName.toLowerCase().includes(needle) ||
-        needle.includes(b.bankName.toLowerCase()),
-    );
+  const match = matchBank(banks, bankName);
 
   if (!match) {
     return (

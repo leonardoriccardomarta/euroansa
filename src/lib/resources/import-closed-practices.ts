@@ -1,17 +1,29 @@
 import { and, eq, ilike, or } from "drizzle-orm";
 import { db } from "@/db";
-import { applications, users } from "@/db/schema";
-import { defaultStorageFolders } from "@/lib/config/documents";
+import { applications, documents, users } from "@/db/schema";
+import type { DocumentType } from "@/db/schema";
+import {
+  defaultStorageFolders,
+  isEuroansaFolder,
+  normalizeStorageFolderName,
+  storageSubfolderLabel,
+} from "@/lib/config/documents";
 import {
   BROKER_DRIVE_ROOTS,
   BROKER_ECONOMY_SHEETS,
 } from "@/lib/resources/drive-catalog";
+import { guessDocumentTypeFromFileName } from "@/lib/resources/guess-doc-type";
 import {
   downloadFileFromDrive,
+  listDriveChildFolders,
   listDriveFolderFileIds,
 } from "@/lib/google/drive";
 import type { GoogleOAuthClient } from "@/lib/google/auth";
-import { uploadRelazioneFile } from "@/lib/storage/blob";
+import {
+  uploadPracticeFile,
+  uploadPreventivoFile,
+  uploadRelazioneFile,
+} from "@/lib/storage/blob";
 
 const MONTHS: Record<string, number> = {
   GENNAIO: 0,
@@ -27,6 +39,22 @@ const MONTHS: Record<string, number> = {
   NOVEMBRE: 10,
   DICEMBRE: 11,
 };
+
+/** Etichette / totali Excel che non sono clienti. */
+const JUNK_NAME_RE =
+  /^(EROGATO|POLIZZE|TOTALE|SUBTOTAL|MEDIA|ACCORDI|ACCORDO|%?\s*CLIENTE|CLIENTE\s*\(|CQS\s*$|PRESTITI?\s*$|FATTURATO|QUOTA|MUTUO\s*$|BANCA\s*$)/i;
+
+export function isJunkClientName(name: string): boolean {
+  const t = name.trim();
+  if (!t || t.length < 2) return true;
+  if (/^ACQUIRENTE$/i.test(t)) return true;
+  if (JUNK_NAME_RE.test(t)) return true;
+  if (/^\d+%?$/.test(t)) return true;
+  if (/%\s*CLIENTE/i.test(t)) return true;
+  if (/\(\s*\d{4,}\s*-\s*\d+%?\s*\)/.test(t) && /CLIENTE|POLIZZ|EROGAT/i.test(t))
+    return true;
+  return false;
+}
 
 function parseMoney(raw: unknown): number | null {
   const s = String(raw ?? "")
@@ -64,9 +92,33 @@ export type ClosedPracticeRow = {
   rogitoAt: Date;
 };
 
+function looksLikeRealClient(row: {
+  name: string;
+  phone: string | null;
+  bankName: string | null;
+  provenance: string | null;
+  loanAmount: number | null;
+  propertyAmount: number | null;
+}): boolean {
+  if (isJunkClientName(row.name)) return false;
+  if (row.phone && /\d{6,}/.test(row.phone.replace(/\D/g, ""))) return true;
+  if (row.bankName && row.bankName.length >= 3) return true;
+  if (row.provenance && row.provenance.length >= 3) return true;
+  // Nome persona-ish + mutuo/immobile
+  if (
+    /[A-Za-zÀ-ù]{3,}/.test(row.name) &&
+    (row.loanAmount || row.propertyAmount) &&
+    !/%/.test(row.name)
+  ) {
+    return true;
+  }
+  return false;
+}
+
 async function parseClosedSheet(
   buffer: Buffer,
   year: number,
+  now = new Date(),
 ): Promise<ClosedPracticeRow[]> {
   const XLSX = await import("xlsx");
   const wb = XLSX.read(buffer, { type: "buffer" });
@@ -83,6 +135,7 @@ async function parseClosedSheet(
 
   let month = 0;
   const out: ClosedPracticeRow[] = [];
+  const nowMonth = now.getUTCFullYear() === year ? now.getUTCMonth() : 11;
 
   for (const row of rows) {
     const c0 = String(row[0] ?? "")
@@ -92,27 +145,47 @@ async function parseClosedSheet(
       month = MONTHS[c0]!;
       continue;
     }
+    // Mesi futuri (stesso anno): non importare
+    if (year > now.getUTCFullYear()) continue;
+    if (year === now.getUTCFullYear() && month > nowMonth) continue;
+
     const name = String(row[1] ?? "").trim();
-    if (!name || /^ACQUIRENTE$/i.test(name)) continue;
-    if (/cqs|prestito|accordi/i.test(name) && !parseMoney(row[3])) {
-      // CQS-only rows: still import if they have client commission-ish data
-    }
+    if (!name || isJunkClientName(name)) continue;
+
     const loanAmount = parseMoney(row[3]);
     const propertyAmount = parseMoney(row[4]);
-    if (!loanAmount && !propertyAmount && !parseMoney(row[13])) continue;
+    const commissionClient = parseMoney(row[13]);
+    if (!loanAmount && !propertyAmount && !commissionClient) continue;
+
+    const phone = String(row[2] ?? "").trim() || null;
+    const provenance = String(row[6] ?? "").trim() || null;
+    const bankName = String(row[7] ?? "").trim() || null;
+
+    if (
+      !looksLikeRealClient({
+        name,
+        phone,
+        bankName,
+        provenance,
+        loanAmount,
+        propertyAmount,
+      })
+    ) {
+      continue;
+    }
 
     out.push({
       clientName: name.toUpperCase(),
-      phone: String(row[2] ?? "").trim() || null,
+      phone,
       loanAmount,
       propertyAmount,
       ltvPercent: parsePercent(row[5]),
-      provenance: String(row[6] ?? "").trim() || null,
-      bankName: String(row[7] ?? "").trim() || null,
+      provenance,
+      bankName,
       commissionPolicy: parseMoney(row[10]),
       commissionCqs: parseMoney(row[11]),
       commissionBank: parseMoney(row[12]),
-      commissionClient: parseMoney(row[13]),
+      commissionClient,
       commissionLoans: parseMoney(row[14]),
       commissionNotary: parseMoney(row[15]),
       rogitoAt: new Date(Date.UTC(year, month, 15, 12, 0, 0)),
@@ -143,6 +216,47 @@ async function findBrokerId(
   return all[0]?.id ?? null;
 }
 
+async function removeJunkRogitate(brokerId: string): Promise<number> {
+  const rows = await db
+    .select({
+      id: applications.id,
+      clientName: applications.clientName,
+      clientEmail: applications.clientEmail,
+    })
+    .from(applications)
+    .where(
+      and(
+        eq(applications.brokerId, brokerId),
+        eq(applications.status, "ROGITATA"),
+      ),
+    );
+
+  let removed = 0;
+  for (const r of rows) {
+    if (!isJunkClientName(r.clientName)) continue;
+    // Solo import automatici (@prontopratica.local) per non toccare pratiche manuali
+    if (!/@prontopratica\.local$/i.test(r.clientEmail)) continue;
+    await db.delete(applications).where(eq(applications.id, r.id));
+    removed += 1;
+  }
+  return removed;
+}
+
+function classifySubfolder(
+  folderName: string,
+  clientName: string,
+): "DOC" | "BANCA" | "IMMOBILE" | "EUROANSA" | null {
+  const n = normalizeStorageFolderName(folderName).toUpperCase();
+  if (isEuroansaFolder(n) || n === "EUROANSA") return "EUROANSA";
+  if (/^BANCA$/i.test(n)) return "BANCA";
+  if (/^IMMOBILE$/i.test(n)) return "IMMOBILE";
+  if (/\bDOC\b/i.test(n)) return "DOC";
+  // Match "ALI DOC" style
+  const docLabel = storageSubfolderLabel("DOC", clientName).toUpperCase();
+  if (n === docLabel || n.endsWith(" DOC")) return "DOC";
+  return null;
+}
+
 export async function importClosedPracticesFromDrive(params: {
   auth: GoogleOAuthClient;
   year?: number;
@@ -150,12 +264,16 @@ export async function importClosedPracticesFromDrive(params: {
   created: number;
   updated: number;
   skipped: number;
+  junkRemoved: number;
+  docsAttached: number;
   errors: string[];
 }> {
   const year = params.year ?? 2026;
   let created = 0;
   let updated = 0;
   let skipped = 0;
+  let junkRemoved = 0;
+  let docsAttached = 0;
   const errors: string[] = [];
 
   const jobs: { label: "FILIPPO" | "MARCO"; sheetId: string }[] = [
@@ -168,6 +286,14 @@ export async function importClosedPracticesFromDrive(params: {
     if (!brokerId) {
       errors.push(`Broker ${job.label} non trovato tra gli utenti`);
       continue;
+    }
+
+    try {
+      junkRemoved += await removeJunkRogitate(brokerId);
+    } catch (err) {
+      errors.push(
+        `cleanup ${job.label}: ${err instanceof Error ? err.message : "errore"}`,
+      );
     }
 
     let rows: ClosedPracticeRow[] = [];
@@ -241,56 +367,43 @@ export async function importClosedPracticesFromDrive(params: {
       }
     }
 
-    // Best-effort: allega relazione se c'è file *_relazione* nella cartella pratica Drive
     try {
-      await attachRelazioniFromBrokerFolder({
+      const n = await syncPracticeFoldersFromBrokerRoot({
         auth: params.auth,
         brokerId,
         folderId: BROKER_DRIVE_ROOTS[job.label],
       });
+      docsAttached += n;
     } catch (err) {
       errors.push(
-        `relazioni ${job.label}: ${err instanceof Error ? err.message : "errore"}`,
+        `cartelle ${job.label}: ${err instanceof Error ? err.message : "errore"}`,
       );
     }
   }
 
-  return { created, updated, skipped, errors };
+  return { created, updated, skipped, junkRemoved, docsAttached, errors };
 }
 
-async function attachRelazioniFromBrokerFolder(params: {
+async function syncPracticeFoldersFromBrokerRoot(params: {
   auth: GoogleOAuthClient;
   brokerId: string;
   folderId: string;
-}) {
-  const { getDriveClient } = await import("@/lib/google/auth");
-  // getDriveClient usa l'auth hub se omesso; qui forziamo il client collegato
-  const drive = getDriveClient(params.auth);
-  let pageToken: string | undefined;
-  const practiceFolders: { id: string; name: string }[] = [];
-  do {
-    const page = await drive.files.list({
-      q: `'${params.folderId}' in parents and trashed = false and mimeType = 'application/vnd.google-apps.folder'`,
-      fields: "nextPageToken, files(id,name)",
-      pageSize: 100,
-      pageToken,
-      supportsAllDrives: true,
-      includeItemsFromAllDrives: true,
-    });
-    for (const f of page.data.files ?? []) {
-      if (f.id && f.name) practiceFolders.push({ id: f.id, name: f.name });
-    }
-    pageToken = page.data.nextPageToken ?? undefined;
-  } while (pageToken);
+}): Promise<number> {
+  const practiceFolders = await listDriveChildFolders(
+    params.folderId,
+    params.auth,
+  );
+  let attached = 0;
 
   for (const folder of practiceFolders) {
     const needle = folder.name
       .replace(/-PRATICA.*/i, "")
-      .replace(/PP$/i, "")
+      .replace(/\s*PP$/i, "")
       .trim()
       .toUpperCase();
-    if (!needle || needle.length < 3) continue;
+    if (!needle || needle.length < 3 || isJunkClientName(needle)) continue;
 
+    const firstToken = needle.split(/\s+/)[0] ?? needle;
     const [app] = await db
       .select()
       .from(applications)
@@ -299,39 +412,199 @@ async function attachRelazioniFromBrokerFolder(params: {
           eq(applications.brokerId, params.brokerId),
           or(
             eq(applications.clientName, needle),
-            ilike(applications.clientName, `%${needle.split(/\s+/)[0]}%`),
+            ilike(applications.clientName, `%${firstToken}%`),
           ),
         ),
       )
       .limit(1);
-    if (!app || app.relazioneStorageKey) continue;
+    if (!app) continue;
 
-    const fileIds = await listDriveFolderFileIds(folder.id, params.auth);
-    for (const fid of fileIds) {
-      try {
-        const file = await downloadFileFromDrive(fid, params.auth);
-        if (!/relazione/i.test(file.fileName)) continue;
-        const uploaded = await uploadRelazioneFile({
-          applicationId: app.id,
-          clientName: app.clientName,
-          fileName: file.fileName,
-          mimeType: file.mimeType,
-          buffer: file.buffer,
-        });
-        await db
-          .update(applications)
-          .set({
-            relazioneStorageKey: uploaded.pathname,
-            relazioneFileName:
-              uploaded.pathname.split("/").pop() ?? file.fileName,
-            relazioneUploadedAt: new Date(),
-            updatedAt: new Date(),
-          })
-          .where(eq(applications.id, app.id));
-        break;
-      } catch {
-        // skip file
+    const existingDocs = await db
+      .select({
+        rawFileName: documents.rawFileName,
+        renamedFileName: documents.renamedFileName,
+        storageSubfolder: documents.storageSubfolder,
+      })
+      .from(documents)
+      .where(eq(documents.applicationId, app.id));
+    const seenNames = new Set(
+      existingDocs.flatMap((d) => [
+        d.rawFileName.toLowerCase(),
+        d.renamedFileName.toLowerCase(),
+      ]),
+    );
+
+    const importedTypes = new Set<DocumentType>();
+    const existingTypes = await db
+      .select({
+        documentType: documents.documentType,
+        isValid: documents.isValid,
+      })
+      .from(documents)
+      .where(eq(documents.applicationId, app.id));
+    for (const d of existingTypes) {
+      if (d.isValid && d.documentType !== "SCONOSCIUTO") {
+        importedTypes.add(d.documentType);
       }
     }
+
+    const childFolders = await listDriveChildFolders(folder.id, params.auth);
+
+    // File in root pratica (relazione / preventivo)
+    const rootFileIds = await listDriveFolderFileIds(folder.id, params.auth);
+    for (const fid of rootFileIds) {
+      try {
+        const file = await downloadFileFromDrive(fid, params.auth);
+        const lower = file.fileName.toLowerCase();
+        if (/relazione/i.test(lower) && !app.relazioneStorageKey) {
+          const uploaded = await uploadRelazioneFile({
+            applicationId: app.id,
+            clientName: app.clientName,
+            fileName: file.fileName,
+            mimeType: file.mimeType,
+            buffer: file.buffer,
+          });
+          await db
+            .update(applications)
+            .set({
+              relazioneStorageKey: uploaded.pathname,
+              relazioneFileName:
+                uploaded.pathname.split("/").pop() ?? file.fileName,
+              relazioneUploadedAt: new Date(),
+              updatedAt: new Date(),
+            })
+            .where(eq(applications.id, app.id));
+          app.relazioneStorageKey = uploaded.pathname;
+          attached += 1;
+          continue;
+        }
+        if (/preventivo/i.test(lower) && !app.preventivoStorageKey) {
+          const uploaded = await uploadPreventivoFile({
+            applicationId: app.id,
+            clientName: app.clientName,
+            buffer: file.buffer,
+          });
+          await db
+            .update(applications)
+            .set({
+              preventivoStorageKey: uploaded.pathname,
+              preventivoFileName:
+                uploaded.pathname.split("/").pop() ?? "preventivo.pdf",
+              updatedAt: new Date(),
+            })
+            .where(eq(applications.id, app.id));
+          app.preventivoStorageKey = uploaded.pathname;
+          attached += 1;
+        }
+      } catch {
+        // skip
+      }
+    }
+
+    for (const sub of childFolders) {
+      const kind = classifySubfolder(sub.name, app.clientName);
+      if (!kind) continue;
+      const subfolderLabel = storageSubfolderLabel(kind, app.clientName);
+      const fileIds = await listDriveFolderFileIds(sub.id, params.auth);
+
+      for (const fid of fileIds) {
+        try {
+          const file = await downloadFileFromDrive(fid, params.auth);
+          const key = file.fileName.toLowerCase();
+          if (seenNames.has(key)) continue;
+          if (/relazione/i.test(key) && !app.relazioneStorageKey) {
+            const uploaded = await uploadRelazioneFile({
+              applicationId: app.id,
+              clientName: app.clientName,
+              fileName: file.fileName,
+              mimeType: file.mimeType,
+              buffer: file.buffer,
+            });
+            await db
+              .update(applications)
+              .set({
+                relazioneStorageKey: uploaded.pathname,
+                relazioneFileName:
+                  uploaded.pathname.split("/").pop() ?? file.fileName,
+                relazioneUploadedAt: new Date(),
+                updatedAt: new Date(),
+              })
+              .where(eq(applications.id, app.id));
+            app.relazioneStorageKey = uploaded.pathname;
+            attached += 1;
+            seenNames.add(key);
+            continue;
+          }
+          if (/preventivo/i.test(key) && !app.preventivoStorageKey) {
+            const uploaded = await uploadPreventivoFile({
+              applicationId: app.id,
+              clientName: app.clientName,
+              buffer: file.buffer,
+            });
+            await db
+              .update(applications)
+              .set({
+                preventivoStorageKey: uploaded.pathname,
+                preventivoFileName:
+                  uploaded.pathname.split("/").pop() ?? "preventivo.pdf",
+                updatedAt: new Date(),
+              })
+              .where(eq(applications.id, app.id));
+            app.preventivoStorageKey = uploaded.pathname;
+            attached += 1;
+            seenNames.add(key);
+            continue;
+          }
+
+          const docType = guessDocumentTypeFromFileName(file.fileName);
+          const uploaded = await uploadPracticeFile({
+            applicationId: app.id,
+            subfolder: subfolderLabel,
+            fileName: file.fileName,
+            mimeType: file.mimeType,
+            buffer: file.buffer,
+          });
+          const [inserted] = await db
+            .insert(documents)
+            .values({
+              applicationId: app.id,
+              rawFileName: file.fileName,
+              renamedFileName: file.fileName,
+              documentType: docType,
+              driveFileId: uploaded.pathname,
+              driveFileUrl: null,
+              storageSubfolder: subfolderLabel,
+              isValid: true,
+              validationIssues: [],
+              keptForHistory: true,
+            })
+            .returning({ id: documents.id });
+          if (inserted) {
+            await db
+              .update(documents)
+              .set({ driveFileUrl: `/api/files/${inserted.id}` })
+              .where(eq(documents.id, inserted.id));
+          }
+          seenNames.add(key);
+          if (docType !== "SCONOSCIUTO") importedTypes.add(docType);
+          attached += 1;
+        } catch {
+          // skip file
+        }
+      }
+    }
+
+    if (importedTypes.size > 0) {
+      await db
+        .update(applications)
+        .set({
+          requiredDocumentTypes: [...importedTypes],
+          storageFolders: defaultStorageFolders(app.clientName),
+          updatedAt: new Date(),
+        })
+        .where(eq(applications.id, app.id));
+    }
   }
+
+  return attached;
 }

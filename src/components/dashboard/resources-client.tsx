@@ -109,9 +109,9 @@ export function ResourcesClient({
                   return;
                 }
                 toast.success(
-                  `Pratiche: ${res.created} create, ${res.updated} aggiornate`,
+                  `Pratiche: ${res.created} create, ${res.updated} aggiornate · ${res.docsAttached ?? 0} file · ${res.junkRemoved ?? 0} spazzatura rimossa`,
                 );
-                if (res.errors.length) {
+                if (res.errors?.length) {
                   toast.message(res.errors.slice(0, 3).join(" · "));
                 }
                 router.refresh();

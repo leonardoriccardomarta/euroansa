@@ -22,5 +22,6 @@ export async function syncClosedPracticesFromDriveAction() {
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/rogitate");
   revalidatePath("/dashboard/files");
+  revalidatePath("/dashboard/risorse");
   return { ok: true as const, ...result };
 }

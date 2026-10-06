@@ -347,6 +347,7 @@ export async function generatePreventivoAction(
       preventivoData: data,
       preventivoStorageKey: uploaded.pathname,
       preventivoFileName: uploaded.pathname.split("/").pop() ?? "preventivo.pdf",
+      ...(data.bankName ? { bankName: data.bankName } : {}),
       updatedAt: new Date(),
     })
     .where(eq(applications.id, applicationId));
