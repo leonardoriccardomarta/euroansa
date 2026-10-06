@@ -397,7 +397,10 @@ export const bankPolicies = pgTable("bank_policies", {
   bankName: varchar("bank_name", { length: 120 }).notNull().unique(),
   slug: varchar("slug", { length: 120 }).notNull().unique(),
   summary: text("summary"),
+  /** Matrice RIEPILOGO (etichetta → valore) */
   rows: jsonb("rows").$type<BankPolicyRow[]>().notNull().default([]),
+  /** Testo completo dal tab per-banca del foglio Excel */
+  detailText: text("detail_text"),
   sortOrder: real("sort_order").notNull().default(0),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),

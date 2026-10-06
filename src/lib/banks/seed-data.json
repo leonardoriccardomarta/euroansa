@@ -1,0 +1,1924 @@
+[
+  {
+    "bankName": "ING",
+    "slug": "ing",
+    "summary": "80 ANNI",
+    "sortOrder": 10,
+    "rows": [
+      {
+        "label": "DURATA",
+        "value": "80 ANNI"
+      },
+      {
+        "label": "PASSO/DURATA DELIBERA",
+        "value": "PASSO 1 - TV\nPASSO 5 - TF - TF 5 - TF 10 (DELIBERA 6 MESI)"
+      },
+      {
+        "label": "RESIDENZA STRANIERI",
+        "value": "ALMENO 3 ANNI"
+      },
+      {
+        "label": "ANZIANITA' LAVORATIVA",
+        "value": "ALMENO 2/3 BP OLTRE\nPERIODO DI PROVA (X HLTV 3 ANNI ANCHE NON STESSO DATORE DI LAVORO, NO AUTONOMI)"
+      },
+      {
+        "label": "GARANTI",
+        "value": "IL NUCLEO FAM DEL GARANTE SI SOMMA A QUELLO DEL RICHIEDENTE\nGARANTE SOSTANZIALE=REDDITI AL 100%\nMAX 2 PER PRATICA - (SE IL GARANTE E' FONDAMENTALE SEGNARE GARANTE SOSTANZIALE)\nCONIUGE, PARTNER (NO SPOSATI MA RELAZIONE STABILE,\nSTATO FAMIGLIA O GENITORE DI PROLE IN COMUNE O COINTESTATARIO DI IMMOBILE\nANCHE PICCOLA PARTE)\nGENITORI (20 K LORDI NUCLEO INTERO),\nPATRIGNO/MATRIGNA (SPOSATO ALMENO 10 ANNI CON GENIT. NATURALE E PRESENTE IN STATO FAMIGLIA)\nFIGLI, FRATELLI/SORELLE\nALMENO 20K LORDI PER FRATELLO E PER FIGLIO = REDDITO AL 100%\nSE ETA' 80 IN CORRISPONDENZA DEI 2/3 DEL PIANO DI AMMORTAMENTO = REDDITO AL 50%"
+      },
+      {
+        "label": "TERZO DATORE DI IPOTECA",
+        "value": "SI (ACCERTARSENE)"
+      },
+      {
+        "label": "ASTA",
+        "value": "SI, DIMOSTRARE 10% DEL VALORE D''ACQUISTO (STIPULA IN TRIBUNALE)"
+      },
+      {
+        "label": "SURROGA",
+        "value": "SI, ALMENO 6 MESI DI MUTUO PAGATO MIN 80K- MASSIMO 500K (1° CASA TF O 2°)"
+      },
+      {
+        "label": "PRODOTTI",
+        "value": "ACQUISTO PRIMA E SECONDA CASA\nSOSTITUZIONE, SURROGA E RIFINANZIAMENTO (CONSOLIDAMENTO)\nLIQUIDITA' O RISTRUTTURAZIONE\nTF - TV - TF 5 - TF10\nPRODOTTO HLTV 95% LTC E LTV"
+      },
+      {
+        "label": "MUTUO GREEN",
+        "value": "Sconto green: in caso di mutuo acquisto, se l’immobile è di classe energetica “B”, “A” o superiore, è possibile ricevere automaticamente lo sconto 50bps per tasso Fisso Rinegoziabile; 20bps per il tasso Variabile; 90bps per tasso Fisso lunghe durate e 20bps per tasso Fisso <25 anni"
+      },
+      {
+        "label": "RIFERIMENTO EURIBOR",
+        "value": "3 MESI"
+      },
+      {
+        "label": "PERMESSO DI SOGGIORNO",
+        "value": "IN CORSO DI VALIDITA' MA ANCHE CON RICEVUTA DI CONVOCAZIONE CON APPUNTAMENTO SOLO CON L'ILLIMITATO O LUNGO PERIODO (PERO' IMPRONTE DOPO DATA ATTO), CON SCADENZA SOLO IN CORSO E ATTO PRIMA SCADENZA"
+      },
+      {
+        "label": "AUTONOMI",
+        "value": "ALMENO 2 ANNI NELLA MEDESIMA ATTIVITA'\nCALCOLO = RN4-RN26-RV2-RV10:12\nSE FORFETTARIO LM38-15% (ANCHE SOLO UN UNICO)"
+      },
+      {
+        "label": "IMPEGNI IN ESSERE A BREVE SCADENZA",
+        "value": "NON VENGONO CALCOLATI SE NON SUPERANO 9 MESI - SIA MUTUATARIO CHE GARNATE\nSE SI E' COOBLIGATI CON ALTRE PERSONE CHE\nNON PRENDONO PARTE NELL'OPERAZIONE DI MUTUO,\n VENGONO CONSIDERATI AL 50%"
+      },
+      {
+        "label": "T. DETERMINATO",
+        "value": "AFFIANCATO A T IND CHE ABBIA LAV ALMENO 18 MESI NEGLI ULTIMI 24\nCON SCADENZA NON INFERIORE A 6 MESI\nNON CONTINUATIVI E ANCHE DA DATORI DIVERSI"
+      },
+      {
+        "label": "INSEGNANTI",
+        "value": "T DETERM 3 ANNI CON CONTRATTI ANNUALI SE AFFIANCATO A T IND\n(NO DURATA MIN 6 MESI)"
+      },
+      {
+        "label": "APPRENDISTATO PROFESSIONALIZZANTE",
+        "value": "AFFIANCATO A T IND CHE ABBIA LAV ALMENO 18 MESI NEGLI ULTIMI 24\nCON SCADENZA NON INFERIORE A 6 MESI\nNON CONTINUATIVI E ANCHE DA DATORI DIVERSI - SE STESSA AZIENDA DA ALMENO 24 MESI POSSIAMO PROCEDERE COME T IND DA SOLO , SE HA I 2 ANNI E SCADE A BREVE POSSO PRESENTARLO CON UNA LETTERA DA PARTE DEL LAVORO CON L ASSUNZIONE T IND (ATTESTATO DI SERVIZIO)"
+      },
+      {
+        "label": "CONTRATTO SOMMINISTRAZIONE",
+        "value": "VIENE CONSIDERATO IL CONTRATTO A T IND CON AGENZIA\n(ES. 800 EURO PER PRATICHE MONOREDDITO)\nREDDITO PIENO SE AFFIANCATO A T IND E ABBIA LAV 18 MESI NEGLI ULTIMI 24 MESI\nCON CONTRATTO DI ASSEGNAZIONE NON INFERIORE A 6 MESI\nCHIEDERE SEMPRE CONFERMA A SUPPORTO"
+      },
+      {
+        "label": "TRASFERTE",
+        "value": "Anche SE NON AUTOTRASPORTATORE ma deve esserci sul contratto trasferte - PONDERATO AL 70%"
+      },
+      {
+        "label": "COLF / BADANTI",
+        "value": "SI 100% REDDITO MINIMO 800€ MESE ANZIANITA MINIMA 2 ANNI"
+      },
+      {
+        "label": "ALIMENTI DATI/RICEVUTI",
+        "value": "PERCEPITI = CONSIDERATI AL 50%\nCOME DA OMOLOGA SEPARAZIONE E/O SENTENZA DIVORZIO\nDEVONO ESSERCI 3 ACCREDITI VISIBILI SUL C/C"
+      },
+      {
+        "label": "ASSEGNO UNICO FIGLIO",
+        "value": "Si, AL 100% - SE A CARICO AL 100% DELL'INTESTATARIO,\n50% SE A CARICO A META' E L'ALTRO NON PARTECIPA ALL'OPERAZIONE\n (0-11 ANNI 100% - 12 - 17 ANNI 50% - 18 IN SU NO)"
+      },
+      {
+        "label": "IMMOBILE DA DONAZIONE",
+        "value": "SI, NON SERVE ATTO NOTARIO E ATTI COMPENSATIVI\nSE DSR <= 35% ED LTV < 70%"
+      },
+      {
+        "label": "ASSEGNO UNICO",
+        "value": "PONDERATI A SECONDA DELL ETÀ DEI FIGLI: FINO A 11 ANNI 100% - 12-17 ANNI 50% - 18 ANNI NON VALORIZZABILE"
+      },
+      {
+        "label": "REDDITI PARTICOLARI",
+        "value": "TRANSFRONTALIERE CON REDDITI IN EURO DICHIARATI SECONDO LA NORMATIVA\nFISCALE ITALIANA - LAVORATORI PRESSO ORGANIZZAZIONI INTERNAZIONALI\n ANCHE CON CONTRATTO T DET CON ALMENO 2 ANNI DI CONTINUITA'\nMEDICI CONTRATTO A TERMINE ALMENO 3 ANNI 40K LORDI ANNUI NO 6 MESI SCADENZA)\nMARITTIMI - REDDITO AGRARIO\nREDDITO DA LOCAZIONE CONSIDERATO 80% SU CANONE ANNUALE\n(NON DEV'ESSERE UNICA FONTE DI REDDITO)"
+      },
+      {
+        "label": "RIENTRO CERVELLI / RIMPATRIATI",
+        "value": "SI --> VEDI SCHEDA BANCA"
+      },
+      {
+        "label": "PENSIONE DI INVALIDITA'",
+        "value": "MONOREDDITO INVALIDITA' PERMANENTE (NON RIVEDIBILE)\n\nPLURIREDDITO INVALIDITÀ RIVEDIBILE (NO Pensione di inabilità / invalidità temporanea)\nAL 100% purché con grado di invalidità > 50%\ne se in presenza di co-mutuatario con reddito valido"
+      },
+      {
+        "label": "PARTICOLARITA'",
+        "value": "MUTUATARIO NO REDDITO: IL GARANTE DIVENTA COINTESTATARIO DI\n MUTUO MA NON NECESSARIAMENTE DELL'IMMOBILE\nACQUISTO: QUOTA DALL'EX CONIUGE, QUOTA DA EX PARTNER, QUOTA DAI COEREDI,\nIMMOBILE DA EX CONIUGE/PARTNER (NO QUOTE), IMMOBILE TRA PARENTI E AFFINI\n(VEDI SCHEDA BANCA PER DETTAGLI)"
+      },
+      {
+        "label": "PRE DELIBERA/ CARD",
+        "value": "SI, VALIDA 6 MESI DALLA DELIBERA"
+      },
+      {
+        "label": "IMPORTO MIN - MAX",
+        "value": "50K - 500K (ACQUISTO 1° CASA TF - O 2° CASA )"
+      },
+      {
+        "label": "CALCOLO REDDITO CUD PARZIALE",
+        "value": "CALCOLO DA BP COME POLICY BANCA --> VEDI SITO IRPEF\n(REDDITO LORDO - RITENUTE : GIORNI LAVORATI X 365 : 12)"
+      },
+      {
+        "label": "ISTRUTTORIA",
+        "value": "MIN 1.250 / MAX 2.250\nCON PERIZIA INCLUSA"
+      },
+      {
+        "label": "PERIZIA",
+        "value": "0,00 EURO"
+      },
+      {
+        "label": "ISTRUT CONSAP",
+        "value": "-"
+      },
+      {
+        "label": "INCASSO RATA CONSAP",
+        "value": "-"
+      },
+      {
+        "label": "INCASSO RATA",
+        "value": "0,00 EURO SE ACCREDITO STIPENDIO"
+      },
+      {
+        "label": "ASSICURAZIONI SUGGERITE",
+        "value": "NO\n(FARE NOI ALMENO META' MUTUO PER INCENDIO/SCOPPIO)"
+      },
+      {
+        "label": "PROV. MASSIME CLIENTE",
+        "value": "3%"
+      }
+    ],
+    "detailText": "ING\nPOLICY BANCA\nDURATA:: DA 18 A 80 ANNI DI ETA' FINE MUTUO\nRESIDENZA:: STRANIERI ALMENO 3 ANNI\nSUSSISTENZA:: DIVISIONE IN PICCOLI CENTRI/GRANDI CENTRI/METROPOLI\nPER CATEGORIE A RISCHIO (TRAVEL, RESTAURANTS, ACCOMODATION, REAL ESTATE PROFESSIONAL, AIR TRANSPORT,\nENTERTAINMENT) VALGONO RESTRIZIONI COVID -> SOGLIE CONTANO X 1.5\nPRODOTTI:: PRODOTTI 80% · PRODOTTI 95% · PRODOTTI HLTV\n(passo 1): VARIABILE senza floor · euribor 3 mesi\n(passo 5): FISSO 5 Rinegoziabile\nFISSO 10 Rinegoziabile\nFISSO\nSURROGA:: min 80.000 € · LIQUIDITA' · CONSOLIDAMENTO · SOSTITUZIONE\nCALCOLO REDDITO:\nMRI: REDDITO , SOGLIE , IMPEGNI IN ESSERE = REDDITO DISPONIBILE PER MUTUO\nDSR: REDDITO DISPONIBILE > RATA MUTUO = OK\nNell’ambito del mutuo acquisto, il saldo prezzo deve essere interamente documentato in tutti i casi in cui il Loan to Value (LTV) è superiore al 65%.\nREDDITI CONSIDERATI\n>: INDETERMINATO = deve avere superato il periodo di prova. Bastano 2 BP.\n(Insegnanti con almeno 3 anni di contratto, valgono come indeterminati)\n>: DETERMINATO = 18 mesi negli ultimi 24. Anche da datore di lavoro diversi (caso\nparticolare: 12 lavorati + 6 alla scadenza del contratto = vale 100). (caso 12 + promessa di rinnovo = vale 0)\n>: AUTONOMI: ANZIANITA' MINIMA 2 ANNI NELLA STESSA ATTIVITA' (ANCHE AMMINISTRATORE E CONSIGLIERE). CALCOLO: RN4-RN26-RV7-RV15/ 12\n>: COLF , BADANTI = 0\n>: PENSIONATO:\n>: REDDITI PARTICOLARI:\nAFFITTI: solo con contratto e canalizzato sul conto del cliente;\nPENSIONI DI INVALIDITA’: valorizzata al 100%\nMANTENIMENTO PERCEPITO: valorizzato al 50%\n>: GARANTE: Massimo 2 garanti per pratica. (\nSe fratelli o sorelle reddito considerato al 100% con oneri e incarichi familiari al 100%\n>: APPRENDISTATO PROFESSIONALIZZANTE: considerato se affiancato da altro reddito e non scade nei 6 mesi, considerato al 100% come indeterm.\nPERSONALE SCOLASTICO: a tempo determinato del settore pubblico che abbia lavorato negli ultimi 3 anni con contratti annuali, è assimilato ai lavoratori a tempo indeterminato\n(la copertura dell’anno scolastico non deve essere necessariamente nella stessa scuola e non si richiede la durata minima futura di 6 mesi prevista di norma per i lavoratori a tempo determinato).\nMEDICI: Medici con contratto a termine purché dimostrino di aver percepito almeno 40.000 euro lordi all’anno in ciascuno degli ultimi 3 anni\nREDDITI PARTICOLARI\n>: I redditi da locazione sono accettati se dichiarati fiscalmente e/o documentati con contratti registrati e con evidenza di accredito del canone su e/c del titolare.\n>: Gli assegni di mantenimento sono accettati a patto che siano stabiliti da verbale di separazione omologato/sentenza di divorzio\n>: Consideriamo le trasferte se il cliente è AUTOTRASPORTATORE o PERSONALE DI VOLO alla voce mansione della Bp (peso al 70% le voci aggiungendole alla media da CU)\nPARTICOLARITA':\nAnte Atto il deliberante verifica il saldo prezzo:\nSe dico TFR vuole il TFR. Se dico TFR e poi arrivano in altra forma la pratica viene bloccata.\nSe dico fondi dovrò svincolare i fondi\nSe dico genitori devono arrivare dai genitori\nIl saldo prezzo può arrivare da un prestito o una cqs purché rientri a priori tra gli impegni: DIMOSTRABILE ANCHE IN FASE DI TECNICO-LEGALE\n▪ Acquisto di quota dall’ex coniuge a seguito di omologa di separazione o sentenza di divorzio per un intervento fino all’80%\ndel valore di perizia del cespite ipotecario\n▪ Acquisto quote da ex-partner in forza di scrittura privata nei limiti del valore della quota ceduta\n(ossia il valore della quota dell’immobile), includendo il 50% del mutuo residuo entro l’80% del valore di LTV da perizia.\nEsempio\nValore perizia: € 100.000\nMutuo residuo: € 20.000\nQuota ceduta: € 50.000\nFinanziato: (€ 50.000 + € 20.000/2) = € 60.000\n▪ Acquisto quote dai coeredi in riferimento a un immobile proveniente da eredità indivisa per un intervento fino all’80%\ndel valore di perizia (nei limiti del minor valore tra compromesso e valore di perizia) e il 100% della quota. Si interviene\nanche nel caso in cui la moglie/partner dell’erede acquista la quota residuale.\n▪ Acquisto immobile da ex coniuge/partner (no quote) in presenza di omologa di separazione o sentenza di divorzio s’interviene\nfino al 100% del valore di acquisto e comunque fino all’80% del valore di perizia del cespite ipotecario. Se uno dei due richiedenti è autonomo,\nil valore di LTV verrà ridotto al 60%.\n▪ Acquisto immobile tra parenti e affini se presenti le seguenti condizioni: o Prezzo immobile da compromesso in linea con valore di mercato\no Evidenza delle caparre versate\no LTV max 80% per dipendenti e LTV max. 60% per autonomi. Si esclude la compravendita tra marito e moglie e in generale tra parenti di primo grado, ad eccezione\n dell’acquisto quote tra coeredi.\nPROCESSO:\n1) PIATTAFORMA\n2) ANALISI REDDITUALE = 8/10 giorni: istruttoria reddituale\n3) INCARICO PERIZIA e INCARICO NOTAIO CONTEMPORANEAMENTE - Prelios o Cerved sono i provider\n4) PIES e SUBORDINI 10 giorni lavorativi: istruttoria tecnico legale\n5) ROGITO\nLa DELIBERA dura 6 mesi / dopo 3 mesi rilanciano le banche dati\nPARTICOLARITA': 1) Solo partner, genitori, figli, fratelli/sorelle\n2) E la miglior banca per gestire le separazioni\n3) sotto cut off\n4) se il codice sotto le note è E999\n5) ING comunica con il cliente\n6) i prestiti con scadenza entro i 6/9 mesi non li considera\n7) le persone a carico sono solo quelle a carico fiscalmente\n8) no terzo datore di ipoteca. Sì 2 intestatari di mutuo e uno di casa\nfisso rinegoziabile 500 EURO IN PIù SULLE SPESE\nCALCOLO REDDITI DA POLICY BANCA:\nDIPENDENTE Reddito Lordo da Cu , Imposte / 12\nNel caso di calcolo da BP le voci da considerare sono esclusivamente PAGA BASE a cui si toglie l’inps in misura del 9,19% ed il risultato si inserisce sul sito irpef.info\n(esempio) Lordo busta paga: 1.704 euro 1.704 euro x14 ( mensilità ) = 23.856 euro 23.856 , 9,19% ( INPS) = 21.663 euro Calcolare il reddito dal sito https://www.irpef.info/calcolairpef.html inserendo 21.663 euro come reddito annuo, su 12 mensilità.\nAUTONOMO\nMedia redditi ultimi 2 Modelli Unico\nQuadri considerati : RN4, RN26-RV2, RV1O / 12\nModelli unici completi di f24 e ricezione telematica\n\nSe FORFETTARIO sempre media ultimi 2 Modelli UnicoQuadri : LM38 , 20%\nil contratto di somministrazione viene accettato, ma deve essere valorizzato il minimo garantito, ossia 800 euro, per pratiche monoreddito.\nÈ possibile invece considerare il reddito pieno, se accompagnato da un indeterminato “tradizionale”, ma deve anche dimostrare di aver lavorato presso aziende negli ultimi 18/24 mesi e di avere un contratto di assegnazione per altre 6 mesi di residuo.\nOgni pratica viene poi valutata nelle sue specificità.\nDONAZIONI:\n- non serve atto notorio e atti compensativi se DSR <= 35% ed LTV < 70%\nMRI SECONDA CASA: Il conteggio MRI viene fatto al 150% su ogni componente\nesempio: 1 persona Grande centro - 1° casa=870. 2° casa=1305\nse acconti eccedono saldo prezzo:\nIn casi particolari, che devono essere autorizzati specificatamente, si può procedere alla liquidazione al venditore\ne all’accredito della differenza sul conto del cliente mutuatario.\nA tal proposito, si dovrà portare evidenza, oltre che da preliminare, che le disponibilità versate in anticipo,\nsiano state effettivamente predisposte, e incassate, per poter ottenere autorizzazione dai crediti a procedere.\ncertificato di residenza vale 12 mesi\ngioco online: spendono € 50 o più in almeno 3 movimenti ogni settimana\nChange management procedure\ncategoria “rientro dei cervelli” (c.d. rimpatriati) possiamo procedere secondo le seguenti regole:\n Monofirma\nSe il richiedente mutuo è cittadino italiano con un trascorso all’estero, è possibile procedere solo se ha residenza in Italia da almeno 6 mesi\n Cointestazione\nAlmeno uno dei due richiedenti deve essere cittadino italiano con residenza in Italia da almeno 6 mesi.\nIn entrambi i casi, se la residenza è inferiore a 6 mesi, sarà possibile inoltrare la richiesta di mutuo; tuttavia, in caso di approvazione reddituale, la stipula sarà condizionata al raggiungimento dei 6 mesi\nEs: italiano residente in Italia dall’01/01/2023 e delibera reddituale dell’01/05/2023. Si condiziona la stipula al raggiungimento dei 6 mesi; sarà quindi possibile stipulare dopo il ’01/07/2023.\nAl di fuori del perimetro sopra circoscritto (fattispecie “rientro dei cervelli”) si conferma il vincolo di 3 anni di residenza nel territorio italiano per tutti i partecipanti."
+  },
+  {
+    "bankName": "BPER",
+    "slug": "bper",
+    "summary": "78 ANNI ETA' (COINTESTAZIONE DEL + GIOVANE)",
+    "sortOrder": 20,
+    "rows": [
+      {
+        "label": "DURATA",
+        "value": "78 ANNI ETA' (COINTESTAZIONE DEL + GIOVANE)"
+      },
+      {
+        "label": "PASSO/DURATA DELIBERA",
+        "value": "PASSO 1"
+      },
+      {
+        "label": "RESIDENZA STRANIERI",
+        "value": "2 ANNI IN ITALIA"
+      },
+      {
+        "label": "ANZIANITA' LAVORATIVA",
+        "value": "ALMENO 2/3 BP OLTRE\nPERIODO DI PROVA"
+      },
+      {
+        "label": "GARANTI",
+        "value": "SE SONO GARANTE SU UN FINANZIAMENTO l'impegno mi viene considerato al 30%\n- SE SONO GARANTE FUROI DAL NUCLEO ( ESEMPIO GENITORE O FRATELLO\nIL MIO REDDITO CONSIDERATO 10% SE STESSO NUCLEO FAMILIARE CONSIDERATO\n100%)"
+      },
+      {
+        "label": "TERZO DATORE DI IPOTECA",
+        "value": "SI"
+      },
+      {
+        "label": "ASTA",
+        "value": "SI"
+      },
+      {
+        "label": "SURROGA",
+        "value": "80K MIN, minimo 13 mesi di ammortamento. Con surroga Consap sono surrogabili\noperazioni con finalità iniziale acquisto con garanzia Consap dei soli soggetti prioritari."
+      },
+      {
+        "label": "PRODOTTI",
+        "value": "CONSAP PRIO 100% ISEE <40K,\nPER PRIO CON ISEE >40K SOLO 90%\n TV E TF FINITO\nTV CAP\nFISSO FINITO INIZIALE CON OPZIONE\n10,15, 20 ANNI"
+      },
+      {
+        "label": "MUTUO GREEN",
+        "value": "SI"
+      },
+      {
+        "label": "RIFERIMENTO EURIBOR",
+        "value": "1 MESE CON FLOOR"
+      },
+      {
+        "label": "PERMESSO DI SOGGIORNO",
+        "value": "IN CORSO DI\nVALIDITA'"
+      },
+      {
+        "label": "AUTONOMI",
+        "value": "RN4-RN5 ? CHIEDERE ALLA FILIALE X CALCOLO REDDITO CORRETTO"
+      },
+      {
+        "label": "IMPEGNI IN ESSERE A BREVE SCADENZA",
+        "value": "VALUTARE CON DIRETTORE FILIALE"
+      },
+      {
+        "label": "T. DETERMINATO",
+        "value": "RAFFORZA PRATICA MA NON CONSIDERATO\n(E' CONSIDERATO A CARICO SE SARA' NELLO STESSO NUCLEO FAM)"
+      },
+      {
+        "label": "INSEGNANTI",
+        "value": "ANCHE NON DI RUOLO (3 ANNI CON RINNOVO)\nCONSIDERATO 100% SOLO AFFIANCATO AL\nT IND"
+      },
+      {
+        "label": "APPRENDISTATO PROFESSIONALIZZANTE",
+        "value": "100% SE AFFIANCATO A T IND (SOLO ALL'80%\n A DISCREZIONE DEL DIRETTORE-\nFILIALE)"
+      },
+      {
+        "label": "CONTRATTO SOMMINISTRAZIONE",
+        "value": "MINIMO DA CONTRATTO SOMMINISTRAZIONE ( 800€ LORDI )"
+      },
+      {
+        "label": "TRASFERTE",
+        "value": "NO"
+      },
+      {
+        "label": "COLF / BADANTI",
+        "value": "SI AFFFIANCATO A T.INDETERMINATO CON CRITERIO"
+      },
+      {
+        "label": "ALIMENTI DATI/RICEVUTI",
+        "value": "SI ALIMENTI RICEVUTI, CONSIDERATI\nCOME REDDITO SECONDARIO AFFIANCATO\nT IND"
+      },
+      {
+        "label": "ASSEGNO UNICO FIGLIO",
+        "value": "NO"
+      },
+      {
+        "label": "IMMOBILE DA DONAZIONE",
+        "value": "SI CON POLIZZA DONAZIONE AON"
+      },
+      {
+        "label": "ASSEGNO UNICO",
+        "value": "SI AL 50% CON ESTRATTI CONTO DI UN ANNO"
+      },
+      {
+        "label": "REDDITI PARTICOLARI",
+        "value": "Per il Mutuo riservato a cittadini italiani\nfrontalieri, residenti in Italia con redditi in\nfranchi svizzeri, l 'eta' del cliente consumatore\nnon deve essere superiore a 70 anni alla\nscadenza (in caso di cointestazione il limite\nva riferito al cointestatario piu' giovane).\n\n RIENTRO CERVELLI REDDITO CALCOLATO CON TASSAZIONE STANDARD"
+      },
+      {
+        "label": "RIENTRO CERVELLI / RIMPATRIATI",
+        "value": "SI"
+      },
+      {
+        "label": "PENSIONE DI INVALIDITA'",
+        "value": "SI"
+      },
+      {
+        "label": "PARTICOLARITA'",
+        "value": "NON CHIEDONO ESTRATTO CONTO"
+      },
+      {
+        "label": "PRE DELIBERA/ CARD",
+        "value": "NO"
+      },
+      {
+        "label": "IMPORTO MIN - MAX",
+        "value": "40K"
+      },
+      {
+        "label": "CALCOLO REDDITO CUD PARZIALE",
+        "value": "MEDIA DA BUSTE PAGA=SOMMA DEI NETTI:NUMERO BUSTE PAGA"
+      },
+      {
+        "label": "ISTRUTTORIA",
+        "value": "1,0% (min 998 €/max 2.500 €)\nGREEN 0,50% (minimo 698 €)"
+      },
+      {
+        "label": "PERIZIA",
+        "value": "350 EURO - 2° PERIZIA EURO 220"
+      },
+      {
+        "label": "ISTRUT CONSAP",
+        "value": "600 EURO"
+      },
+      {
+        "label": "INCASSO RATA CONSAP",
+        "value": "2,00 EURO"
+      },
+      {
+        "label": "INCASSO RATA",
+        "value": "2,75 EURO"
+      },
+      {
+        "label": "ASSICURAZIONI SUGGERITE",
+        "value": "VITA/PERDITA IMP\nHANNO CPI VITA, INVALIDITA' E IMPIEGO PER AUTONOMI"
+      },
+      {
+        "label": "PROV. MASSIME CLIENTE",
+        "value": "2%"
+      }
+    ],
+    "detailText": "BPER\nPOLICY BANCA\nDURATA:: 78 ANNI DI ETA' A FINE MUTUO - (SE COINTESTIAMO CONTA SEMPRE L'ETA' DEL PIU' GIOVANE) x transfrontalieri vedi nota al piede\nPASSO 1\n1\nSUSSISTENZA:: 798 · 200€ in più per ogni persona del nucleo\nPRODOTTI:: tasso fisso finito\ntasso variabile: applica floor · euribor 3 mesi\ntasso variabile con cap\nmutuo riservato a cittadini italiani frontalieri, residenti in Italia con redditi in franchi svizzeri\nprodotto consap 100% solo under 36 con isee sotto le 40.000€: CONSAP PRIO under 36 ma isee sopra i € 40.000 (garanzia al 50%) - LTC 90% - NON SU MONZA\nCALCOLO RRR:: 35% · LA BANCA TOGLIE GLI IMPEGNI DAL REDDITO E POI CALCOLA IL 35% DI RRR\nPROCESSO:: solo filiale\nPARTICOLARITA':\nResidenza in Italia = almeno 2 anni\nSI asta giudiziale\ngarante viene considerato un 10% del suo reddito - se lo metto cointestatario prendono l'età del più giovane\nragazzo + 1 genitore .\nRN1-RN5 per gli altri\napprendistato prof. 100% se affiancato da t. ind.: DETERMINATO VALUTATO POCHISSIMO SERVE A DAR SOSTEGNO ALLA PRATICA MA NN VIENE PRATICAMENTE VALUTATO\nreddito convivente NON GARANTE considerato il 20%\nGli impegni in scadenza entro breve li considerano Comunque pieni? SI ma se ne può parlare col direttore\nQual'è il periodo minimo di indeterminato? Basta abbia superato il periodo prova\nPER STRANIERI: permesso di sogg SOLO illimitato - no breve o lungo periodo\nposso impostare pratica con 1 intestatario immobile e 2 intestatari mutuo. Oppure 2 intestatari immobile e 1 mutuo ma da giustificare xke l'altro non intesta\nLimiti di eta':\nPer il mutuo riservato a cittadini italiani frontalieri, residenti in Italia con redditi in franchi svizzeri, la somma risultante dalla durata del mutuo e dall'eta' del mutuatario non deve essere superiore a 70 anni; per i mutui cointestati, il limite massimo di 70 anni viene calcolato sull'eta' del richiedente piu' giovane.\nse acconti eccedono saldo prezzo parte del mutuo erogato può rimanere sul conto corrente del cliente il giorno del rogito\nFRONTALIERI: ltv 70% anche se cointestato. calcolano reddito da certificato di salario convertendo in € con coefficiente 1,10\nBper Via Rota Monza - tel 039 839611\nDirettore SILVANO SALA: silvano.sala@bper.it · 039 8396131\nmutui: Alberto Nava: alberto.nava@bper.it · 039 8396129\nBper Cermenate:\ndirettore: Matteo Puricelli: matteo.puricelli@bper.it · 3667571201\ncoordinatore: Claudio Testoni: claudio.testoni@bper.it · 3666615793"
+  },
+  {
+    "bankName": "CREDIT AGRICOLE",
+    "slug": "credit-agricole",
+    "summary": "75 ANNI ETA' DEL + GIOVANE SOLO SE REDDITO MAGG",
+    "sortOrder": 30,
+    "rows": [
+      {
+        "label": "DURATA",
+        "value": "75 ANNI ETA' DEL + GIOVANE SOLO SE REDDITO MAGG"
+      },
+      {
+        "label": "PASSO/DURATA DELIBERA",
+        "value": "PASSO 1 E PASSO 5 CONSAP\n(30 ANNI MAX)"
+      },
+      {
+        "label": "RESIDENZA STRANIERI",
+        "value": "36 MESI IN ITALIA"
+      },
+      {
+        "label": "ANZIANITA' LAVORATIVA",
+        "value": "T IND 3 BUSTE PAGA\n\nTENDENZIALMENTE 1 ANNO ANZIANITA LAVORATIVA"
+      },
+      {
+        "label": "GARANTI",
+        "value": "1° 2° 100% IDEM IMPEGNI (+ 350 EURO CAD SOGLIE)"
+      },
+      {
+        "label": "TERZO DATORE DI IPOTECA",
+        "value": "SI"
+      },
+      {
+        "label": "ASTA",
+        "value": "?"
+      },
+      {
+        "label": "SURROGA",
+        "value": "NO\n(SI FUORI CONVENZIONE)"
+      },
+      {
+        "label": "PRODOTTI",
+        "value": "CONSAP PRIO SOLO TASSO VARIAIBLE E PASSO 5\n\nSOLO CON ISEE <40K"
+      },
+      {
+        "label": "MUTUO GREEN",
+        "value": "SI"
+      },
+      {
+        "label": "RIFERIMENTO EURIBOR",
+        "value": "3 MESI"
+      },
+      {
+        "label": "PERMESSO DI SOGGIORNO",
+        "value": "IN CORSO MA ANCHE CON RICEVUTA CONVOCAZIONE"
+      },
+      {
+        "label": "AUTONOMI",
+        "value": "P.IVA AVVIATA ALMENO 2 ANNI"
+      },
+      {
+        "label": "IMPEGNI IN ESSERE A BREVE SCADENZA",
+        "value": "CQS - PRESTITI CHE NON SUPERANO I 6 MESI\n\nSE MUTUO IN CORSO , SACDENZA INFERIORE A 36 MESI NON CONSIDERANO LA RATA MUTUO"
+      },
+      {
+        "label": "T. DETERMINATO",
+        "value": "SI CON CUD PIENO ( 50% ) SE AFFIANCATO A T.INETERMINATO SCADENZA CONTRATTO SUPERIORE A 6 MESI DA CARICAMENTO"
+      },
+      {
+        "label": "INSEGNANTI",
+        "value": "ANCHE NON DI RUOLO (3 ANNI CON RINNOVO)\nCONSIDERATO 100% SOLO AFFIANCATO AL\nT IND"
+      },
+      {
+        "label": "APPRENDISTATO PROFESSIONALIZZANTE",
+        "value": "AL 75% ? SE AFFIANCATO T IND ANCHE 100% MA DIPENDE , SENTIRE FILIALE DI RIFERIMENTO"
+      },
+      {
+        "label": "CONTRATTO SOMMINISTRAZIONE",
+        "value": "CONSIDERATI A REDDITO PIENO SE CI SONO 2 CU PIENI\naltrimenti 800€"
+      },
+      {
+        "label": "TRASFERTE",
+        "value": "SOLO SE AUTOTRASPORTATORE 100%\n(SERVE PER DARE PLUS ALLA PRATICA\nABBASSA R/R DAL 37% AL 32%), NO PER LE SOGLIE"
+      },
+      {
+        "label": "COLF / BADANTI",
+        "value": "AL 100% SE AFFIANCATE A T IND (MA CON STORICITA')"
+      },
+      {
+        "label": "ALIMENTI DATI/RICEVUTI",
+        "value": "IN USCITA (IMPEGNO TOLTO DAL REDDITO COMPLESSIVO) 100%\nALIMENTI RICEVUTI CON SENTENZA 50%"
+      },
+      {
+        "label": "ASSEGNO UNICO FIGLIO",
+        "value": "100% SE CUD INPS"
+      },
+      {
+        "label": "ASSEGNO UNICO",
+        "value": "SI"
+      },
+      {
+        "label": "REDDITI PARTICOLARI",
+        "value": "FRONTALIERI (NORMALE 80%, CONSAP 90%\nPRIO < 40K O NON PRIO\nAFFITTI ATTIVI 50%"
+      },
+      {
+        "label": "RIENTRO CERVELLI / RIMPATRIATI",
+        "value": "SI CON TASSAZIONE STANDARD"
+      },
+      {
+        "label": "PENSIONE DI INVALIDITA'",
+        "value": "SENTIRE FILIALE RIFERIMENTO"
+      },
+      {
+        "label": "PARTICOLARITA'",
+        "value": "SE EXTRACOMUNITARI , ESTRATTO PER RIASSUNTO ATTO MATRIMONIO PER LA DATA DEL ROGITO"
+      },
+      {
+        "label": "PRE DELIBERA/ CARD",
+        "value": "SI, NON CONSAP E NON INTESTATARI DI IMMOBILE"
+      },
+      {
+        "label": "IMPORTO MIN - MAX",
+        "value": "consap prio: min 100.000€( <100K CHIEDERE DEROGA ) - max 250.000€\n - ? - 500K"
+      },
+      {
+        "label": "CALCOLO REDDITO CUD PARZIALE",
+        "value": "TOT LORDO - RITENUTE : GIORNI LAV X 365 : 12"
+      },
+      {
+        "label": "ISTRUTTORIA",
+        "value": "0,80% (MIN 1400-MAX 2.800)"
+      },
+      {
+        "label": "PERIZIA",
+        "value": "NEI COSTI BANCA"
+      },
+      {
+        "label": "ISTRUT CONSAP",
+        "value": "1,10% (1500 MIN - 2800 MAX)"
+      },
+      {
+        "label": "ASSICURAZIONI SUGGERITE",
+        "value": "CPI DURATA DEL MUTUO E TASSO DEL MUTUO"
+      },
+      {
+        "label": "PROV. MASSIME CLIENTE",
+        "value": "3% CLIENTE - CONSAP CLIENTE 1%"
+      },
+      {
+        "label": "NOTE",
+        "value": "CALCOLO CPI: IMPORTO DI MUTUO X COEFFICENTE / 1000= VALORE CPI INTERO\nDA SOMMARE ALL'IMPORTO DI MUTUO E USARE IL TOTALE COME CAPITALE NELLA CALCOLATRICE. USARE IL TAN X TUTTO\n\nDAL 20 OTTOBRE 100% CONSAP PRIO O CASA ABC TAN 3,49 PER IL RESTO 3,79"
+      }
+    ],
+    "detailText": "CREDIT AGRICOLE\nPOLICY BANCA\nDURATA:: 75 ANNI DI ETA' A FINE MUTUO - (SE COINTESTIAMO CONTA SEMPRE L'ETA' DEL PIU' GIOVANE MA CONSIDERANO SE IL REDDITO MAGGIORE è DI QUELLO CHE OLTREPASSA 80 ANNI A FINE MUTUO)\nPASSO 1: PRODOTTO NORMALE\nPASSO 5: PRODOTTO CONSAP\nSUSSISTENZA:: 900 · 1200 · 1500 · 1800 · 2100\nPRODOTTI:: CONSAP PRIORITARIO GARANZIA 80% - ITALIANI 100% - STRANIERI 95% - PRODOTTO GIOVANI · SE UNO ITALIANO E L'ALTRO STRANIERO COMUNQUE AL 100%\nCONSAP PRIORITARIO GARANZIA 50% UNDER 36 MA ISEE SOPRA I 40.000 - ITALIANI 95% - STRANIERI 90% - PRODOTTO GIOVANI\nCONSAP PRIORITARIO GARANZIA 50% MA NON UNDER 36 = TRATTATI COME CONSAP NON PRIORITARI = 95% ITALIANI - 90% STRANIERI\n93%\nPRODOTTO CLASSICO: 90% LTC · 80% LTV\nCALCOLO RRR:: RAPPORTO MASSIMO 33 % (NO CONSAP) 30% (CONSAP) - (MODALITA' DI CALCOLO: (RATA+IMPEGNI)/REDDITO · RR 35% x tutti i prodotti\nPRODOTTO FISSO: RRR CALCOLATO CON IL TASSO DEL FISSO (IRS+SPREAD): meglio 25 anni e rr 31% consap piuttosto che 30 anni ma rr sotto al 30%\nPRODOTTO CON CAP: RRR SI CALCOLA SUL CAP\nPRODOTTO VARIABILE: TASSO TECNICO 3%\nnon hanno prodotto se consap prioritario ma isee sopra € 40.000: --> utilizzare prodotto ltc 90% ltv 80% (no consap) se pratica è bella\nPROCESSO:: PROCESSO IN ACCENTRATO - PRATICA INVIATA AL CENTRO MUTUI CON INDICAZIONE DI FILIALE · MILANO · PIACENZA · COMO\n1° PASSAGGIO CONTROLLO DOCUMENTALE E CREAZIONE DI NDG - 10 GIORNI\n2° PASSAGGIO DELIBERANTE 1 SETTIMANA\nPRATICA DELIBERATA - COMUNICAZIONE FILIALE - FARSI SEMPRE GIRARE LE NOTE\nINCARICO PERIZIA DA PAGARE SUBITO - NO ORA LA PERIZIA VIENE INSERITA NEI COSTI DI ISTRUTTORIA, IL CLIENTE NN LA PAGA PIU' A PARTE\nAPERTURA CC CON CANALIZZAZIONE DELLO STIPENDIO\nEVASIONE SUBORDINI - DILIGENCE - RNP - TRACCIAMENTO CAPARRE - CONTEGGI ESTINTIVI - POLIZZA CASA 15 GG DELL'ATTO PER PIES\nAL ROGITO SOTTOSCRIZIONE POLIZZA CPI + PRESTITO ASSICURO\nPOLIZZA CASA NOSTRA - FORZARE QUESTA RICHIESTA IN FILIALE\nPARTICOLARITA':: 1_ UNICO IMPEGNO DETRATTO DAL REDDITO SONO GLI ALIMENTI PAGATI\n2_ DURATA PREFERITA DEL MUTUO E' 25 ANNI --- 30 ANNI SONO RARI E (LTV 70% E RRR 25%): piuttosto 25 anni e il cliente sceglie opz. flessibilità di allungare mutuo 5 anni (regolamutuo)\n3_ APPRENDISTATO PROFESSIONALIZZANTE CON TEMPO INDETERMINATO - VIENE PONDERATO AL 75%\n4_ DIMOSTRAZIONE DIFFERENZE: SALDO PREZZO + SPESE BANCARIE E NOTARILI + EVENTUALI ESTINZIONI FINANZIAMENTI\nA volte non serve dimostrare spese accessorie, se cliente non ha soldi fanno finanziamento che parte il gg dopo dell'atto:\nAgos da € 5.000 a € 20.000, tasso tra 8-9%, in una settimana hanno i soldi sul conto\nCrif viene fatta anche un giorno prima del rogito\n5_ VOGLIONO TASSATIVAMENTE L'ACCREDITO DELLO STIPENDIO\n6_ SE SONO STATE DATE CAPARRE VOGLIONO TITOLO DI CAPARRA + EVIDENZA DELL'USCITA DAL CONTO\n7_ LE PRATICHE DEVONO ESSERE SEMPRE FATTE CON CPI - TABELLA PER IL CALCOLO DELLA POLIZZA\n8_ LA POLIZZA E' SEMPRE FINANZIATA ALLO STESSA DURATA E TASSO DEL MUTUO\n9_ CONDIZIONI DI FLESSIBILITA': SALTARATA\nINIZIA CON CALMA\n3 OPZIONI DI FLESSIBILITA'\n- considerano assegno unico familiare al 100% perchè è riportato nel cud\n- trasferte vengono considerate solo se autotrasportatori. considerate se dà plus a pratica nel senso che abbassa rr dal 37% a 32%\n- FRONTALIERI: 80% pratica ordinaria, 90% con consap prioritario o non prioritario in base alle caratteristiche del cliente\netà pensionabile 65 anni a fine mutuo. vogliono anzianità assuntiva nella stessa azienda\n- colf e badanti se affiancate da t.ind. considerate al 100% se hanno storicità\n- per mutuo card: non presentare modulo domanda consap. non devono essere proprietari di immobile quando presento la richiesta\n- reddito estero ltv 50% max 60% - esempio: cliente lavora e risiede in Svizzera, vuole comprare in Italia: considerato reddito estero: deve essere iscritto AIRE\nGLI ALIMENTI VANNO SCORPORATI DAL REDDITO NON COME I PRESTITI\nSURROGA:: -> non l'abbiamo a catalogo, va chiesta deroga a unit\nimporto minimo € 50.000\nltv 80%\nfanno durate intermedie, non riportano alla durata originaria"
+  },
+  {
+    "bankName": "MPS",
+    "slug": "mps",
+    "summary": "75 ANNI ETA' DEL + VECCHIO (MAX SFORO 1/2 ANNI)",
+    "sortOrder": 40,
+    "rows": [
+      {
+        "label": "DURATA",
+        "value": "75 ANNI ETA' DEL + VECCHIO (MAX SFORO 1/2 ANNI)"
+      },
+      {
+        "label": "PASSO/DURATA DELIBERA",
+        "value": "PASSO 1"
+      },
+      {
+        "label": "RESIDENZA STRANIERI",
+        "value": "5 ANNI (DEROGABILE )"
+      },
+      {
+        "label": "ANZIANITA' LAVORATIVA",
+        "value": "ALMENO 6 MESI STESSO DATORE"
+      },
+      {
+        "label": "GARANTI",
+        "value": "(SOLO PER RAFFORZARE LA PRATICA, DEVE REGGERE SOGLIE E R/R SOLO MUTUATARI)"
+      },
+      {
+        "label": "TERZO DATORE DI IPOTECA",
+        "value": "SOLO GENITORE O CONIUGE/PARTNER"
+      },
+      {
+        "label": "ASTA",
+        "value": "SI"
+      },
+      {
+        "label": "SURROGA",
+        "value": "SI 50K MIN - MAX 500K (CONSAP)"
+      },
+      {
+        "label": "PRODOTTI",
+        "value": "CONSAP PRIO 100% - TV CAP -\nSURROGA CONSAP PRIO\nPOSSIBILITA DI FINANZIARE 88% PRESENTANDO COMPUTO METRICO MA PERIZIA LTV 80%"
+      },
+      {
+        "label": "MUTUO GREEN",
+        "value": "SI"
+      },
+      {
+        "label": "RIFERIMENTO EURIBOR",
+        "value": "1 MESE"
+      },
+      {
+        "label": "PERMESSO DI SOGGIORNO",
+        "value": "SE SCADUTO DEVE AVERE RICEVUTA DI CONVOCAZIONE DELLA QUESTURA"
+      },
+      {
+        "label": "AUTONOMI",
+        "value": "ALMENO 2 ANNI CON 2 UNICI PIENI UFFICIALMENTE DEPOSITATI\nRN1-RN26\nFORFETTARIO LM36-LM39\n6 MESI DI ESTRATTO CONTO\nEROGAZIONE NON CONTESTUALE. L'EROGAZIONE AVVERRA' AL CONSOLIDO DELL'IPOTECA"
+      },
+      {
+        "label": "IMPEGNI IN ESSERE A BREVE SCADENZA",
+        "value": "VALUTARE CON DIRETTORE FILIALE"
+      },
+      {
+        "label": "T. DETERMINATO",
+        "value": "NO (SOLO PER RAFFORZARE LA PRATICA, DEVE REGGERE SOGLIE E R/R SOLO CHI HA T IND)"
+      },
+      {
+        "label": "INSEGNANTI",
+        "value": "SOLO DI RUOLO (T IND)"
+      },
+      {
+        "label": "APPRENDISTATO PROFESSIONALIZZANTE",
+        "value": "NO"
+      },
+      {
+        "label": "CONTRATTO SOMMINISTRAZIONE",
+        "value": "DA VALUTARE CON DIRETTORE"
+      },
+      {
+        "label": "TRASFERTE",
+        "value": "SOLO SE AUTOTRASPORTATORE\nCONSIDERATA AL 100% SE C'E' TUTTI I MESI"
+      },
+      {
+        "label": "COLF / BADANTI",
+        "value": "POTREBBE ESSERE VALUTATA CHIEDERE (CONTA L'ETA' DELLA SIG. DA ACCUDIRE)"
+      },
+      {
+        "label": "ALIMENTI DATI/RICEVUTI",
+        "value": "DATI/RICEVUTI: CONSIDERATI 100% CON SENTENZA TRIBUNALE + EVIDENZA ECC"
+      },
+      {
+        "label": "ASSEGNO UNICO FIGLIO",
+        "value": "SI, SI SOMMA AL REDDITO"
+      },
+      {
+        "label": "IMMOBILE DA DONAZIONE",
+        "value": "SI, SOLO ACCOMPAGNATE DA POLIZZA DONAZIONE"
+      },
+      {
+        "label": "ASSEGNO UNICO",
+        "value": "NO"
+      },
+      {
+        "label": "REDDITI PARTICOLARI",
+        "value": "AFFITTI ATTIVI 100%"
+      },
+      {
+        "label": "PENSIONE DI INVALIDITA'",
+        "value": "SENTIRE FILIALE DI RIFERIMENTO"
+      },
+      {
+        "label": "PARTICOLARITA'",
+        "value": "VALUTARE BENE DATORE DI LAVORO"
+      },
+      {
+        "label": "PRE DELIBERA/ CARD",
+        "value": "SI Voucher LTV 80% MASSIMO"
+      },
+      {
+        "label": "IMPORTO MIN - MAX",
+        "value": "50K - 250K CONSAP / 500K"
+      },
+      {
+        "label": "CALCOLO REDDITO CUD PARZIALE",
+        "value": "MEDIA REDDITO DA BP:\nDALLA VOCE \"PROGRESSIVI\": Imp. IRPEF MENO IRPEF PAGATA/12=MEDIA BP PERCEPITA"
+      },
+      {
+        "label": "ISTRUTTORIA",
+        "value": "0,60 % (500 € MIN)\n100€ PER LTV 60% (PER 20-25-30 ANNI)"
+      },
+      {
+        "label": "PERIZIA",
+        "value": "250,00 EURO"
+      },
+      {
+        "label": "ISTRUT CONSAP",
+        "value": "0,50% (500 € MIN) LTV FINO 80%\n1% (500 € MIN) LTV >80%"
+      },
+      {
+        "label": "INCASSO RATA CONSAP",
+        "value": "2,50 EURO - 0€ CON CANALIZZAZ. STIPENDIO"
+      },
+      {
+        "label": "INCASSO RATA",
+        "value": "2,50 EURO"
+      },
+      {
+        "label": "ASSICURAZIONI SUGGERITE",
+        "value": "VITA CIRCA IL 3% DEL MUTUO\nTCM P.U. OPPURE 50% a premio unico e rimanente 50% fraz.annuale"
+      },
+      {
+        "label": "PROV. MASSIME CLIENTE",
+        "value": "4% CLIENTE - MAX 5000€"
+      },
+      {
+        "label": "NOTE",
+        "value": "ZONE DI COMPETENZA: AREA BRIANZA SU AREA BRIANZA OK"
+      }
+    ],
+    "detailText": "MONTE DEI PASCHI DI SIENA nuovo nostro\nPOLICY BANCA\nDURATA:: 75 ANNI DI ETA' FINE MUTUO · derogabile al max 1/2 anni\nPASSO 1: PRODOTTO NORMALE\nPASSO 5: PRODOTTO CONSAP\nSUSSISTENZA:: soglie di povertà istat. se sfora di poco le soglie ma rrr OK allora va bene\nPRODOTTI:: CONSAP PRIORITARIO GARANZIA 80% INTERVIENE AL 100% DI LTC PER UNDER 36\nCONSAP PRIORITARIO GARANZIA 50% INTERVIENE ALL'80% DI LTC\nCONSAP NON PRIORITARIO INTERVIENE AL 100% DI LTC (GARANZIA 50%)\nUTILIZZANO IL FLOOR: VARIABILE: EURIBOR 6 MESI + SPREAD --- FISSO: EURIRS+ SPREAD\nCALCOLO RRR:: RAPPORTO MASSIMO 33% FISSO - 30% SUL VARIABILE - (MODALITA' DI CALCOLO: (RATA+IMPEGNI)/REDDITO · calcolano reddito da cud\nPROCESSO:: 1) PRESENTO LA PRATICA IN FILIALE - FARE VERIFICA DEL DATORE DI LAVORO\n2) VERIFICA BANCHE DATI ATTRAVERSO PEF\n3) DELIBERA REDDITUALE\n4) APERTURA CONTO CORRENTE - INCARICO PERIZIA - VERSAMENTO SOLDI PER LA PERIZIA - SI INCARICA CONSAP\n5) ORGANIZZAZIONE ATTO - DILIGENCE - PERIZIA - CONTO CORRENTE - RNP - CONTEGGI ESTINTIVI - SUBORDINI\n6) GENERAZIONE DEL PIES - 12 GIORNI - DEROGABILI\n7) STIPULA ATTO DEFINITA CON LA FILIALE.\nPARTICOLARITA':: 1) DATORE DI LAVORO\n2) BANCA CON PROCESSO DI FILIALE E AUTONOMIA DEI DIRETTORI se cliente rating abbastanza alto, altrimenti la pratica va in accentrato\n3) BANCA CON TERRITORIALITA'\n4) POSSO AUMENTARE DEL 10% LA RICHIESTA DI MUTUO ALL'80% A FRONTE DELLA PRESENTAZIONE DI UN COMPUTO METRICO DI LAVORI DA ESEGUIRE IN CASA.\n5) NON FINANZIANO APPRENDISTATO - TEMPO DETERMINATO, considerato solo per dar un supporto alla pratica ma deve reggere rrr e soglie solo il mutuatario con t. indeterminato\n6) POLIZZA CASA (PREMIO UNICO) --- POLIZZA VITA (PREMIO UNICO - su monza possibile fare 50% pu e 50% annuale)\n7) LA BANCA INTERVIENE SU PRATICHE CON PROVENIENZA DONAZIONE SE ACCOMPAGNATE DA POLIZZE A COPERTURA DELLA STESSA.\n8) CALCOLO DEL REDDITO DEGLI AUTONOMI: RN1 - RN5\n9) NO ASTE\n10) AUTOTRASPORTATORE: considero trasferta al 100% se c'è tutti i mesi. ANCHE SE NON AUTOTRASPORTATORE MA DEVE ESSERCI TUTTI I MESI (filiale di Monza)\n11) non viene considerato rimborso spese\n12) contratto somministrazione: reddito pieno da cud (filiale di Monza)\n13) colf potrebbe essere valutata, chiedere\n14) solo insegnanti di ruolo\n15) considerano al 100% affitti attivi\n16) considerano al 100% mantenimento se c'è sentenza tribunale + evidenza accredito da ecc\n17) considerano assegno unico familiare (filiale di Monza)\n18) datore di ipoteca se è genitore o coniuge si, estranei no\nArea manager Monza: Andrea Di Loreti. Filiali: Monza, Seregno\nArea manager Como: Romina. Filiali: Como, Mariano Comense\nTitolare monza largo molinetto 2: Alessandro Crapanzano - 039.280291\nTitolare monza 1 - piazza trento e trieste: Marco Vieti 366.4216319 - 039 7396241\ndocumenti necessari:\n- erogazione contestuale scritta dal cliente\n- estratto contributivo inps\nGARANTE: il reddito non fa cumulo con quello dei mutuatari nè per le soglie, nè per il rrr. Serve solo per dar sostegno alla pratica se per es. i mutuatari hanno contratti deboli o poca anzianità di assunzione"
+  },
+  {
+    "bankName": "EXTRABANCA",
+    "slug": "extrabanca",
+    "summary": "75 ANNI VAR E FISSO / 70 ANNI RATA COSTANTE. CONSAP (NON PRIO)",
+    "sortOrder": 50,
+    "rows": [
+      {
+        "label": "CONSAP",
+        "value": "CONSAP (NON PRIO)"
+      },
+      {
+        "label": "DURATA",
+        "value": "75 ANNI VAR E FISSO / 70 ANNI RATA COSTANTE"
+      },
+      {
+        "label": "PASSO/DURATA DELIBERA",
+        "value": "10, 15 ,20, 25, 30 (DELIBERA 90 GIORNI)"
+      },
+      {
+        "label": "RESIDENZA STRANIERI",
+        "value": "12 MESI"
+      },
+      {
+        "label": "ANZIANITA' LAVORATIVA",
+        "value": "PLURIREDDITO: 12 MESI ANCHE PIU' DATORI\nNO INTERRUZIONI SOPRA AL MESE ASSUNTO DA\nALMENO 3 MESI PRIMA DELLA RICHIESTA E NO PROVA\nMONOREDDITO: ALMENO 24 MESI STESSO DATORE"
+      },
+      {
+        "label": "GARANTI",
+        "value": "SOLO GENITORI\n(ETA' DEL PIU VECCHIO)"
+      },
+      {
+        "label": "TERZO DATORE DI IPOTECA",
+        "value": "SOLO PARENTI DI PRIMO GRADO (GENITORI) NO ESTRANEI"
+      },
+      {
+        "label": "ASTA",
+        "value": "SI, FINO AL 100% DEL PREZZO DI AGGIUDICAZIONE"
+      },
+      {
+        "label": "SURROGA",
+        "value": "NO"
+      },
+      {
+        "label": "PRODOTTI",
+        "value": "tasso finito al 5,20% per Ltv al di sotto dell’80%.\nPer le pratiche eccedenti Ltv 80% e fino al 90% il tasso fisso applicato sarà 5,85%, in promozione fino a nuova comunicazione.\nCONSAP NON PRIO (LTC MAX 90%)\nTV E RATA COSTANTE PRIMA CASA\nSECONDA CASA E SOSTI/ LIQUIDITA' SOLO TV"
+      },
+      {
+        "label": "RIFERIMENTO EURIBOR",
+        "value": "3 MESI"
+      },
+      {
+        "label": "PERMESSO DI SOGGIORNO",
+        "value": "IN CORSO MA ANCHE CON RICEVUTA CONVOCAZIONE\nNON VALIDI PER MOTIVI UMANITARI (ASILO POLITICO,\nPROTEZIONE SUSSIDIARIA \"RIFUGIATO\")"
+      },
+      {
+        "label": "AUTONOMI",
+        "value": "ALMENO 2 ANNI CON 2 UNICI PIENI UFFICIALMENTE DEPOSITATI\nDIMOSTRARE REGOLARITA' FISCALE E CONTRIBUTIVA DA F24"
+      },
+      {
+        "label": "IMPEGNI IN ESSERE A BREVE SCADENZA",
+        "value": "NON SUPERANO 6 MESI"
+      },
+      {
+        "label": "T. DETERMINATO",
+        "value": "NO"
+      },
+      {
+        "label": "INSEGNANTI",
+        "value": "NO"
+      },
+      {
+        "label": "APPRENDISTATO PROFESSIONALIZZANTE",
+        "value": "NO"
+      },
+      {
+        "label": "CONTRATTO SOMMINISTRAZIONE",
+        "value": "VIENE CONSIDERATO IL CONTRATTO T INDETERMINATO\nREDDITO DA BUSTE PAGA MA RICHIEDONO IL CONTRATTO\nPER VEDERE IL REDDITO MINIMO IDENNITA' DI DISPONIBILITA'(ES. 800 EURO)\n\"VEDONO SOLO SE IL CLIENTE RICOPRE CON QUESTO IMPORTO LA RATA DEL MUTUO\""
+      },
+      {
+        "label": "TRASFERTE",
+        "value": "SI ANCHE SE NON TRASPORTATORE\nCON 6 BUSTE PAGA ANZICHE 3 CONSIDERANO IL 50% DELLA MEDIA\n(NO PREMI) - MA DEVONO ESSERE CONTINUE"
+      },
+      {
+        "label": "COLF / BADANTI",
+        "value": "SI AL 100% - DIPENDE ETA' SIG. ACCUDITA"
+      },
+      {
+        "label": "ALIMENTI DATI/RICEVUTI",
+        "value": "NO"
+      },
+      {
+        "label": "ASSEGNO UNICO FIGLIO",
+        "value": "NO"
+      },
+      {
+        "label": "IMMOBILE DA DONAZIONE",
+        "value": "NO"
+      },
+      {
+        "label": "REDDITI PARTICOLARI",
+        "value": "lavoro di somministrazione: viene considerata indennità di disponibilità riportato sul contratto di lavoro."
+      },
+      {
+        "label": "PARTICOLARITA'",
+        "value": "• SI A COPPIE MISTE (ITA+STRANIERO) O COPPIE ITALIANE\n\n•FANNO SALDO/STRALCIO\n•OPERAZIONE TRA FRATELLI (COINTESTATRI) FUORI POLICY\n(MA SI SE NELLO STESSO STATO FAMIGLIA)\n•SE L'ETA' DEL RICHIEDENTE PRINCIPALE È PIU'\nGIOVANE DEL SECONDO, LA DURATA DEL MUTUO È UNA MEDIA PONDERATA\n• SI ANCHE A NON RESIDENTI IN ITALIA MA FINO AL 50%"
+      },
+      {
+        "label": "PRE DELIBERA/ CARD",
+        "value": "NO"
+      },
+      {
+        "label": "IMPORTO MIN - MAX",
+        "value": "40K -"
+      },
+      {
+        "label": "ISTRUTTORIA",
+        "value": "0,30% (MIN 300 EURO)"
+      },
+      {
+        "label": "PERIZIA",
+        "value": "274,50 EURO"
+      },
+      {
+        "label": "INCASSO RATA",
+        "value": "2,50 EURO PER ADDEBITO RID SU C/C"
+      },
+      {
+        "label": "ASSICURAZIONI SUGGERITE",
+        "value": "INCENDIO/SCOPPIO"
+      },
+      {
+        "label": "SPESE PRODOTTO",
+        "value": "EROGAZIONE 0,90% IMPORTO MUTUO (MIN 600,00)\nUSCITA FUNZIONARIO (500,00)"
+      },
+      {
+        "label": "NOTE",
+        "value": "Direzione Extrabanca\nMilano , Via Pergolesi, 2/A\nTel: 02.27727611\n\nMarco Ridolfi 340/3605799\nRajat Gupta 366/6527463"
+      }
+    ],
+    "detailText": "EXTRA BANCA\nPOLICY BANCA\nDURATA:: 75 ANNI DI ETA' FINE MUTUO\nSUSSISTENZA:: NO SOGLIE SUSSISTENZA\nPRODOTTI:: Se la perizia attesta LTV ≤ 80% = Finanziamento fino al 90% del costo di acquisto\nVARIABILE: Acquisto 1° Casa\nAcquisto 2° Casa: euribor3M + 3,50%\nLiquidità\nFISSO\nDIPENDENTE: Stanzialità sul territorio italiano di almeno 12 mesi;\nAnzianità lavorativa:\n>: per pratiche pluri-reddito, almeno 1 anno, anche su più datori di lavoro e senza interruzioni\nrilevanti (> 1 mese), con ultima assunzione avvenuta almeno 3 mesi antecedenti la richiesta e\nconferma di uscita dal periodo di prova;\n>: Per pratiche mono-reddito, indicativamente almeno 24 mesi presso lo stesso datore di lavoro;\nContratto di lavoro a tempo indeterminato;\nE’ piena facoltà dell’Ufficio Crediti vincolare l’erogazione all’accredito su nostro cc del primo stipendio.\nAUTONOMO: Attribuzione partita Iva da almeno 2 anni e almeno 2 dichiarazioni annuali trasmesse telematicamente;\nRegolarità fiscale e contributiva.\nCALCOLO RRR:: Rapporto rata / reddito <= 40% (con inclusi tutti gli impegni finanziari che scadono oltre i 6 mesi dalla\nrichiesta e che saranno mantenuti dopo l’erogazione del mutuo)\nPROCESSO:\n1) Invio cartaceo o tramite mail\n2) Durata dell’istruttoria: 20 giorni lavorativi\n3) Disponibilità dell’importo: L’erogazione della somma finanziata avviene di norma contestualmente alla stipula dell’atto notarile.\nPARTICOLARITA':: 1) NO ATTO DI PROVENIENZA DA DONAZIONE\n2) Con 6 buste paga anziché 3, considero voci straordinarie (es. trasferta - premi)\n3) Acquisire la firma del/della coniuge, se pur non occupato/a\n4) L’immobile deve essere libero da pesi ipotecari o vincoli pregiudizievoli al momento della stipula\n5) fanno operazione su saldo e stralcio\nSe cointestato conta l'età del più anziano\nValide tutte le tipologie di permesso di sogg eccetto quelli rilasciati per motivi umanitari (asilo, protezione sussidiaria ecc)\nContratti di somministrazione: viene tenuto conto dell'indennità di disponibilità riportato sul contratto di lavoro.\nassegno unico NON viene considerato\nDirezione Extrabanca\nMilano , Via Pergolesi, 2/A\nTel: 02.27727611\nMarco Ridolfi 340/3605799\nRajat Gupta 366/6527463"
+  },
+  {
+    "bankName": "VALSABBINA",
+    "slug": "valsabbina",
+    "summary": "75 anni a fine mutuo; se cointestato conta età più vecchio",
+    "sortOrder": 60,
+    "rows": [
+      {
+        "label": "DURATA",
+        "value": "75 anni a fine mutuo; se cointestato conta età più vecchio"
+      },
+      {
+        "label": "PASSO/DURATA DELIBERA",
+        "value": "1"
+      },
+      {
+        "label": "RESIDENZA STRANIERI",
+        "value": "Non serve anzianità"
+      },
+      {
+        "label": "ANZIANITA' LAVORATIVA",
+        "value": "3 buste paghe"
+      },
+      {
+        "label": "GARANTI",
+        "value": "100% reddito, 100% impegni"
+      },
+      {
+        "label": "ASTA",
+        "value": "si (poche)"
+      },
+      {
+        "label": "SURROGA",
+        "value": "Sì"
+      },
+      {
+        "label": "PRODOTTI",
+        "value": "1.1 SPREAD VARIABILE + EURIBOR 3M\n3 TF 2.6 GREEN\nCONSAP BIREDDITO 100% - MONOREDDITO 95% SOLO VARIABILE\nSOLO PRIO ANCHE CON ISEE > 40.000\nPOCA AGGRESSIONE POLIZZE\nFINANZIANO COLF/BADANTI"
+      },
+      {
+        "label": "MUTUO GREEN",
+        "value": "Sì"
+      },
+      {
+        "label": "RIFERIMENTO EURIBOR",
+        "value": "3 mesi"
+      },
+      {
+        "label": "PERMESSO DI SOGGIORNO",
+        "value": "Anche in fase di rinnovo, serve ricevuta"
+      },
+      {
+        "label": "AUTONOMI",
+        "value": "Autonomo ordinario -> rn1 - rn26\nAutonomo forfettario -> lm36 - lm39"
+      },
+      {
+        "label": "IMPEGNI IN ESSERE A BREVE SCADENZA",
+        "value": "Se scade entro 1 o 2 mesi non conta"
+      },
+      {
+        "label": "T. DETERMINATO",
+        "value": "No da solo, ma valutabile se affiancato a t.ind e rrr è sostenibile con il t.ind"
+      },
+      {
+        "label": "INSEGNANTI",
+        "value": "Da valutare con filiale se non sono di ruolo"
+      },
+      {
+        "label": "APPRENDISTATO PROFESSIONALIZZANTE",
+        "value": "No da solo, ma valutabile se affiancato a t.ind e rrr è sostenibile con il t.ind"
+      },
+      {
+        "label": "CONTRATTO SOMMINISTRAZIONE",
+        "value": "anche da solo (filiale di chiari) ma valutabile se affiancato a t.ind e rrr è sostenibile con il t.ind"
+      },
+      {
+        "label": "TRASFERTE",
+        "value": "Sì se definite da contratto"
+      },
+      {
+        "label": "COLF / BADANTI",
+        "value": "SI 100%"
+      },
+      {
+        "label": "ALIMENTI DATI/RICEVUTI",
+        "value": "Alimenti dati -> impegno\nAlimenti ricevuti -> reddito"
+      },
+      {
+        "label": "ASSEGNO UNICO FIGLIO",
+        "value": "Sì 100%"
+      },
+      {
+        "label": "IMMOBILE DA DONAZIONE",
+        "value": "Sì con polizza nostra"
+      },
+      {
+        "label": "ASSEGNO UNICO",
+        "value": "SI"
+      },
+      {
+        "label": "RIENTRO CERVELLI / RIMPATRIATI",
+        "value": "Sì con tassazione italiana"
+      },
+      {
+        "label": "PENSIONE DI INVALIDITA'",
+        "value": "Totale, valutabile"
+      },
+      {
+        "label": "PRE DELIBERA/ CARD",
+        "value": "NO"
+      },
+      {
+        "label": "IMPORTO MIN - MAX",
+        "value": "€ 40.000/45.000 - € 350.000"
+      },
+      {
+        "label": "CALCOLO REDDITO CUD PARZIALE",
+        "value": "Calcolano da contratto"
+      },
+      {
+        "label": "ISTRUTTORIA",
+        "value": "0,75% per tasso fisso\n€ 700 per tasso variabile"
+      },
+      {
+        "label": "PERIZIA",
+        "value": "€ 257 classe D e successive\n€ 195,2 se classe A B C"
+      },
+      {
+        "label": "ISTRUT CONSAP",
+        "value": "€ 700"
+      },
+      {
+        "label": "PROV. MASSIME CLIENTE",
+        "value": "4%"
+      }
+    ],
+    "detailText": "VALSABBINA\n75 anni fine mutuo\nRRR 30 - 32%\n1\nSUSSISTENZA: 850 · € 270 in più per ogni componente del nucleo\nPRODOTTI:: consap prio garanzia 80% : euribor 3m + 1,00%\nconsap no prio garanzia 50%: euribor 3m + 1,95%\nno prodotto consap under 36 ma isee sopra € 40.000\nil cliente paga PRIMA la perizia, poi istruttoria\n- ok gli stranieri\n- frontalieri max 80%\n3,5% tasso ad oggi"
+  },
+  {
+    "bankName": "BNL",
+    "slug": "bnl",
+    "summary": "80 ANNI (MAX SFORO 1/2 ANNI) (70 ANNI IN INGRESSO)",
+    "sortOrder": 70,
+    "rows": [
+      {
+        "label": "DURATA",
+        "value": "80 ANNI (MAX SFORO 1/2 ANNI)\n(70 ANNI IN INGRESSO)"
+      },
+      {
+        "label": "PASSO/DURATA DELIBERA",
+        "value": "5"
+      },
+      {
+        "label": "RESIDENZA STRANIERI",
+        "value": "5 anni"
+      },
+      {
+        "label": "ANZIANITA' LAVORATIVA",
+        "value": "Ni"
+      },
+      {
+        "label": "GARANTI",
+        "value": "ETA' GARANTE 85 FINE MUTUO"
+      },
+      {
+        "label": "ASTA",
+        "value": "Si 100 dell aggiudicazione ma 80-% perizia del valore dato dal tribunale"
+      },
+      {
+        "label": "SURROGA",
+        "value": "SI, no limite"
+      },
+      {
+        "label": "RIFERIMENTO EURIBOR",
+        "value": "EURIBOR 1 MESE"
+      },
+      {
+        "label": "PERMESSO DI SOGGIORNO",
+        "value": "Anche scaduto ma con convocazione"
+      },
+      {
+        "label": "AUTONOMI",
+        "value": "P.IVA APERTA DA ALMENO 3 ANNI, FANNO MEDIA ULTIMI 2 UNICI\nFORFETTARI CALCOLATI LM36-LM39\nORDINARI RN4-RN26"
+      },
+      {
+        "label": "T. DETERMINATO",
+        "value": "SI SE LAVORATO 30 MESI NEGLI ULTIMI 36 CON STESSO DATORE\nE AFFIANCATO DA T INDETER."
+      },
+      {
+        "label": "APPRENDISTATO PROFESSIONALIZZANTE",
+        "value": "NO"
+      },
+      {
+        "label": "TRASFERTE",
+        "value": "No! Anche se autista"
+      },
+      {
+        "label": "COLF / BADANTI",
+        "value": "NO"
+      },
+      {
+        "label": "ASSEGNO UNICO FIGLIO",
+        "value": "No può solo aiutare r/r/r"
+      },
+      {
+        "label": "IMMOBILE DA DONAZIONE",
+        "value": "Sì non assicurazione"
+      },
+      {
+        "label": "ASSEGNO UNICO",
+        "value": "SOLO PER AIUTARE A STARE NEI PARAMETRI , NO SE ESSENZIALI A FARLA RIENTRARE"
+      },
+      {
+        "label": "REDDITI PARTICOLARI",
+        "value": "FRONTALIERI OK"
+      },
+      {
+        "label": "RIENTRO CERVELLI / RIMPATRIATI",
+        "value": "SI"
+      },
+      {
+        "label": "ISTRUTTORIA",
+        "value": "Fino a 80.000€ 1,25% (min 0 - max 1.000)\nDa 80.001 a 130.000€ 1,00% (min 800 - max 1.300)\nDa 130.001 a 250.000€ 0,90% (min 1.170 - max 2.250)\nOltre 250.000€ 0,90% (min 2.250 - max 2.500)"
+      },
+      {
+        "label": "PERIZIA",
+        "value": "euro 350\nfino a 500.000 DI MUTUO"
+      },
+      {
+        "label": "NOTE",
+        "value": "Se c'è mutuo residuo l'importo del netto erogato deve essere inferiore.\nLa banca eroga solo il mutuo, le differenze di saldo prezzo devono essere gestite con bir autonomo dell'acquirente."
+      }
+    ],
+    "detailText": "BNL\nPOLICY BANCA\nDURATA:: 80 ANNI A FINE MUTUO · derogabile al max 1/2 anni\nPASSO 5\nSUSSISTENZA:: prodotto 80% · 1100 · PER I PRIMI 2 MEMBRI DELLA FAMIGLIA · prodotto 95% · 1100 · PRIMI DUE MEMBRI\n350: PER OGNI COMPONENTE AGGIUNTIVO · 250 · PER OGNI COMPONENTE AGGIUNTIVO\nPRODOTTI:: \"DIAMO CREDITO\" FISSO · LTV FINO A 80%\n\"DIAMO CREDITO\" VARIABILE: LTV FINO A 80% · LTC 80%\nPROMOHIGH- DIAMO CREDITO 95%: TASSO FISSO TAN · LTC 95% · LTV 80% · datore di lavoro di elevato standing (nazionale: più sedi in Italia)\nse 2 richiedenti e uno solo ha datore di elevato standing, considero\nsolo quel reddito ma soglie x 2 pax\nPROMO GIOVANI <36: TASSO FISSO TAN\nMUTUO PER RISTRUTTURAZIONE: LTV 30% (valore imm. ante ristrutturazione) · MAX IMPORTO FINANZIABILE 150K · danno soldi su conto cliente, non all'impresa\nex; valore casa € 200.000\nmutuo residuo € 100.000\nipoteca 2° grado x ristrutturazione: 30% di € 100.000\nsarebbe surroga + liquidità (x ristrutturazione) --> prende tasso della surroga\nLIQUIDITA': LTV 60% · MAX IMPORTO FINANZIABILE 100K\nSURROGA --> se ha acquistato con garanzia consap al 100% due vincoli:\n- passati 13 mesi di ammortamento (per accertarsi di consolidamento ipoteca)\n- ltv 75% per selezionare cliente. perciò deve aver fatto ristrutturazione immobile\nCALCOLO RRR:: LTC 80% · LTC 95%\nVARIABILE: MONOREDDITO · 30% · DEVE ESSERE IL MUTUATARIO\nBIREDDITO: 35% · DEVONO ESSERE ENTRAMBI MUTUATARI E NON VALE GARANTE\nLTC 80%: LTC 95%\nFISSO: MONOREDDITO · 40% · 30% · DEVE ESSERE IL MUTUATARIO · prodotto 95%: rr può arrivare al 40% se regge le soglie per € 2000\nBIREDDITO: 45% · 35% · DEVONO ESSERE ENTRAMBI MUTUATARI E NON VALE GARANTE\nFORMULA: = (Rata+Imp) / Redd\nPROCESSO:: 1) PRESENTO LA PRATICA IN FILIALE O MIRO' · processo decentrato: istruttoria la fanno in filiale\n2) PROCESSO DI SCORING\n3) VALUTAZIONE (POSITIVA, DA VALUTARE O NEGATIVA): si può chiedere di rivedere esito negativo\n4) PERIZIA: CERVED IN MIRO' - PERITI BENEVISI IN FILIALE · delibera reddituale valida 3 mesi, poi aggiornamento ecc e bp e rilancio banche dati, altri 3 mesi. 2/3 x rinnovo delibera\n5) DELIBERA TECNICO LEGALE: perizia valida 6 mesi\n6) ATTO UNILATERALE 4 GG - BILATERALE 3 GG\nPARTICOLARITA':\nCONTRATTI:\n>: NO a contratto a tempo determinato o apprendistato\n>: insegnanti precari (non di ruolo) da più di 3 anni considerato al 100% se affincato da t. ind. o p.iva che ha avviato stessa società da almeno 3 anni\n>: colf o badante non viene considerato il reddito e viene considerato 100% a carico\n>: pensione di invalidità non viene considerato per il rrr ma dà un plus alla pratica\n>: frontalieri: max 80%. residente in Italia a 30 km. dal confine. deve avere permesso lavoro di tipo g (che può entrare e uscire da Svizzera senza problemi). Storicità non richiesta. Da valutare azienda, come sempre\n>: Si finanziano stranieri residenti in Italia da almeno 5 anni, che producono reddito in Italia\nREDDITI:\n>: se cu è cambiata, media ultime buste paga (quante più ne riesco a recuperare)\n>: reddito degli autonomi calcolato su media ultimi 2 unici RN4-RN26 togliendo addizionali comunali e regionali. Se forfettario quadro LM.\nperiodo covid: media ultimi 2 unici ma anche bilancio provvisorio anno corrente per fare un calcolo ponderato\n>: Non costituisce reddito il mantenimento riconosciuto dal coniuge per i figli dà solo un plus ad una pratica tirata\n>: Non costituiscono reddito i rimborsi spese, indennità di trasferta presenti in busta paga, ancorchè ricorrenti\nLocazioni attive, a patto che siano accompagnate da regolare contratto e inserite nella dichiarazione dei redditi; sia evidente/tracciabile il regolare incasso delle mensilità. dà plus alla pratica se non c'è mutuo residuo su immobile\n>: tra gli impegni non vengono considerati i leasing per gli autonomi\nGARANTI e PARAMETRI:\n>: Si possono computare al massimo tre redditi, così impostati:\nTre richiedenti; Due richiedenti ed un garante: OPPURE · un richiedente, due garanti\nSi può aggiungere un altro garante ma il suo reddito non verrà computato per il calcolo rrr e peserà sulle soglie. Viene considerato garante con maggior reddito.: dà plus a pratica\nIl garante concorre al parametro rrr ma non alle soglie. ex; coppia richiedente + fratello garante: soglie x 3 pax deve reggerle il reddito SOLO dei due richiedenti\nUnicamente nei mutui di acquisto, la garanzia prestata dal genitore al figlio contribuisce anche al raggiungimento della soglia di sussistenza.\nex; 2 ragazzi richiedenti, garante padre che ha una moglie: somma dei redditi deve reggere somma sussistenze 2 nuclei fam. quindi € 1100 + 1100\nil reddito del garante viene cumulato per rr e soglie se è sullo stesso stato di famiglia o se intesta una parte dell'immobile (anche solo € 5.000) altrimenti vengono considerate sussistenze come sopra\n>: mutuo genitori, figlio nel nucleo familiare che lavora: autocertificazione del padre che il figlio lavora a t. indeterminato e viene escluso dal carico familiare\n>: pratica intestatario + garante viene considerata bi-reddito e il rapporto rata/reddito è del 45%\nPARTICOLARI CASI DI FINANZIABILITA'\n>: Non è possibile concedere finanziamenti nel caso di vendita di immobili tra coniugi e tra parenti ed affini entro il terzo grado ad eccezione dei seguenti casi:\n>: Comunioni ereditarie per acquisto da parte di un erede delle quote di immobili dai coeredi; · finanziano 80% della quota che compra\n>: Separazione/divorzio per acquisto della quota di proprietà della casa coniugale dall’altro coniuge\n>: Non finanziano l'acquisto di uffici, laboratori, negozi, magazzini\n>: finanziano donazioni senza polizza assicurativa a copertura\n>: aste: finanziano 100% del prezzo di aggiudicazione - LTC - a patto che ctu (perizia del tribunale) sia 80% - LTV - · meglio rivolgersi a filiale che fanno già verifiche della ctu e difformità eventual\n>: sisma bonus: viene considerato come fosse un apporto personale. · ex; · €200,000 · casa\n€50,000.00: eco bonus\n€150,000.00: mutuo\nsi può intestare mutuo una persona, dividere proprietà e usufrutto con genitori / compagna. spiegare perchè chiedono la divisione. potrebbero chiedere intervento di genitori / compagna\ncome garanti, contano reddito zero ma serve per censirli e controllare che non siano protestati ecc...\nse cliente è sposato e vuole fare mutuo solo lui, bnl pensa che si stiano separando e che quindi reddito del cliente si abbasserà. Per questo motivo richiedono inserimento moglie\nalmeno come garante\nNoleggio auto a Lungo Termine con ARVAL - vedi mail 22.06.23\nserenity: tcm: si possono finanziare nel mutuo se non eccedono 80% e prendono lo stesso tasso\nserenity plus: tcm + pi: si può decidere se coprire l'intero importo o meno\nArea manager: Lorenzo Rosica\nreferente crediti Urpa: Andrea Colombo: urpa@bnlmail.com\nandrea.colombo@bnpparibas.com\nriferimenti:\nBNL SEREGNO E CANTU': direttore Rosanna Napolitano"
+  },
+  {
+    "bankName": "BPM",
+    "slug": "bpm",
+    "summary": "80 ANNI (ULTIMA RATA PRIMA DELL 80° COMPLEANNO)",
+    "sortOrder": 80,
+    "rows": [
+      {
+        "label": "DURATA",
+        "value": "80 ANNI (ULTIMA RATA PRIMA DELL 80° COMPLEANNO)"
+      },
+      {
+        "label": "PASSO/DURATA DELIBERA",
+        "value": "PASSO 5"
+      },
+      {
+        "label": "RESIDENZA STRANIERI",
+        "value": "MONORICHIEDENTE: ALMENO 3 ANNI\nCOINTESTAZIONE: QUELLO CON IL MINOR REDDITO\nANCHE SOLO 6 MESI (PRIMO SEMPRE 3 ANNI)\nOBBLIGO CERTIFICATO STORICO RESIDENZA"
+      },
+      {
+        "label": "ANZIANITA' LAVORATIVA",
+        "value": "MONOREDDITO: ULTIMI 2 CUD E ALMENO 2 BUSTE PAGA (MEGLIO 3)\n (MIN 3 ANNI NON PIU DI 2 DATORI DI\nLAVORO SEMPRE A T IND.\nSE PIU' RICHIEDENTI:\nPRIMO RICHIDENTE COME CITATO SOPRA,\nSECONDO RICHIEDENTE 6 MESI INDETERMINATO"
+      },
+      {
+        "label": "GARANTI",
+        "value": "REDDITO SOMMATO AI RICHIEDENTI,\nMA NON PER LE SOGLIE: DEVONO REGGERE SOLO I RICHIEDENTI\n(NON CALCOLANO IL NUCLEO DEL GARANTE)\n\nPER R/R CONSIDERANO IL GARANTE PER LA SOMMA\nDI UN TERZO:\nES. GARANTE REDDITO 2000-350 PRESTITO : 3 (UN TERZO)"
+      },
+      {
+        "label": "TERZO DATORE DI IPOTECA",
+        "value": "?"
+      },
+      {
+        "label": "ASTA",
+        "value": "SI, PRESE IN COSIDERAZIONE OPERAZIONI PER LE SOLE PIAZZE\nDOVE BPM ABBIA ADERITO ALL'ACCORDO ABI/TRIBUNALI ED E'\n AMMESSO IL FINANZIAMENTO FINO ALL'80% DEL PREZZO DI AGGIUDICAZIONE,\nSALVO IN OGNI CASO IL RISPETTO DEI LIMITI DI FONDIARIETA' (LTV 80%)\nIN RAPPORTO AL VALORE DI PERIZIA"
+      },
+      {
+        "label": "SURROGA",
+        "value": "NO"
+      },
+      {
+        "label": "PRODOTTI",
+        "value": "ACQUISTO, COSTRUZIONE,\nRISTRUTTURAZIONE,\nACQUISTO + RISTRUTTURAZIONE,\nSURROGA\nMUTUO COMMERCIALE LTV 70% (RICHIEDENTI SOLO PERSONE FISICHE)\nDISMISSIONI ENTI (FINO ALL'80% NEI LIMITI DI LTV 80%)"
+      },
+      {
+        "label": "RIFERIMENTO EURIBOR",
+        "value": "1 MESE"
+      },
+      {
+        "label": "PERMESSO DI SOGGIORNO",
+        "value": "IN CORSO MA ANCHE CON RICEVUTA CONVOCAZIONE"
+      },
+      {
+        "label": "AUTONOMI",
+        "value": "ULTIMI 2 UNICI O 730"
+      },
+      {
+        "label": "IMPEGNI IN ESSERE A BREVE SCADENZA",
+        "value": "NO SE INFERIORE DI 6 MESI"
+      },
+      {
+        "label": "T. DETERMINATO",
+        "value": "SI SE LAVORATO 30 MESI NEGLI ULTIMI 36 CON STESSO DATORE\nE AFFIANCATO DA T INDETER."
+      },
+      {
+        "label": "INSEGNANTI",
+        "value": "SI CON PIÙ MANDATI E STESSO ISTITUTO."
+      },
+      {
+        "label": "APPRENDISTATO PROFESSIONALIZZANTE",
+        "value": "SI MA ALMENO 3 ANNI VIENE CONSIDERATO INDETERMINATO MA OPE 80% E POS GARANTE"
+      },
+      {
+        "label": "CONTRATTO SOMMINISTRAZIONE",
+        "value": "SI ANCHE DA SOLO MA CON INDETERMINATO REDDITO CONSIDERATO PIENO"
+      },
+      {
+        "label": "TRASFERTE",
+        "value": "NO"
+      },
+      {
+        "label": "COLF / BADANTI",
+        "value": "?"
+      },
+      {
+        "label": "ALIMENTI DATI/RICEVUTI",
+        "value": "?"
+      },
+      {
+        "label": "ASSEGNO UNICO FIGLIO",
+        "value": "SI, MA VIENE PONDERATO IN BASE ALL'ETA' DEI FIGLI"
+      },
+      {
+        "label": "IMMOBILE DA DONAZIONE",
+        "value": "SI,MA NECESSARIA DOCUMENTAZIONE EXTRA"
+      },
+      {
+        "label": "ASSEGNO UNICO",
+        "value": "SI PONDERATO A SECONDA ETÀ DEI FIGLI"
+      },
+      {
+        "label": "REDDITI PARTICOLARI",
+        "value": "REDDITI PERCEPITI DA LOCAZIONE: POSSONO ESSERE CONSIDERATI SOLO\nSE ACCERTATI CON LA DICHIARAZIONE DEI REDDITI\n\nDIPENDENTE: SEL ULTIMO CUD E' SUPERIORE DEL\n25% DEL PRECEDENTE FANNO MEDIA DEI 2 REDDITI"
+      },
+      {
+        "label": "PENSIONE DI INVALIDITA'",
+        "value": "?"
+      },
+      {
+        "label": "PARTICOLARITA'",
+        "value": "COINTESTAZIONI FINO AL 2° GRADO DI PARENTELA,\nCONVIVENTI (STATO RESIDENZA),\nSE FIDANZATI NON CONVIVENTI OBBLIGO GENITORE\nO GENITORI (COMUN DEI BENI) COME GARANTI,\nSE MONOREDDITO PREFERISCONO GARANTE.\nINDEBITAMENTO NON DEVE SUPERARE IL 50% DEL REDDITO\nESEMPIO: IMPEGNI PIU' RATA MUTUO : REDDITO (NON SUPERIORE AL 50%)\nPOSSIBILITA' DI FARE 100% CONSAP IN FILIALE\nSe i redditi dell'ultima dichiarazione risultano superiori del 25% rispetto\nall’anno precedente si deve\nutilizzare la media dei due redditi netti;\nnegli altri casi si deve utilizzare il dato dell’ultima dichiarazione"
+      },
+      {
+        "label": "PRE DELIBERA/ CARD",
+        "value": "SI"
+      },
+      {
+        "label": "IMPORTO MIN - MAX",
+        "value": "?"
+      },
+      {
+        "label": "CALCOLO REDDITO CUD PARZIALE",
+        "value": "SE L'ULTIMO DATORE DI LAVORO INFERIORE\nAI 12 MESI CHIEDO CONTRATTO LAVORO CON SPECIFICA\nCONTRATTO INDET."
+      },
+      {
+        "label": "ISTRUTTORIA",
+        "value": "1,5 % (MIN 800 EURO) MUTUI NORMALI\nMUTUI SAL 1.200 EURO"
+      },
+      {
+        "label": "PERIZIA",
+        "value": "320 EURO\nMUTUI SAL (1° PERIZIA 320 EURO, PERIZIE SUCCESSIVE 110 EURO)"
+      },
+      {
+        "label": "ISTRUT CONSAP",
+        "value": "-"
+      },
+      {
+        "label": "INCASSO RATA CONSAP",
+        "value": "-"
+      },
+      {
+        "label": "INCASSO RATA",
+        "value": "0,95 EURO"
+      },
+      {
+        "label": "ASSICURAZIONI SUGGERITE",
+        "value": "MULTIRISCHIO ABITAZIONE\nfinanziata all'interno del mutuo, anche per quota eccedente l'80% del prezzo di acquisto (Es. compravendita 100k, mutuo 80k, polizza 3k; totale mutuo finanziato 83k su 100k).\npolizza TCM finanziata all'interno del mutuo, anche per quota eccedente l'80% di LTV, con remunerazione pari al 15% del premio."
+      },
+      {
+        "label": "PROV. MASSIME CLIENTE",
+        "value": "2,5%"
+      },
+      {
+        "label": "SPESE PRODOTTO",
+        "value": "?"
+      }
+    ],
+    "detailText": "BANCO BPM\nPOLICY BANCA\nDURATA:: 80 ANNI DI ETA' FINE MUTUO\nPASSO 5\n1: 2 · 3 · 4 · 5 · 6 · 7 o più\nSUSSISTENZA:: 690 · 1150 · 1529,50 · 1874,5 · 2185 · 2484 · 2760\nPRODOTTI:: LTV 80%\nTASSO FISSO\nTASSO VARIABILE\nMUTUO COMMERCIALE: Consap prio max 95% idem per under 36 isee sopra ai 40k\nREDDITI\nDIPENDENTI / AUTONOMI\n>: CUD relativi agli ultimi due anni fiscali conclusi e almeno le ultime due buste paga.\n>: Per i lavoratori che presentano anche altre fonti di reddito (es.: rendite immobiliari),\npossono essere considerati solo se accertati tramite la dichiarazione dei redditi\n>: Se i redditi dell'ultima dichiarazione risultano superiori del 25% rispetto all’anno precedente\nsi deve utilizzare la media dei due redditi netti\n>: E’ necessaria un'anzianità di servizio precedente alla data della richiesta del mutuo non inferiore a tre anni, svolta in via\ncontinuativa presso non più di due datori di lavoro con contratto di lavoro a tempo indeterminato\n>: I dipendenti a tempo determinato sono ammessi purché dimostrino di aver prestato opera per almeno 30 mesi negli ultimi 36 dalla data della richiesta presso stesso datore di lavoro; non sono ammesse operazioni con richiedenti con contratto di lavoro a tempo determinato se non cointestate o garantite da soggetti con contratto a tempo indeterminato o con reddito derivante da pensione\n>: Garanti firmano la fidejussione esterna - no limiti di età\n>: Possibilità di fare 100% consap in filiale\nCALCOLO RRR:: Rata / (Redd-Imp)\n35% per operazioni a tasso fisso; 25% per operazioni a tasso variabile\nPROCESSO:: Caricamento pratica in Xlise\nPARTICOLARITA':\n>: FINANZIANO ACQUISTO IMMOBILI COMMERCIALI · LTV 70%\noperazioni finalizzate all’acquisto di immobili commerciali i cui richiedenti siano esclusivamente persone fisiche qualificate come soggetti “consumatori”.\n>: Prima dell’atto deve essere costituita adeguata provvista per provvedere al saldo prezzo\n>: STRANIERI = 3 ANNI RESIDENTE\n>: Il reddito di eventuali garanti non è considerato ai fini del calcolo del reddito minimo, ma è preso a 1/3 nel rapporto R/R\n>: ASTE GIUDIZIARIE:\nVengono prese in considerazione operazioni per le sole piazze dove il Banco BPM abbia aderito all’accordo ABI/tribunali ed è ammesso il finanziamento fino all’80% del prezzo di aggiudicazione, salvo in ogni caso il rispetto dei limiti di fondiarietà (ltv 80%) in rapporto al valore di perizia,\n>: SI DONAZIONE: ma necessaria documentazione extra\n>: Limite di territorialità: massimo 15 km tra filiale banca e residenza / luogo di lavoro del Cliente richiedente il mutuo\nGARANTI:: Partner, genitori, figli, fratelli/sorelle (parenti di 2° grado)"
+  },
+  {
+    "bankName": "CR ASTI",
+    "slug": "cr-asti",
+    "summary": "80 ANNI FINE MUTUO da ponderare x qualche anno in piu'con direttore",
+    "sortOrder": 90,
+    "rows": [
+      {
+        "label": "DURATA",
+        "value": "80 ANNI FINE MUTUO da ponderare x qualche anno in piu'con direttore"
+      },
+      {
+        "label": "PASSO/DURATA DELIBERA",
+        "value": "PASSO 1 / DELIBERA VALIDA 6 MESI"
+      },
+      {
+        "label": "RESIDENZA STRANIERI",
+        "value": "36 MESI RESIDENZA"
+      },
+      {
+        "label": "ANZIANITA' LAVORATIVA",
+        "value": "MONOREDDITO: INDETERMINATO 36 MESI PRIV; 24 PUBB\nPIU' COINTESTATARI: INDETERMINATO = 6 mesi\nDETERMINATO = 24 mesi"
+      },
+      {
+        "label": "GARANTI",
+        "value": "ETA' DA CALCOLATORE\nFIDEJUSSORE ESTERNO COME GARANTE\n( LA FIDEJUSSIONE DEVE ESSERE SOTTOSCRITTA PRIMA DEL\nROGITO IN FILIALE)."
+      },
+      {
+        "label": "TERZO DATORE DI IPOTECA",
+        "value": "SI"
+      },
+      {
+        "label": "ASTA",
+        "value": "100% IN ASTA SU 80% DI LTV"
+      },
+      {
+        "label": "SURROGA",
+        "value": "SI entro 80%"
+      },
+      {
+        "label": "PRODOTTI",
+        "value": "ACQUISTO, LIQUIDITA'\n\nconsap (da febbraio 24)\nMONOREDDITO FINO AL 70%\n\nMUTUO COMMERCIALE LTV 70% (10-15 anni) ltc 80 ltv70\n(RICHIEDENTI SOLO PERSONE FISICHE)"
+      },
+      {
+        "label": "RIFERIMENTO EURIBOR",
+        "value": "6 MESI"
+      },
+      {
+        "label": "PERMESSO DI SOGGIORNO",
+        "value": "ALMENO VALIDO PER 3 ANNI"
+      },
+      {
+        "label": "AUTONOMI",
+        "value": "P.IVA ALMENO 3 ANNI (RN1-RN5)\nRN4-RN26"
+      },
+      {
+        "label": "IMPEGNI IN ESSERE A BREVE SCADENZA",
+        "value": "entro i 6 mesi non considerati"
+      },
+      {
+        "label": "T. DETERMINATO",
+        "value": "LAV A T DETERM REDDITO CONSIDERATO AL 70%\nAFFIANCATO A T INDE O PENSIONATO O P IVA > 36 MESI"
+      },
+      {
+        "label": "INSEGNANTI",
+        "value": "3 mandati se non di ruolo considero come indeterm."
+      },
+      {
+        "label": "APPRENDISTATO PROFESSIONALIZZANTE",
+        "value": "considerato come determinato valutato se affiancato a indeterminato da 2 anni"
+      },
+      {
+        "label": "CONTRATTO SOMMINISTRAZIONE",
+        "value": "come indeterminato ma valutato al minimo (800€)"
+      },
+      {
+        "label": "TRASFERTE",
+        "value": "SI AL 70% ANCHE SE NON AUTOTRASPORTATORE"
+      },
+      {
+        "label": "COLF / BADANTI",
+        "value": "BADANTI: REDDITO CONSIDERATO AL 70% SE AFFIANCATO\nA T INDE O PENSIONATO O P IVA > 36 MESI"
+      },
+      {
+        "label": "ALIMENTI DATI/RICEVUTI",
+        "value": "al 70% sia attivi che passivi"
+      },
+      {
+        "label": "ASSEGNO UNICO FIGLIO",
+        "value": "si al 100% ma non deve essere sostanziale nella valutazione del reddito"
+      },
+      {
+        "label": "IMMOBILE DA DONAZIONE",
+        "value": "SI CON POLIZZA"
+      },
+      {
+        "label": "ASSEGNO UNICO",
+        "value": "SI MA NON SOSTANZIALE NELLA VALUTAZIONE DEL REDDITO"
+      },
+      {
+        "label": "REDDITI PARTICOLARI",
+        "value": "LA BANCA NON FA REDDITI ESTERI.\nredditi da locazione si"
+      },
+      {
+        "label": "PENSIONE DI INVALIDITA'",
+        "value": "si al 70% solo se non rivedibile indifferentemente"
+      },
+      {
+        "label": "PRE DELIBERA/ CARD",
+        "value": "NO"
+      },
+      {
+        "label": "IMPORTO MIN - MAX",
+        "value": "20k (prestito personale)"
+      },
+      {
+        "label": "CALCOLO REDDITO CUD PARZIALE",
+        "value": "da ultime 3 bp da netto"
+      },
+      {
+        "label": "ISTRUTTORIA",
+        "value": "1%"
+      },
+      {
+        "label": "PERIZIA",
+        "value": "300"
+      },
+      {
+        "label": "ISTRUT CONSAP",
+        "value": "1%"
+      },
+      {
+        "label": "INCASSO RATA CONSAP",
+        "value": "2€"
+      },
+      {
+        "label": "INCASSO RATA",
+        "value": "2€"
+      },
+      {
+        "label": "ASSICURAZIONI SUGGERITE",
+        "value": "SI, 3% (NON FINANZIABILE)"
+      },
+      {
+        "label": "PROV. MASSIME CLIENTE",
+        "value": "2,5%"
+      }
+    ],
+    "detailText": "CR ASTI\nPOLICY BANCA\nDURATA:: 80 ANNI DI ETA' FINE MUTUO DELL'INTESTATARIO - GARANTE PONDERATO SECONDO FORMULA DEL CALCOLATORE\n1: 2 · 3 · 4 · 5\nSUSSISTENZA:: 800 · 1100 · 1400 · 1700 · 2000 · 300 · PER OGNI ALTRO COMPONENTE\nPRODOTTI:: Mutuo fix max 20 = 3,5% finito · Per 1,5% obbligatorie polizze · tasso 4,50-4.70\nMutuo fix 3 anni RINEGOZIABILE\nsurroga\nsal\nliquidità\ncommerciale 70% (10-15 anni): ufficio ltc 80 ltv70\nTASSO VARIABILE: (Euribor 6 mesi)\nTASSO VARIABILE: (Rata Costante) · - INTERESSANTE\nOPZIONE 3 ANNI\nOPZIONE 10 ANNI: (In questo momento sospesa)\nCALCOLO RRR:: MONOREDDITO · R/R 30% - LTV & LTC 70% · MODALITA' DI CALCOLO DEL RRR\nBIREDDITO: R/R 40% - LTV 80% & LTC 80% · R/R 30% - LTV 80% & LTC 90% · (Rata+Imp) / Redd\nREDDITI: Monoreddito · Anzianità minima\nINDETERMINATO 36 mesi priv; 24 pubb: INDETERMINATO = 6 mesi\nP.IVA almeno 3 anni: DETERMINATO = 24 mesi\nR/R + LTC < 100; (Se R/R 30% LTC max 70%, L'LTV non può cmq superare l'80%): P.IVA 3 anni di continuità\nDIPENDENTI: CU 12 mesi o media ultime BP se CU < 12 mesi\nExtracom o com 36 mesi residenza\nLavoratori T. Deter & Badanti = reddito 70% se affiancati T. Indetermin o pensionato o p.iva > 36 mesi\nPROCESSO:\n1) INCARICO PERIZIA PRIMA DELLA PRESENTAZIONE COMPLETA DELLA PRATICA documentazione reddituale tutta completa. crif mrcredit facciamola prima\n2) PERIZIA OK, APPUNTAMENTO IN BANCA PER FIRME CON CLIENTE - verificare quando la fiiale manda la pratica in delibera\n3) DELIBERA DEFINITIVA IN AREA - 15/20 GG\n4) DELIBERA POSITIVA\n4) INCONTRO CLIENTE / MEDIATORE / BANCA\nla filiale fa aprire il cc, propone le polizze e definisce il prodotto;\n4 bis) DELIBERA NEGATIVA\nrichiedere rinuncia sottoscritta dal cliente\ntutti allegati da presentare\nPARTICOLARITA':\n1) CALCOLO DEL REDDITO DEGLI AUTONOMI: RN1 - RN5\n2) LE REGOLE DI LTV E LTC VALGONO PER LA DELIBERA, POI CON LA FILIALE ABBIAMO LA POSSIBILITA' DI GESTIRE UN LTC 100% DIMOSTRANDO LE DIFFERENZE\n3) POLIZZE ASSICURATIVE PESANTEMENTE RICHIESTE ALMENO UN 3% - NON FINANZIABILE\n4) PROCESSO DI STIPULA MOLTO VELOCE PERCHE' GESTITO IN FILIALE\n5) FIDEJUSSORE ESTERNO COME GARANTE - LA FIDEJUSSIONE DEVE ESSERE SOTTOSCRITTA PRIMA DEL ROGITO IN FILIALE.\n6) LA BANCA NON FA REDDITI ESTERI - frontalieri solo come fidejussori\n7) 100% IN ASTA SU 80% DI LTV\n8) LA BANCA FA ACQUISTI + RISTRUTTURAZIONE\n9) FILIALI DI RIFERIEMENTO LISSONE - CERNUSCO\n10) CONSIDERA COLF E BADANTI SOLO SE AFFIANCATE AD UN TEMPO INDETERMINATO.\n11) ass familiare deve essere al max 25% reddito famiglia\nPER FINANZIAMENTO AZIENDE SERVONO QUESTI DOCUMENTI:: (mutuo chirografario)\n- ultimi 2 bilanci xbrl depositati in camera commercio\n- bilancio provvisorio anno precedente se ancora non depositato\n- dichiarazione dei redditi (mod. unico) dei soci e amministratori\n- visura camerale\n- elenco banche con cui collabora\n- finanziamenti società (rata, importo originario e residuo)\n- immobili di proprietà dei soci e amministratori e sapere se ipotecati\ngli egiziani sono in separazione la prima cosa da fare è definire il regime patrimoniale\ncertificato matrimonio tradotto- regime patrim originale dal loro paese tradotto da portare in questura e registrare - poi portare in comune per certificarlo\nagenzia delle entrate ispezione ipotecaria con spid\narrivano al 100 su bireddito e 90% su monoreddito - monofirma classico 70 o 80 % con differenze"
+  },
+  {
+    "bankName": "BDM BANCA",
+    "slug": "bdm",
+    "summary": "da 10 a 30 anni (80 anni fine mutuo età del più giovane)",
+    "sortOrder": 100,
+    "rows": [
+      {
+        "label": "DURATA",
+        "value": "da 10 a 30 anni (80 anni fine mutuo età del più giovane)"
+      },
+      {
+        "label": "PASSO/DURATA DELIBERA",
+        "value": "passo 1"
+      },
+      {
+        "label": "RESIDENZA STRANIERI",
+        "value": "3 ANNI"
+      },
+      {
+        "label": "ANZIANITA' LAVORATIVA",
+        "value": "3 buste paga"
+      },
+      {
+        "label": "GARANTI",
+        "value": "Primo grado"
+      },
+      {
+        "label": "TERZO DATORE DI IPOTECA",
+        "value": "SI"
+      },
+      {
+        "label": "ASTA",
+        "value": "Sì"
+      },
+      {
+        "label": "SURROGA",
+        "value": "si entro 80%"
+      },
+      {
+        "label": "PRODOTTI",
+        "value": "ACQUISTO, COSTRUZIONE,\nRISTRUTTURAZIONE,\nACQUISTO + RISTRUTTURAZIONE\n\nCONSAP PRIO ISEE <40K E >40K 100%"
+      },
+      {
+        "label": "MUTUO GREEN",
+        "value": "A e b"
+      },
+      {
+        "label": "RIFERIMENTO EURIBOR",
+        "value": "3 mesi"
+      },
+      {
+        "label": "PERMESSO DI SOGGIORNO",
+        "value": "In rinnovo"
+      },
+      {
+        "label": "AUTONOMI",
+        "value": "Ultimi due unici media"
+      },
+      {
+        "label": "T. DETERMINATO",
+        "value": "Sì ma con 3 anni stesso settore con indeterminato"
+      },
+      {
+        "label": "INSEGNANTI",
+        "value": "3 mandati anche da soli"
+      },
+      {
+        "label": "APPRENDISTATO PROFESSIONALIZZANTE",
+        "value": "Sì"
+      },
+      {
+        "label": "CONTRATTO SOMMINISTRAZIONE",
+        "value": "AL 100% CONTEGGIATO DA BUSTA PAGA O CUD SE PIENO. MA DIPENDE DA AGENZIA INTERINALE"
+      },
+      {
+        "label": "TRASFERTE",
+        "value": "SI"
+      },
+      {
+        "label": "COLF / BADANTI",
+        "value": "SI BADANTI"
+      },
+      {
+        "label": "ALIMENTI DATI/RICEVUTI",
+        "value": "Ricevuti 100% - dati tolti solo dalle soglie di sussistenza"
+      },
+      {
+        "label": "IMMOBILE DA DONAZIONE",
+        "value": "SI CON POLIZZA DONAZIONE AON"
+      },
+      {
+        "label": "ASSEGNO UNICO",
+        "value": "Sì pondereti"
+      },
+      {
+        "label": "REDDITI PARTICOLARI",
+        "value": "RIENTRO CERVELLI , CONSIDERATI REDDITI CON AGEVOLAZIONE FISCALE"
+      },
+      {
+        "label": "RIENTRO CERVELLI / RIMPATRIATI",
+        "value": "Sì conscontistica"
+      },
+      {
+        "label": "PENSIONE DI INVALIDITA'",
+        "value": "Sì, non revisionabile."
+      },
+      {
+        "label": "PARTICOLARITA'",
+        "value": "Durata mutuo = durata preammortamento (max 12 mesi) + durata ammortamento (ad eccezione della durata 30 anni che deve intendersi pari a 29 anni di ammortamento + 1 di preammortamento)"
+      },
+      {
+        "label": "PRE DELIBERA/ CARD",
+        "value": "No"
+      },
+      {
+        "label": "IMPORTO MIN - MAX",
+        "value": "50000"
+      },
+      {
+        "label": "CALCOLO REDDITO CUD PARZIALE",
+        "value": "MEDIA ULTIME 3 BUSTE PAGA , SE TRASFERTE ULTIME 6"
+      },
+      {
+        "label": "ISTRUTTORIA",
+        "value": "1% (min 250€)"
+      },
+      {
+        "label": "PERIZIA",
+        "value": "circa 300\n(225 + oneri + iva)"
+      },
+      {
+        "label": "INCASSO RATA",
+        "value": "5€"
+      },
+      {
+        "label": "ASSICURAZIONI SUGGERITE",
+        "value": "CPI DURATA DEL MUTUO E TASSO DEL MUTUO"
+      },
+      {
+        "label": "PROV. MASSIME CLIENTE",
+        "value": "4%"
+      }
+    ],
+    "detailText": null
+  },
+  {
+    "bankName": "CHE BANCA",
+    "slug": "che-banca",
+    "summary": "80 ANNI",
+    "sortOrder": 110,
+    "rows": [
+      {
+        "label": "DURATA",
+        "value": "80 ANNI"
+      },
+      {
+        "label": "PASSO/DURATA DELIBERA",
+        "value": "PASSO 1"
+      },
+      {
+        "label": "RESIDENZA STRANIERI",
+        "value": "3 ANNI"
+      },
+      {
+        "label": "ANZIANITA' LAVORATIVA",
+        "value": "ANCHE 3 MESI , SENTIRE ORTIZ X CALCOLO REDDITI DA BUSTA PAGA"
+      },
+      {
+        "label": "GARANTI",
+        "value": "\"DA VALUTARE CON ORTIZ\"\n\nNON FANNO CUMULO CON IL REDDITO\n\nSOGLIE VALIDE ANCHE PER NUCLEO GARANTE"
+      },
+      {
+        "label": "TERZO DATORE DI IPOTECA",
+        "value": "SI"
+      },
+      {
+        "label": "ASTA",
+        "value": "SI"
+      },
+      {
+        "label": "SURROGA",
+        "value": "SI, MIN 75K - NO CONSAP"
+      },
+      {
+        "label": "PRODOTTI",
+        "value": "CONSOLIDAMENTO (DA 10 A 25 ANNI)\nENASARCO - 95% PLUS (+ 0,25)\nSe mutuo <= 150.000€: mensile netto: 2.000 € (nucleo mutuatari)\nSe mutuo >150.000€: mensile netto: 2.400 € (nucleo mutuatari)\nEvidenza disponibilità minima: saldo prezzo effettivo + spese su cc dei richiedenti"
+      },
+      {
+        "label": "MUTUO GREEN",
+        "value": "SI VALUTARE PRODOTTI DEL MOMENTO"
+      },
+      {
+        "label": "RIFERIMENTO EURIBOR",
+        "value": "3 MESI CON FLOOR"
+      },
+      {
+        "label": "PERMESSO DI SOGGIORNO",
+        "value": "IN CORSO DI VALIDITA' NON VALE LA RICEVUTA DI CONVOCAZIONE"
+      },
+      {
+        "label": "AUTONOMI",
+        "value": "P.IVA APERTA DA ALMENO 3 ANNI, FANNO MEDIA ULTIMI 2 UNICI\n\nCALCOLO = RN4-RN26-RV2-RV10:12\n\nLM36-LM39"
+      },
+      {
+        "label": "IMPEGNI IN ESSERE A BREVE SCADENZA",
+        "value": "TUTTI GLI IMPEGNI VENGONO DETRATTI DAL REDDITO\n\nNON CONSIDERATI SE < 9 MESI"
+      },
+      {
+        "label": "T. DETERMINATO",
+        "value": "SE HA LAVORATO 24 MESI CONSECUTIVI E CON SCADENZA NON INFERIORE A 6 MESI E AFFIANCATOA INDETERMINATO CON 3 ANNI ANZIANITA LAVORATIVA\n\nREDDITO DETERMINATO PONDERATO 50%"
+      },
+      {
+        "label": "INSEGNANTI",
+        "value": "ANCHE NON DI RUOLO MA CON 3 MANDATI PIENO ( 285GG DA CUD + DISOCCUPAZIONE PERIODO ESTIVO )"
+      },
+      {
+        "label": "APPRENDISTATO PROFESSIONALIZZANTE",
+        "value": "APPRENDISTATO PROFESSIONALIZZANTE CON TEMPO INDETERMINATO\nVIENE PONDERATO AL 50% - VALIDATO COME DETERMINATO VEDI SU"
+      },
+      {
+        "label": "CONTRATTO SOMMINISTRAZIONE",
+        "value": "VIENE CONSIDERATO IL CONTRATTO A T IND CON AGENZIA\n\nREDDITO PONDERATO AL 50% AFFIANCATO A INDETERMINATO"
+      },
+      {
+        "label": "TRASFERTE",
+        "value": "No"
+      },
+      {
+        "label": "COLF / BADANTI",
+        "value": "NO"
+      },
+      {
+        "label": "ALIMENTI DATI/RICEVUTI",
+        "value": "100% SIA DATI CHE RICEVUTI"
+      },
+      {
+        "label": "ASSEGNO UNICO FIGLIO",
+        "value": "SI, MA PONDERATI SECONDO ETA' DEI FIGLI"
+      },
+      {
+        "label": "IMMOBILE DA DONAZIONE",
+        "value": "SI"
+      },
+      {
+        "label": "ASSEGNO UNICO",
+        "value": "SI MA PONDERATI A SECONDA ETA DEI FIGLI, UTILIZZARE CALCOLATORE"
+      },
+      {
+        "label": "REDDITI PARTICOLARI",
+        "value": "REDDITI PERCEPITI DA LOCAZIONE = 75%\n(SE CON CONTRATTO REGISTR. E DICHIARATO)"
+      },
+      {
+        "label": "RIENTRO CERVELLI / RIMPATRIATI",
+        "value": "SI TASSAZIONE NORMALE"
+      },
+      {
+        "label": "PENSIONE DI INVALIDITA'",
+        "value": "NO SOLO PENSIONE INPS (VECCHIAIA)"
+      },
+      {
+        "label": "PARTICOLARITA'",
+        "value": "PRATICA MONOREDDITO CON ETA' INFERIORE AI 30 NECESSITA DI GARANTE\nSE ALLA META' DEL MUTUO HO SUPERATO I 65 ANNI DI ETA'\nIL REDDITO LO DEVO PONDERARE AL 90%\nACQUISTO: QUOTA SOLO DALL'EX CONIUGE,\nPER IL TAN EURIRS AL 20 DEL MESE PRECEDENTE"
+      },
+      {
+        "label": "PRE DELIBERA/ CARD",
+        "value": "NO"
+      },
+      {
+        "label": "IMPORTO MIN - MAX",
+        "value": "50K - 1M"
+      },
+      {
+        "label": "CALCOLO REDDITO CUD PARZIALE",
+        "value": "REDDITO NETTO MESE TOLTE TUTTE LE COMPETENZE ( STRAORDINARI , DIARIE , TRASFERTE ECC) X NUMERO MENSILITA / 12"
+      },
+      {
+        "label": "ISTRUTTORIA",
+        "value": "1% (MIN 1000 MAX 3000)"
+      },
+      {
+        "label": "PERIZIA",
+        "value": "300,00 EURO"
+      },
+      {
+        "label": "ISTRUT CONSAP",
+        "value": "-"
+      },
+      {
+        "label": "INCASSO RATA CONSAP",
+        "value": "-"
+      },
+      {
+        "label": "INCASSO RATA",
+        "value": "2,50 EURO"
+      },
+      {
+        "label": "ASSICURAZIONI SUGGERITE",
+        "value": "COME DA VISTO COMMERCIALE DI ORTIZ\n(DA FARE CON PREVENTIVATORE)\nesempio CASA PREMIO UNICO\n(IMPORTO MUTUO :1000 X 0,2595 X ANNI MUTUO + 25,00)"
+      },
+      {
+        "label": "PROV. MASSIME CLIENTE",
+        "value": "3%"
+      },
+      {
+        "label": "SPESE PRODOTTO",
+        "value": "-"
+      },
+      {
+        "label": "NOTE",
+        "value": "possibilità di aprire il conto digital legato solo per l'operazione di mutuo.\nNon è possibile aprirlo dopo"
+      }
+    ],
+    "detailText": "CHE BANCA!\nPOLICY BANCA\nDURATA:: 80 ANNI DI ETA' A FINE MUTUO\nPASSO 1: PRODOTTO NORMALE - PRODOTTO 95%\nSUSSISTENZA:: 845.91 · 1178.66 · 1476.87 · 1777.81 · 2051.39 · per ogni compon. aggiuntivo +350\nPRODOTTI:: PRODOTTO 80% · 80% DI PERIZIA · 20% DI DIFFERENZE\nPRODOTTO PLUS 95%: 80% DI PERIZIA · 5% DI DIFFERENZE · REDDITO MIN FINO A 150.000 --- 2.200\nREDDITO MIN SOPRA A 150.000 --- 2.600\nSURROGA:: min 75.000 €\nCALCOLO RRR:: PRODOTTO 80 % RR 32,5% VARIABILE / 40% FISSO O RATA PROTETTA - MODALITA' DI CALCOLO: (REDDITO-IMPEGNI)*35%\nPRODOTTO 95% RR 27,5 VARIABILE / 35 % FISSO O RATA PROTETTA\nvedi imm al piede: EURIBOR 3 MESI CON FLOOR\nPROCESSO:: PROCESSO IN ACCENTRATO - PRATICA CARICATA DIRETTAMENTE DALL'UFFICIO SU PIATTAFORMA\n1° PASSAGGIO CONTROLLO DOCUMENTALE: 10 GIORNI\n2° PASSAGGIO DELIBERANTE\n3° PASSAGGIO PRATICA DELIBERATA - INCARICO PERIZIA E NOTAIO\n4° APERTURA CONTO CORRENTE - 4 GG PRIMA CON ORTIZ\n5° CHIAMATA ATTO - 10 GG LAVORATIVI PRIMA DELL'ATTO\n6° PASSAGGIO - PER LA GESTIONE DELL'ATTO DEVO RICORDARE AL NOTAIO LA BOZZA DI COMPRAVENDITA IN BIANCO: (GESTIAMO NOI IL NOTAIO)\nPARTICOLARITA':: 1_ TUTTI GLI IMPEGNI VENGONO DETRATTI DAL REDDITO\n2_ SE ALLA META' DEL MUTUO HO SUPERATO I 65 ANNI DI ETA', IL REDDITO LO DEVO PONDERARE AL 90%\n3_ APPRENDISTATO, FORMAZIONE LAVORO, COCOCO VENGONO ASSIMILATE AL T. DETERMINATO PONDERATE AL 50% SE COOBLIGATO GARANTITO A T.INDET (CONTRATTO DA ALMENO 2 ANNI E IN CORSO DI VALIDITA')\n4_ DIMOSTRAZIONE DIFFERENZE: SALDO PREZZO + EVENTUALI ESTINZIONI FINANZIAMENTI - SOLDI SUI CONTI DEI CLIENTI\n5_ SE SONO STATE DATE CAPARRE VOGLIO TITOLO DI CAPARRA + EVIDENZA DELL'USCITA DAL CONTO\n6_ IN FASE DI CHIAMATA ATTO, TUTTI I SOLDI VANNO VERSO LA PARTE VENDITRICE. - GESTIONE DELLE CAPARRE\n7_ LA POLIZZA VITA O LAVORO SONO O PREMIO UNICO O FRAZIONATE\n8_ PRIMA DI INVIARE UNA PRATICA DEVO AVERE IL VISTO COMMERCIALE DELL 'ART - ROMANO ORTIZ\n9_ SI POSSONO FARE PRATICHE CON ESTENSIONE IPOTECARIA\n10_ I GARANTI NON FANNO CUMULO CON IL REDDITO - AVETE UN GARANTE? FATELO VALUTARE A ORTIZ\n11_ PRATICA MONOREDDITO CON ETA' INFERIORE AI 30 NECESSITA DI GARANTE\n12_ASSEGNO UNICO INPS X FIGLI FA CUMULO REDDITI (EVIDENZA DI ACCREDITO SU CC)\nin riferimento all’Assegno Unico che viene considerato se accreditato sul conto corrente del cliente come segue:\nAl 100% nel caso di soggetti portatori di handicap per i quali viene corrisposto senza limiti di età\nIn funzione di un coefficiente calcolato considerata l’età media dei figli, la durata residua del percepimento dell’assegno e la durata del mutuo, come meglio specificato:\nnumeratore = 21 anni (età massima dei figli per percepimento assegno unico) - media età dei figli\ndenominatore= durata mutuo\npolizze premio unico vita e impiego: si può eccedere ltv 80% per finanziarle nella rata del mutuo (prendono lo stesso tasso del 80%)"
+  },
+  {
+    "bankName": "BTL",
+    "slug": "btl",
+    "summary": "75 anni a fine mutuo età el più giovane",
+    "sortOrder": 120,
+    "rows": [
+      {
+        "label": "DURATA",
+        "value": "75 anni a fine mutuo età el più giovane"
+      },
+      {
+        "label": "PASSO/DURATA DELIBERA",
+        "value": "1"
+      },
+      {
+        "label": "RESIDENZA STRANIERI",
+        "value": "da quanto lavora, no regola generale"
+      },
+      {
+        "label": "ANZIANITA' LAVORATIVA",
+        "value": "valutato in base a contratto e azienda"
+      },
+      {
+        "label": "GARANTI",
+        "value": "REDDITO PIENO\nIMPEGNI AL 100%\nPARENTE E CONVIVENTE CON IL RICHIEDENTE -\nTOGLIE 5 PT DAL RRR"
+      },
+      {
+        "label": "TERZO DATORE DI IPOTECA",
+        "value": "SI"
+      },
+      {
+        "label": "ASTA",
+        "value": "NO"
+      },
+      {
+        "label": "SURROGA",
+        "value": "NO"
+      },
+      {
+        "label": "PRODOTTI",
+        "value": "ACQUISTO\nACQUISTO + RISTRUTTURAZIONE\nFINO ALL'80%\n\nNO COMMERCIALE"
+      },
+      {
+        "label": "MUTUO GREEN",
+        "value": "si (ABC)"
+      },
+      {
+        "label": "RIFERIMENTO EURIBOR",
+        "value": "3 MESI"
+      },
+      {
+        "label": "PERMESSO DI SOGGIORNO",
+        "value": "SI IN CORSO DI VALIDITA' O CON RINNOVO"
+      },
+      {
+        "label": "AUTONOMI",
+        "value": "DA ALMENO 2 ANNI, ALTRIMENTI DA VALUTARE"
+      },
+      {
+        "label": "IMPEGNI IN ESSERE A BREVE SCADENZA",
+        "value": "tendenzialmente 6 mesi"
+      },
+      {
+        "label": "T. DETERMINATO",
+        "value": "NO"
+      },
+      {
+        "label": "INSEGNANTI",
+        "value": "si"
+      },
+      {
+        "label": "APPRENDISTATO PROFESSIONALIZZANTE",
+        "value": "NO"
+      },
+      {
+        "label": "CONTRATTO SOMMINISTRAZIONE",
+        "value": "REDDITO PIENO"
+      },
+      {
+        "label": "TRASFERTE",
+        "value": "SI AL 100 INDIFFERENTEMENTE DAL LAVORO"
+      },
+      {
+        "label": "COLF / BADANTI",
+        "value": "SI, DA VALUTARE CON ANZIANITA' LAVORATIVA"
+      },
+      {
+        "label": "ALIMENTI DATI/RICEVUTI",
+        "value": "100%"
+      },
+      {
+        "label": "ASSEGNO UNICO FIGLIO",
+        "value": "SI 100%"
+      },
+      {
+        "label": "IMMOBILE DA DONAZIONE",
+        "value": "SI no assicurazione"
+      },
+      {
+        "label": "ASSEGNO UNICO",
+        "value": "SI"
+      },
+      {
+        "label": "PENSIONE DI INVALIDITA'",
+        "value": "si"
+      },
+      {
+        "label": "PARTICOLARITA'",
+        "value": "doppia ipoteca da valutare -"
+      },
+      {
+        "label": "PRE DELIBERA/ CARD",
+        "value": "NO"
+      },
+      {
+        "label": "IMPORTO MIN - MAX",
+        "value": "75K nel caso deroga"
+      },
+      {
+        "label": "CALCOLO REDDITO CUD PARZIALE",
+        "value": "calcolato su cu23 di tutti i lavori, specificato che reddito nuovo sarà diverso"
+      },
+      {
+        "label": "ASSICURAZIONI SUGGERITE",
+        "value": "DA CONCORDARE CON LA FILIALE"
+      },
+      {
+        "label": "PROV. MASSIME CLIENTE",
+        "value": "4%"
+      },
+      {
+        "label": "SPESE PRODOTTO",
+        "value": "500 euro stipula in studio notaio"
+      },
+      {
+        "label": "NOTE",
+        "value": "Mauceri Desiderio 389 6010460\n039 9640250 filiale.bernareggio\noppure 039 9620004 filiale.vimercate@btlbanca.it"
+      }
+    ],
+    "detailText": "BTL\n78 ANNI FINE MUTUO\nMAX 80%\nfinalità:: acquisto 1 e 2 casa · mutuo acquisto + ristrutturazione · SOLO PER IMMOBILI RESIDENZIALI, NO COMMERCIALE\nimporto minimo di mutuo € 50.000\nRRR 38%: modalità di calcolo: RATA + IMPEGNI / REDDITO · Se ci sono garanti -> rata mutuo + finanziamenti + finanziamenti garante / reddito + reddito garante\nSoglie -> riferimento istat direttamente dal sito\nAl momento no consap, stanno aprendo la collaborazione\nTasso fisso max 25 anni: oggi 3,95%\nTasso variabile max 30 anni -> euribor 3 mesi + spread\nredditi:: - colf e badanti al 100% se t.ind. con anzianità\n- apprendistato NO ma solo con genitore a garanzia\n- contratto somministrazione tipo Adecco considerano reddito pieno da cud\n- assegno unico fa reddito\n- autonomi: RN1 -RN4 o quadro LM netto\n- garante: non importa reddito ma toglie 5 punti percentuali dal RRR\nProcesso: istruire pratica in filiale -> centro analisi -> delibera\nPerizia pre-delibera; il costo è a carico della banca (se non viene deliberata la prt il cliente non paga la perizia): società perizie: CRIF E CERVED\nPolizze da concordare con la filiale\nTerritorialità -> dove risiede il cliente o dove compra o anche lavora\nretrocessione 1% - commissione max al cliente 4%\nNO VOUCHER\nDONAZIONE SI ma serve polizza x tutela\ncompravendite tra parenti SI\nMauceri Desiderio 389 6010460\n\nBERNAREGGIO\n039 9640250 filiale.bernareggio\n\nVIMERCATE\n039 9620004 filiale.vimercate@btlbanca.it\ncondizioni economiche 2025 in vigore per le operazioni mutui acquisto immobili uso abitativo\nMutuo per acquisto/ristrutturazione immobili uso abitativo (no S.A.L. no surroghe attive)\ncon opzione “Next Green” che consente al Cliente di beneficiare di uno sconto tasso (- 0,10%) nel caso in cui nel corso della durata del mutuo, effettui un miglioramento di 2 classi energetiche o di almeno il 30% dell’indice di Prestazione Energetica\n. APE A / B / C\nTasso fisso 2,75% o Tasso variabile Eur.3M/360 + 0,75% - possibilità di deroga per operazioni di alto valore\nDurata massima 25y , importo minimo euro 75.000,00\nIstruttoria 0,50%\nIncasso rata euro 5,00\nSpese uscita funzionario euro 500,00\n. APE D / E / F\nTasso variabile + 1,25%\nDurata massima 30y - importo minimo euro 75.000,00\nIstruttoria 1%\nIncasso rata euro 5,00\nSpese uscita funzionario euro 500,00\n. APE G\nTasso variabile + 2,00%\nDurata massima 30y - importo minimo euro 75.000,00\nIstruttoria 1%\nIncasso rata euro 5,00\nSpese uscita funzionario euro 500,00\nMutuo CONSAP\ncon opzione “Next Green” che consente al Cliente di beneficiare di uno sconto tasso (- 0,10%) nel caso in cui nel corso della durata del mutuo, effettui un miglioramento di 2 classi energetiche o di almeno il 30% dell’indice di Prestazione Energetica\nLa Legge n. 207 del 30/12/2024 “Bilancio di previsione dello Stato per l'anno finanziario 2025 e bilancio pluriennale per il triennio 2025-2027”, ha disposto dal 1° gennaio 2025 l’accesso al Fondo prima casa “esclusivamente”:\n- alle giovani coppie;\n- ai nuclei familiari monogenitoriali con figli minori;\n- ai conduttori di alloggi di proprietà degli Istituti autonomi per le case popolari;\n- ai giovani che non hanno compiuto trentasei anni di età;\n- ai nuclei familiari che includono tre figli di età inferiore a 21 anni e con un valore dell’indicatore della situazione economica non superiore a 40.000 euro annui;\n- ai nuclei familiari che includono quattro figli di età inferiore a 21 anni e con un valore dell’indicatore della situazione economica equivalente non superiore a 45.000 euro annui;\n- ai nuclei familiari che includono cinque o più figli di età inferiore a 21 anni e con un valore dell’indicatore della situazione economica non superiore a 50.000 euro annui.\n. APE A / B / C\nTasso fisso NON previsto\nTasso variabile Eur.3M/360 + 0,75%\nDurata massima 30y , importo minimo euro 80.000,00, massimo euro 250.000,00\nImporto massimo finanziabile fino al 100%\nIstruttoria 0,50%\nIncasso rata euro 1,00\nSpese uscita funzionario euro 0,00\n. APE D / E / F / G\nTasso fisso NON previsto\nTasso variabile + 1,25%\nDurata massima 30y - importo minimo euro 80.000,00, massimo euro 250.000,00\nImporto massimo finanziabile fino al 100%\nIstruttoria 1%\nIncasso rata euro 1,00\nSpese uscita funzionario euro 0,00"
+  },
+  {
+    "bankName": "UNICREDIT",
+    "slug": "unicredit",
+    "summary": "80 età del + giovane",
+    "sortOrder": 130,
+    "rows": [
+      {
+        "label": "DURATA",
+        "value": "80 età del + giovane"
+      },
+      {
+        "label": "PASSO/DURATA DELIBERA",
+        "value": "PASSO 1"
+      },
+      {
+        "label": "RESIDENZA STRANIERI",
+        "value": "5 ANNI PER IL 100%\n3 ANNI PER LE ALTRE OPE"
+      },
+      {
+        "label": "ANZIANITA' LAVORATIVA",
+        "value": "SUPERAMENTO PERIODO DI PROVA"
+      },
+      {
+        "label": "ASTA",
+        "value": "SI"
+      },
+      {
+        "label": "MUTUO GREEN",
+        "value": "A -B - C- D"
+      },
+      {
+        "label": "RIFERIMENTO EURIBOR",
+        "value": "3M"
+      },
+      {
+        "label": "PERMESSO DI SOGGIORNO",
+        "value": "ANCHE CON RINNOVO"
+      },
+      {
+        "label": "AUTONOMI",
+        "value": "ULTIMI 2 UNICI MEDIA"
+      },
+      {
+        "label": "IMPEGNI IN ESSERE A BREVE SCADENZA",
+        "value": "VALUTABILE SE POCHE RATE"
+      },
+      {
+        "label": "T. DETERMINATO",
+        "value": "ACCOMPAGANTO AD UN INDE\nRAFFORZA LA PRATICA\n(MA NON FA REDDITO)"
+      },
+      {
+        "label": "APPRENDISTATO PROFESSIONALIZZANTE",
+        "value": "SI ANCHE DA SOLO"
+      },
+      {
+        "label": "CONTRATTO SOMMINISTRAZIONE",
+        "value": "SI ANCHE DA SOLO"
+      },
+      {
+        "label": "TRASFERTE",
+        "value": "SOLO SE AUTOTRASPORTATORE"
+      },
+      {
+        "label": "COLF / BADANTI",
+        "value": "SI MA CON UN T IND ACCANTO"
+      },
+      {
+        "label": "ALIMENTI DATI/RICEVUTI",
+        "value": "SI 100%"
+      },
+      {
+        "label": "ASSEGNO UNICO",
+        "value": "NO"
+      },
+      {
+        "label": "PENSIONE DI INVALIDITA'",
+        "value": "SI MA NON DEVE ESSERE\nUNICO REDDITO"
+      },
+      {
+        "label": "PRE DELIBERA/ CARD",
+        "value": "SI ANCHE 100%"
+      },
+      {
+        "label": "IMPORTO MIN - MAX",
+        "value": "30k"
+      },
+      {
+        "label": "PROV. MASSIME CLIENTE",
+        "value": "3%"
+      }
+    ],
+    "detailText": null
+  },
+  {
+    "bankName": "BCC",
+    "slug": "bcc",
+    "summary": "75 anni fine mutuo età del più giovane",
+    "sortOrder": 140,
+    "rows": [
+      {
+        "label": "DURATA",
+        "value": "75 anni fine mutuo\netà del più giovane"
+      },
+      {
+        "label": "ASTA",
+        "value": "SI"
+      },
+      {
+        "label": "PRODOTTI",
+        "value": "ACQUISTO 1 E 2 CASA LTV 80%\nCONSAP PRIO AL 100%\nMUTUO SOCI : ISCRIZIONE 100€ A RICHIEDENTE,\nSPREAD + CONVENIENTE E ZERO SPESE ISTRUTTORIA E PERIZIA"
+      },
+      {
+        "label": "RIFERIMENTO EURIBOR",
+        "value": "3 MESI"
+      },
+      {
+        "label": "AUTONOMI",
+        "value": "lavoratore autonomo ordinario rn1- rn26\nlavoratore automono forfait lm38 - lm 39"
+      },
+      {
+        "label": "T. DETERMINATO",
+        "value": "AFFIANCATO A T IND CHE ABBIA BUON REDDITO"
+      },
+      {
+        "label": "INSEGNANTI",
+        "value": "INDET DI RUOLO SI\nDETERMINATO PRIMO MANDATO NO, ALMENO 3 MANDATI"
+      },
+      {
+        "label": "TRASFERTE",
+        "value": "NO MA DA VALUTARE"
+      },
+      {
+        "label": "IMMOBILE DA DONAZIONE",
+        "value": "SI CON POLIZZA"
+      },
+      {
+        "label": "NOTE",
+        "value": "Monza via Rota - Dir. Stefano Fontana\nfilmonzaviarota@caratebrianza.bcc.it\n\nMonza via San Rocco - Dir. Giovanni Di Filippo\ntel 039 2103033\nfilmonzasanrocco@caratebrianza.bcc.it"
+      }
+    ],
+    "detailText": "BCC\nCANTU'\nMax 80%\nno consap\n75 anni fine mutuo\ntasso misto da concordare\nsoglie ?: SI BASANO SU SOGLIE ISTAT\nREF. BCC ALBATE: REF. BCC COMO\nAndrea Cairoli: Paolo Marelli\nPER FINANZIAMENTI SOCIETA': MEDIOCREDITO CENTRALE\nCARATE BRIANZA\nelenco comuni convenzionati ma anche limitrofi (può essere che vada in delibera superiore)\n30 anni\nTASSO FISSO: TASSO VARIABILE (euribor 3 mesi)\n75 anni a fine mutuo (prendono età del più giovane)\nLTV 80%\nCONSAP PRIO E NON PRIO: anche al 100% · anche per famiglie numerose\nRRR 33 % (rata + impegni /reddito): ma se superano € 3.000 netti / mese sono più flessibili\n- ACQUISTO PRIMA E SECONDA CASA\n- ASTA\n- CASE ALER EDILIZIA CONVENZIONATA\n- DONAZIONE INDIRETTA\n- DONAZIONE COPERTA DA POLIZZA\n- COMPRAVENDITA TRA PARENTI (meglio ltv 80%)\nprocedimento:\n- delibera reddituale\n- perizia\n- incarico notaio\n- pies 7 gg lavorativi prima dell'atto deve firmarlo il cliente\n- cda 10/15 gg lavorativi prima dell'atto\n- polizza incendio scoppio loro, polizza vita da concordare\nCASI PARTICOLARI:\n- reddito da affitto se è aggiuntivo SI\n- trasferte se non sono ricorrenti NO, da valutare di persona\nMonza via Rota - Dir. Stefano Fontana\nfilmonzaviarota@caratebrianza.bcc.it\nMonza via San Rocco - Dir. Giovanni Di Filippo\n tel 039 2103033\n filmonzasanrocco@caratebrianza.bcc.it"
+  },
+  {
+    "bankName": "INTESA",
+    "slug": "intesa",
+    "summary": "INTESA",
+    "sortOrder": 150,
+    "rows": [],
+    "detailText": "INTESA\nrr 33%\nsoglie sussistenza variabili\ndurata mutuo fino a 40 anni\ntassi in vigore:\n- consap prioritario: 4.10%\n- ltv 80 %: 4.45% se green · 4.10% se giovani · 3.90 % se durata 40 anni\n- ltv 95% no consap: 5.25%\nPRODOTTI\nconsap prioritario under 36: ltv 100%\nprodotto normale: ltv 80 %\nmonoreddito - NO CONSAP: ltv 95% · fino a ltv 80% e per la restante parte interviene a copertura assicurazione · per italiani e stranieri se in Italia da almeno 60 mesi\nbireddito. - NO CONSAP: ltv 100% · interviene assicurazione · per italiani e stranieri se in Italia da almeno 60 mesi\ndocumentazione:\n- estratto conto ultimi 12 mesi\nacquisto + ristrutturazione finanziano ltv 80% e ltv 80 %: si può giocare sul computo metrico lavori ma l'acquisto deve per forza essere ltv 80%\n- è possibile dimostrare differenze da conto genitori o fratelli\n- finanziano i frontalieri fino al 80% - anche i residenti in Svizzera\n- se frontaliere si può aprire un finanziamento in Svizzera per il saldo prezzo perchè in crif non si vede\n- si può dividere nuda proprietà e usufrutto per acquisto casa e fare mutuo solo una persona. Le altre persone devono rientrare come terzi datori di ipoteca (NON GARANTI)\n- p.iva da almeno 3 anni, ultimi 2 modelli unici\n- se cliente in maternità non è un problema, bisogna dire che non farà quella facoltativa\n- considerano assegno unico per dare plus a pratica per le soglie di sussistenza\nREF. CERMENATE\nRoberto Legramandi: Sara Confalonieri"
+  }
+]

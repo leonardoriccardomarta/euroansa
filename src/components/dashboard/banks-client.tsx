@@ -17,6 +17,7 @@ type Policy = {
   bankName: string;
   summary: string | null;
   rows: { label: string; value: string }[];
+  detailText?: string | null;
   sortOrder: number;
 };
 
@@ -40,6 +41,7 @@ export function BanksClient({
       (r) =>
         r.bankName.toLowerCase().includes(needle) ||
         (r.summary ?? "").toLowerCase().includes(needle) ||
+        (r.detailText ?? "").toLowerCase().includes(needle) ||
         r.rows.some(
           (x) =>
             x.label.toLowerCase().includes(needle) ||
@@ -211,21 +213,43 @@ export function BanksClient({
                   </div>
                 ) : null}
               </div>
-              <dl className="max-h-[65vh] divide-y divide-slate-100 overflow-y-auto rounded-lg border border-slate-100">
-                {selected.rows.map((row, idx) => (
-                  <div
-                    key={`${row.label}-${idx}`}
-                    className="grid gap-1 px-3 py-2.5 sm:grid-cols-[220px_1fr]"
-                  >
-                    <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                      {row.label}
-                    </dt>
-                    <dd className="text-sm whitespace-pre-wrap text-slate-800">
-                      {row.value}
-                    </dd>
-                  </div>
-                ))}
-              </dl>
+              <div className="max-h-[70vh] space-y-4 overflow-y-auto">
+                {selected.rows.length > 0 ? (
+                  <section>
+                    <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                      Scheda rapida (matrice)
+                    </h3>
+                    <dl className="divide-y divide-slate-100 rounded-lg border border-slate-100">
+                      {selected.rows.map((row, idx) => (
+                        <div
+                          key={`${row.label}-${idx}`}
+                          className="grid gap-1 px-3 py-2.5 sm:grid-cols-[220px_1fr]"
+                        >
+                          <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                            {row.label}
+                          </dt>
+                          <dd className="text-sm whitespace-pre-wrap text-slate-800">
+                            {row.value}
+                          </dd>
+                        </div>
+                      ))}
+                    </dl>
+                  </section>
+                ) : null}
+                {selected.detailText ? (
+                  <section>
+                    <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                      Policy completa (tab Excel)
+                    </h3>
+                    <pre className="whitespace-pre-wrap rounded-lg border border-slate-100 bg-slate-50 px-3 py-3 font-sans text-sm leading-relaxed text-slate-800">
+                      {selected.detailText}
+                    </pre>
+                  </section>
+                ) : null}
+                {!selected.rows.length && !selected.detailText ? (
+                  <p className="text-sm text-slate-500">Nessuna policy.</p>
+                ) : null}
+              </div>
             </div>
           ) : (
             <p className="text-sm text-slate-500">Seleziona una banca.</p>
@@ -252,6 +276,7 @@ function BankEditor({
       .map((r) => `${r.label}|${r.value}`)
       .join("\n"),
   );
+  const [detailText, setDetailText] = useState(initial?.detailText ?? "");
 
   return (
     <form
@@ -272,6 +297,7 @@ function BankEditor({
             };
           });
         fd.set("rowsJson", JSON.stringify(rows));
+        fd.set("detailText", detailText);
         onSave(fd);
       }}
     >
@@ -303,11 +329,20 @@ function BankEditor({
         />
       </div>
       <div className="space-y-1">
-        <Label>Righe (una per riga: Etichetta|Valore)</Label>
+        <Label>Righe matrice (una per riga: Etichetta|Valore)</Label>
         <textarea
           value={rowsText}
           onChange={(e) => setRowsText(e.target.value)}
-          rows={22}
+          rows={14}
+          className="w-full rounded-lg border border-slate-200 px-3 py-2 font-mono text-xs"
+        />
+      </div>
+      <div className="space-y-1">
+        <Label>Policy completa (tab Excel)</Label>
+        <textarea
+          value={detailText}
+          onChange={(e) => setDetailText(e.target.value)}
+          rows={14}
           className="w-full rounded-lg border border-slate-200 px-3 py-2 font-mono text-xs"
         />
       </div>

@@ -56,19 +56,30 @@ export async function BankPolicyPanel({ bankName }: { bankName: string | null })
           Scheda completa
         </Link>
       </div>
-      <dl className="mt-3 max-h-80 space-y-2 overflow-y-auto text-sm">
-        {match.rows.map((row, idx) => (
-          <div
-            key={`${row.label}-${idx}`}
-            className="grid gap-0.5 sm:grid-cols-[160px_1fr]"
-          >
-            <dt className="text-xs font-semibold uppercase text-slate-500">
-              {row.label}
-            </dt>
-            <dd className="whitespace-pre-wrap text-slate-800">{row.value}</dd>
-          </div>
-        ))}
-      </dl>
+      <div className="mt-3 max-h-96 space-y-3 overflow-y-auto text-sm">
+        {match.rows.length > 0 ? (
+          <dl className="space-y-2">
+            {match.rows.map((row, idx) => (
+              <div
+                key={`${row.label}-${idx}`}
+                className="grid gap-0.5 sm:grid-cols-[160px_1fr]"
+              >
+                <dt className="text-xs font-semibold uppercase text-slate-500">
+                  {row.label}
+                </dt>
+                <dd className="whitespace-pre-wrap text-slate-800">
+                  {row.value}
+                </dd>
+              </div>
+            ))}
+          </dl>
+        ) : null}
+        {match.detailText ? (
+          <pre className="whitespace-pre-wrap rounded-lg border border-slate-100 bg-slate-50 px-3 py-2 font-sans text-xs leading-relaxed text-slate-700">
+            {match.detailText}
+          </pre>
+        ) : null}
+      </div>
     </div>
   );
 }

@@ -224,10 +224,12 @@ export const SETUP_STATEMENTS = [
     slug varchar(120) NOT NULL UNIQUE,
     summary text,
     rows jsonb NOT NULL DEFAULT '[]'::jsonb,
+    detail_text text,
     sort_order real NOT NULL DEFAULT 0,
     created_at timestamptz DEFAULT now() NOT NULL,
     updated_at timestamptz DEFAULT now() NOT NULL
   )`,
+  `ALTER TABLE bank_policies ADD COLUMN IF NOT EXISTS detail_text text`,
   `ALTER TABLE users ADD COLUMN IF NOT EXISTS payout_share_percent real NOT NULL DEFAULT 0.3`,
   `ALTER TABLE users ADD COLUMN IF NOT EXISTS override_on_others_percent real NOT NULL DEFAULT 0`,
 ];

@@ -1,10 +1,10 @@
-import { count, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { bankPolicies } from "@/db/schema";
 import { BANK_POLICY_SEEDS } from "@/lib/banks/seed-policies";
 
 /**
- * Upsert completo dal seed (per slug). Aggiorna summary/rows/sortOrder
+ * Upsert completo dal seed (per slug). Aggiorna summary/rows/detailText/sortOrder
  * e inserisce banche mancanti. Non cancella banche aggiunte a mano.
  */
 export async function syncBankPoliciesFromSeed(): Promise<{
@@ -30,6 +30,7 @@ export async function syncBankPoliciesFromSeed(): Promise<{
           slug: seed.slug,
           summary: seed.summary,
           rows: seed.rows,
+          detailText: seed.detailText ?? null,
           sortOrder: seed.sortOrder,
           updatedAt: new Date(),
         })
@@ -41,6 +42,7 @@ export async function syncBankPoliciesFromSeed(): Promise<{
         slug: seed.slug,
         summary: seed.summary,
         rows: seed.rows,
+        detailText: seed.detailText ?? null,
         sortOrder: seed.sortOrder,
       });
       inserted += 1;
@@ -51,8 +53,7 @@ export async function syncBankPoliciesFromSeed(): Promise<{
 }
 
 /**
- * Se la tabella è vuota, carica il seed.
- * Se è ancora il riassunto vecchio (< 20 voci), aggiorna al foglio completo.
+ * Se vuoto / seed vecchio / manca dettaglio tab: sincronizza dal seed completo.
  */
 export async function ensureBankPolicySeed(): Promise<number> {
   const existing = await db.select().from(bankPolicies);
@@ -63,6 +64,7 @@ export async function ensureBankPolicySeed(): Promise<number> {
         slug: b.slug,
         summary: b.summary,
         rows: b.rows,
+        detailText: b.detailText ?? null,
         sortOrder: b.sortOrder,
       })),
     );
@@ -73,7 +75,12 @@ export async function ensureBankPolicySeed(): Promise<number> {
     ...existing.map((e) => (Array.isArray(e.rows) ? e.rows.length : 0)),
     0,
   );
-  if (maxRows < 20) {
+  const hasIntesa = existing.some(
+    (e) => e.bankName.toLowerCase() === "intesa",
+  );
+  const missingDetail = existing.every((e) => !e.detailText);
+
+  if (maxRows < 20 || !hasIntesa || missingDetail) {
     const { inserted, updated } = await syncBankPoliciesFromSeed();
     return inserted + updated;
   }

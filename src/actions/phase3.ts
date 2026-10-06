@@ -127,6 +127,7 @@ export async function upsertBankPolicyAction(formData: FormData) {
   if (!bankName) return { error: "Nome banca obbligatorio" };
 
   const summary = String(formData.get("summary") ?? "").trim() || null;
+  const detailText = String(formData.get("detailText") ?? "").trim() || null;
   const rowsRaw = String(formData.get("rowsJson") ?? "[]");
   let rows: BankPolicyRow[] = [];
   try {
@@ -155,6 +156,7 @@ export async function upsertBankPolicyAction(formData: FormData) {
         slug,
         summary,
         rows,
+        detailText,
         sortOrder,
         updatedAt: new Date(),
       })
@@ -165,6 +167,7 @@ export async function upsertBankPolicyAction(formData: FormData) {
       slug,
       summary,
       rows,
+      detailText,
       sortOrder,
     });
   }
