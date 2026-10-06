@@ -34,19 +34,16 @@ export default async function UsersPage() {
       </div>
 
       {admin ? (
-        <div className="space-y-3 rounded-xl border border-primary-200 bg-primary-50/50 p-5">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-primary-700">
-              Admin org (unico)
-            </p>
-            <p className="mt-1 font-semibold text-slate-900">{admin.name}</p>
-            <p className="text-sm text-slate-600">{admin.email}</p>
-          </div>
-          <UserSharesForm
-            userId={admin.id}
-            payoutSharePercent={admin.payoutSharePercent}
-            overrideOnOthersPercent={admin.overrideOnOthersPercent}
-          />
+        <div className="rounded-xl border border-primary-200 bg-primary-50/50 p-5">
+          <p className="text-xs font-semibold uppercase tracking-wide text-primary-700">
+            Admin org (unico)
+          </p>
+          <p className="mt-1 font-semibold text-slate-900">{admin.name}</p>
+          <p className="text-sm text-slate-600">{admin.email}</p>
+          <p className="mt-2 text-xs text-slate-500">
+            Nessuna quota collaboratore: gestisci app, utenti e assegnazione
+            pratiche.
+          </p>
         </div>
       ) : null}
 

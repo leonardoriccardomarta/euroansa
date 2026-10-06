@@ -118,6 +118,7 @@ export default async function ApplicationDetailPage({
     DEFAULT_COLLABORATOR_SHARE;
   const viewerOverride = viewer?.overrideOnOthersPercent ?? 0;
   const showHiddenOverride =
+    session.role !== "ADMIN" &&
     viewerOverride > 0 &&
     Boolean(current.brokerId) &&
     current.brokerId !== session.id;

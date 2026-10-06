@@ -49,7 +49,8 @@ export default async function RogitatePage() {
 
   const myShare = viewer?.payoutSharePercent ?? DEFAULT_COLLABORATOR_SHARE;
   const overrideShare = viewer?.overrideOnOthersPercent ?? 0;
-  const canSeeOverride = overrideShare > 0;
+  /** Override/quote personali solo broker — admin non ha partecipazione economica. */
+  const canSeeOverride = session.role !== "ADMIN" && overrideShare > 0;
 
   const ownWhere =
     session.role === "ADMIN"
@@ -210,7 +211,9 @@ export default async function RogitatePage() {
         </div>
         <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
           <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-            Quota collaboratore
+            {session.role === "ADMIN"
+              ? "Totale quote broker"
+              : "Quota collaboratore"}
           </p>
           <p className="mt-1 text-2xl font-bold text-primary-700">
             {formatEuro(grandPayout)}

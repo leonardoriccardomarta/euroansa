@@ -49,9 +49,11 @@ export default async function BudgetPage() {
   const targets: BudgetTargets =
     settings?.budgetTargets ?? DEFAULT_BUDGET_TARGETS;
   const share =
-    viewerRow[0]?.payoutSharePercent ??
-    settings?.collaboratorSharePercent ??
-    DEFAULT_COLLABORATOR_SHARE;
+    session.role === "ADMIN"
+      ? 0
+      : (viewerRow[0]?.payoutSharePercent ??
+        settings?.collaboratorSharePercent ??
+        DEFAULT_COLLABORATOR_SHARE);
   const year = settings?.budgetYear ?? "2026";
 
   let mutuiErogato = 0;
@@ -153,9 +155,15 @@ export default async function BudgetPage() {
         <h1 className="text-3xl font-bold text-slate-900">Budget {year}</h1>
         <p className="mt-2 text-slate-600">
           Target annuali vs effettivo dalle pratiche{" "}
-          <strong>Rogitate</strong>. Quota collaboratore{" "}
-          {(share * 100).toFixed(0)}% →{" "}
-          <strong>{formatEuro(totEff * share)}</strong> su payin effettivo.
+          <strong>Rogitate</strong>
+          {session.role === "ADMIN" ? (
+            <> (vista agenzia).</>
+          ) : (
+            <>
+              . Quota collaboratore {(share * 100).toFixed(0)}% →{" "}
+              <strong>{formatEuro(totEff * share)}</strong> su payin effettivo.
+            </>
+          )}
         </p>
       </div>
 
