@@ -25,6 +25,7 @@ import {
   EMPLOYMENT_TYPE_LABELS,
   sheetRowsForRequired,
 } from "@/lib/config/documents";
+import { isClientChecklistFolder } from "@/lib/resources/client-doc-folders";
 import { isLegacyDriveKey, isSiteStorageKey } from "@/lib/storage/paths";
 import { PACKAGE_LINK_TTL_DAYS } from "@/lib/db/setup-statements";
 import { isTutorialPractice } from "@/lib/tutorial";
@@ -275,6 +276,23 @@ export default async function ApplicationDetailPage({
             {checklist.progressLabel}
           </p>
         </div>
+        <p className="mt-1 text-xs text-slate-500">
+          Checklist = documenti cliente (DOC + IMMOBILE). Firmati EUROANSA,
+          BANCA e relazione restano fuori.
+        </p>
+        {(() => {
+          const unknownClient = docs.filter(
+            (d) =>
+              d.documentType === "SCONOSCIUTO" &&
+              isClientChecklistFolder(d.storageSubfolder, current.clientName),
+          ).length;
+          return unknownClient > 0 ? (
+            <p className="mt-2 text-sm text-amber-800">
+              {unknownClient} file in DOC/IMMOBILE ancora senza tipo: usa
+              Risorse → Riconosci tipi da nomi file.
+            </p>
+          ) : null;
+        })()}
         {checklist.isUnset ? (
           <p className="mt-3 text-sm text-amber-700">
             Seleziona sopra le voci del foglio documenti richieste per questa

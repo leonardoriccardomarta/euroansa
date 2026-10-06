@@ -136,7 +136,10 @@ export function ResourcesClient({
                   return;
                 }
                 toast.success(
-                  `Tipi riconosciuti: ${res.typesUpdated} · checklist aggiornate: ${res.checklistsUpdated}`,
+                  `Tipi: ${res.typesUpdated} (AI ${res.aiClassified ?? 0}) · checklist: ${res.checklistsUpdated}` +
+                    (res.stillUnknownClient
+                      ? ` · ancora sconosciuti in DOC/IMMOBILE: ${res.stillUnknownClient}`
+                      : ""),
                 );
                 router.refresh();
               });

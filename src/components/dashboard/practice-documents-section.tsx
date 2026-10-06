@@ -197,7 +197,8 @@ export function PracticeDocumentsSection({
           Cartella documenti
         </h2>
         <p className="text-sm text-slate-600">
-          Due zone: documenti mandati dal cliente e fogli firmati (EUROANSA).
+          Checklist = documenti cliente in DOC e IMMOBILE. Fuori checklist:
+          fogli firmati (EUROANSA), BANCA operativa, relazione.
           Cartelle:{" "}
           {STORAGE_FOLDER_KINDS.map((k: StorageFolderKind) =>
             storageSubfolderLabel(k, clientName),

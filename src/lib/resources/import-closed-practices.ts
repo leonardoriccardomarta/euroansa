@@ -12,6 +12,8 @@ import {
   BROKER_DRIVE_ROOTS,
   BROKER_ECONOMY_SHEETS,
 } from "@/lib/resources/drive-catalog";
+import { classifyFilenamesWithAi } from "@/lib/ai/classify-filenames";
+import { isClientChecklistFolder } from "@/lib/resources/client-doc-folders";
 import { guessDocumentTypeFromFileName } from "@/lib/resources/guess-doc-type";
 import {
   downloadFileFromDrive,
@@ -404,10 +406,12 @@ export async function importClosedPracticesFromDrive(params: {
   };
 }
 
-/** Rivaluta documentType da filename e allinea requiredDocumentTypes. */
+/** Rivaluta tipi (euristica + AI nomi) e checklist solo su DOC/IMMOBILE cliente. */
 export async function reclassifyImportedDocuments(): Promise<{
   typesUpdated: number;
   checklistsUpdated: number;
+  aiClassified: number;
+  stillUnknownClient: number;
 }> {
   const rows = await db
     .select({
@@ -417,38 +421,84 @@ export async function reclassifyImportedDocuments(): Promise<{
       renamedFileName: documents.renamedFileName,
       documentType: documents.documentType,
       isValid: documents.isValid,
+      storageSubfolder: documents.storageSubfolder,
     })
     .from(documents);
+
+  const apps = await db
+    .select({ id: applications.id, clientName: applications.clientName })
+    .from(applications);
+  const nameByApp = new Map(apps.map((a) => [a.id, a.clientName]));
 
   let typesUpdated = 0;
 
   for (const row of rows) {
+    if (row.documentType !== "SCONOSCIUTO") continue;
     const guess = guessDocumentTypeFromFileName(
       row.rawFileName || row.renamedFileName,
     );
     if (guess === "SCONOSCIUTO") continue;
-    if (row.documentType !== "SCONOSCIUTO") continue;
-
     await db
       .update(documents)
       .set({ documentType: guess, isValid: true })
       .where(eq(documents.id, row.id));
+    row.documentType = guess;
     typesUpdated += 1;
   }
 
+  // AI sui residuali solo in cartelle checklist (DOC/IMMOBILE)
+  const needAi = rows.filter((row) => {
+    if (row.documentType !== "SCONOSCIUTO") return false;
+    const clientName = nameByApp.get(row.applicationId) ?? "CLIENTE";
+    return isClientChecklistFolder(row.storageSubfolder, clientName);
+  });
+
+  let aiClassified = 0;
+  if (needAi.length) {
+    const aiMap = await classifyFilenamesWithAi(
+      needAi.map((r) => ({
+        id: r.id,
+        fileName: r.rawFileName || r.renamedFileName,
+      })),
+    );
+    for (const row of needAi) {
+      const t = aiMap.get(row.id);
+      if (!t || t === "SCONOSCIUTO") continue;
+      await db
+        .update(documents)
+        .set({ documentType: t, isValid: true })
+        .where(eq(documents.id, row.id));
+      row.documentType = t;
+      aiClassified += 1;
+      typesUpdated += 1;
+    }
+  }
+
   let checklistsUpdated = 0;
+  let stillUnknownClient = 0;
   const appIds = [...new Set(rows.map((r) => r.applicationId))];
+
   for (const appId of appIds) {
+    const clientName = nameByApp.get(appId) ?? "CLIENTE";
     const docs = await db
       .select({
         documentType: documents.documentType,
         isValid: documents.isValid,
+        storageSubfolder: documents.storageSubfolder,
       })
       .from(documents)
       .where(eq(documents.applicationId, appId));
+
+    const clientDocs = docs.filter((d) =>
+      isClientChecklistFolder(d.storageSubfolder, clientName),
+    );
+    stillUnknownClient += clientDocs.filter(
+      (d) => d.documentType === "SCONOSCIUTO",
+    ).length;
+
     const types = [
       ...new Set(
-        docs
+        clientDocs
           .filter((d) => d.isValid && d.documentType !== "SCONOSCIUTO")
           .map((d) => d.documentType),
       ),
@@ -464,7 +514,12 @@ export async function reclassifyImportedDocuments(): Promise<{
     checklistsUpdated += 1;
   }
 
-  return { typesUpdated, checklistsUpdated };
+  return {
+    typesUpdated,
+    checklistsUpdated,
+    aiClassified,
+    stillUnknownClient,
+  };
 }
 
 async function syncPracticeFoldersFromBrokerRoot(params: {
@@ -669,7 +724,12 @@ async function syncPracticeFoldersFromBrokerRoot(params: {
               .where(eq(documents.id, inserted.id));
           }
           seenNames.add(key);
-          if (docType !== "SCONOSCIUTO") importedTypes.add(docType);
+          if (
+            docType !== "SCONOSCIUTO" &&
+            isClientChecklistFolder(subfolderLabel, app.clientName)
+          ) {
+            importedTypes.add(docType);
+          }
           attached += 1;
         } catch {
           // skip file
@@ -677,6 +737,7 @@ async function syncPracticeFoldersFromBrokerRoot(params: {
       }
     }
 
+    // Checklist solo DOC/IMMOBILE (i tipi finali li rifinisce reclassifyImportedDocuments)
     if (importedTypes.size > 0) {
       await db
         .update(applications)
