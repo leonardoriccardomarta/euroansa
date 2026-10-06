@@ -1,6 +1,7 @@
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { applications, documents } from "@/db/schema";
+import { isEuroansaFolder } from "@/lib/config/documents";
 import { downloadBlob } from "@/lib/storage/blob";
 import { isSiteStorageKey } from "@/lib/storage/paths";
 import {
@@ -104,12 +105,16 @@ export async function getPackageBundle(
   }
 
   for (const doc of docs) {
-    if (!doc.isValid || !doc.driveFileId) continue;
+    if (!doc.driveFileId) continue;
     const onSite = isSiteStorageKey(doc.driveFileId);
     if (!onSite) {
       legacyCount += 1;
       continue;
     }
+    // Checklist validi + fogli firmati in EUROANSA (anche se non tipizzati AI)
+    const include =
+      doc.isValid || isEuroansaFolder(doc.storageSubfolder ?? "");
+    if (!include) continue;
     files.push({
       name: uniqueName(doc.renamedFileName),
       storageKey: doc.driveFileId,

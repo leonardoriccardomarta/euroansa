@@ -429,7 +429,8 @@ export default async function ApplicationDetailPage({
           {STORAGE_FOLDER_KINDS.map((k) =>
             storageSubfolderLabel(k, current.clientName),
           ).join(", ")}
-          {", relazione"}
+          {", relazione. In EUROANSA metti i fogli firmati (privacy, contratto,"}
+          {" DDM…): entrano nel pacchetto segreteria."}
         </p>
         <div className="space-y-3">
           {docs.length === 0 && (

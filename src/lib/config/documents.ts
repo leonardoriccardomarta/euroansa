@@ -257,19 +257,19 @@ export const CHECKLIST_PRESETS: Record<EmploymentType, DocumentType[]> = {
 export const REQUIRED_DOCS_BY_EMPLOYMENT = CHECKLIST_PRESETS;
 
 /**
- * Cartelle storage predefinite per pratica cliente.
+ * Cartelle storage predefinite per pratica cliente (allineate a Drive Filip).
  *   {Cliente}/
  *     {COGNOME} DOC/
  *     BANCA/
  *     IMMOBILE/
- *     UFFICIO/
+ *     EUROANSA/   ← fogli firmati cliente (privacy, contratto, DDM, …)
  *     {Cliente}_relazione.pdf
  */
 export const STORAGE_FOLDER_KINDS = [
   "DOC",
   "BANCA",
   "IMMOBILE",
-  "UFFICIO",
+  "EUROANSA",
 ] as const;
 
 export type StorageFolderKind = (typeof STORAGE_FOLDER_KINDS)[number];
@@ -291,6 +291,19 @@ export function storageSubfolderLabel(
 ): string {
   if (kind === "DOC") return `${clientSurnameShort(clientName)} DOC`;
   return kind;
+}
+
+/** Cartella fogli firmati / pratiche Euroansa (ex UFFICIO). */
+export function isEuroansaFolder(name: string | null | undefined): boolean {
+  const t = (name ?? "").trim().toUpperCase();
+  return t === "EUROANSA" || t === "UFFICIO";
+}
+
+/** Normalizza etichette legacy Drive/sito. */
+export function normalizeStorageFolderName(name: string): string {
+  const t = name.trim();
+  if (/^UFFICIO$/i.test(t)) return "EUROANSA";
+  return t;
 }
 
 /** Cartelle iniziali di una pratica */
@@ -333,7 +346,7 @@ export const DRIVE_SUBFOLDERS = [
   "DOC",
   "BANCA",
   "IMMOBILE",
-  "UFFICIO",
+  "EUROANSA",
 ] as const;
 export type DriveSubfolder = StorageFolderKind;
 export const driveSubfolderForDocument = storageFolderKindForDocument;

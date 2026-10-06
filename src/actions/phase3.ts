@@ -112,6 +112,72 @@ export async function deleteResourceAction(id: string) {
   return { ok: true };
 }
 
+/** Scarica i file catalogati da Drive ufficio e li mette in Risorse (R2). */
+export async function syncResourcesFromDriveAction() {
+  const session = await requireAdmin();
+  const { listConnectedGoogleUsers, oauthClientFromRefreshToken } =
+    await import("@/lib/google/auth");
+  const { downloadFileFromDrive } = await import("@/lib/google/drive");
+  const { RESOURCE_DRIVE_SEEDS } = await import(
+    "@/lib/resources/drive-catalog"
+  );
+
+  const connected = await listConnectedGoogleUsers();
+  if (!connected[0]?.googleRefreshToken) {
+    return {
+      error:
+        "Google ufficio non collegato. Impostazioni → Collega Google, poi riprova.",
+    };
+  }
+  const auth = oauthClientFromRefreshToken(connected[0].googleRefreshToken);
+
+  const existing = await db.select().from(agencyResources);
+  const byTitle = new Map(
+    existing.map((r) => [r.title.trim().toLowerCase(), r]),
+  );
+
+  let inserted = 0;
+  let skipped = 0;
+  let failed = 0;
+  const errors: string[] = [];
+
+  for (const seed of RESOURCE_DRIVE_SEEDS) {
+    const key = seed.title.trim().toLowerCase();
+    if (byTitle.has(key)) {
+      skipped += 1;
+      continue;
+    }
+    try {
+      const file = await downloadFileFromDrive(seed.driveFileId, auth);
+      const id = randomUUID();
+      const uploaded = await uploadAgencyResourceFile({
+        resourceId: id,
+        fileName: file.fileName,
+        mimeType: file.mimeType,
+        buffer: file.buffer,
+      });
+      await db.insert(agencyResources).values({
+        id,
+        title: seed.title,
+        category: seed.category,
+        fileName: file.fileName,
+        storageKey: uploaded.pathname,
+        mimeType: file.mimeType,
+        uploadedByUserId: session.id,
+      });
+      inserted += 1;
+    } catch (err) {
+      failed += 1;
+      errors.push(
+        `${seed.title}: ${err instanceof Error ? err.message : "errore"}`,
+      );
+    }
+  }
+
+  revalidatePath("/dashboard/risorse");
+  return { ok: true as const, inserted, skipped, failed, errors };
+}
+
 //     Banche    
 
 export async function listBankPoliciesAction() {

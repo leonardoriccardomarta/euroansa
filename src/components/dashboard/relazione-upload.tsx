@@ -31,7 +31,9 @@ export function RelazioneUpload({
         <div>
           <h3 className="font-semibold text-slate-900">Relazione broker</h3>
           <p className="mt-1 text-sm text-slate-600">
-            Obbligatoria prima dell&apos;invio a segreteria (PDF della pratica).
+            Obbligatoria prima dell&apos;invio a segreteria. I fogli firmati dal
+            cliente vanno in cartella EUROANSA e partono nel pacchetto insieme a
+            questo PDF.
           </p>
           {hasRelazione ? (
             <p className="mt-2 text-sm text-emerald-700">

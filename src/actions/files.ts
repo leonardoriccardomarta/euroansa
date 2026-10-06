@@ -8,6 +8,7 @@ import { requireSession, type SessionUser } from "@/lib/auth";
 import {
   STORAGE_FOLDER_KINDS,
   defaultStorageFolders,
+  normalizeStorageFolderName,
   sanitizeFolderName,
   storageSubfolderLabel,
   type StorageFolderKind,
@@ -52,8 +53,9 @@ function folderKindFromName(
   folderName: string,
   clientName: string,
 ): StorageFolderKind | null {
+  const normalized = normalizeStorageFolderName(folderName);
   for (const kind of STORAGE_FOLDER_KINDS) {
-    if (storageSubfolderLabel(kind, clientName) === folderName) return kind;
+    if (storageSubfolderLabel(kind, clientName) === normalized) return kind;
   }
   return null;
 }
@@ -65,14 +67,21 @@ async function ensureFoldersPersisted(
   discovered: string[],
 ) {
   const defaults = defaultStorageFolders(clientName);
-  const base = current?.length ? current : defaults;
-  const merged = [...new Set([...base, ...discovered])].filter(Boolean);
+  const base = (current?.length ? current : defaults).map(
+    normalizeStorageFolderName,
+  );
+  const merged = [
+    ...new Set([
+      ...base,
+      ...discovered.map(normalizeStorageFolderName),
+    ]),
+  ].filter(Boolean);
 
+  const normalizedCurrent = (current ?? []).map(normalizeStorageFolderName);
   const same =
-    current?.length === merged.length &&
-    !!current &&
-    current.every((f) => merged.includes(f)) &&
-    merged.every((f) => current.includes(f));
+    normalizedCurrent.length === merged.length &&
+    normalizedCurrent.every((f) => merged.includes(f)) &&
+    merged.every((f) => normalizedCurrent.includes(f));
 
   if (!same) {
     await db
@@ -80,6 +89,18 @@ async function ensureFoldersPersisted(
       .set({ storageFolders: merged, updatedAt: new Date() })
       .where(eq(applications.id, applicationId));
   }
+
+  // Migra etichetta legacy UFFICIO → EUROANSA sui documenti
+  await db
+    .update(documents)
+    .set({ storageSubfolder: "EUROANSA" })
+    .where(
+      and(
+        eq(documents.applicationId, applicationId),
+        eq(documents.storageSubfolder, "UFFICIO"),
+      ),
+    );
+
   return merged;
 }
 
