@@ -319,17 +319,14 @@ export function sanitizeFolderName(name: string): string {
     .slice(0, 80);
 }
 
+/**
+ * Cartelle per documenti checklist da mail/AI:
+ * solo DOC (anagrafica/reddito/estratti) e IMMOBILE.
+ * BANCA e EUROANSA = solo firmati / operativo (upload manuale, no checklist).
+ */
 export function storageFolderKindForDocument(
   type: DocumentType,
 ): StorageFolderKind {
-  if (
-    type === "ESTRATTO_CONTO" ||
-    type === "LISTA_MOVIMENTI_3_MESI" ||
-    type === "CONTRATTI_FINANZIAMENTO" ||
-    type === "QUIETANZA_RATA_MUTUO"
-  ) {
-    return "BANCA";
-  }
   if (
     type === "ATTO_IMMOBILE" ||
     type === "PRELIMINARE_COMPRAVENDITA" ||

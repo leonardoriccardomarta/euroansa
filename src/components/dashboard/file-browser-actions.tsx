@@ -15,11 +15,12 @@ import { uploadFilesDirectToR2 } from "@/lib/storage/direct-upload";
 import { DocumentPreviewButton } from "@/components/dashboard/document-preview";
 import { toast } from "sonner";
 
-/** Allineato a upload server: AI solo su DOC / BANCA / IMMOBILE */
+/** AI/checklist solo su DOC e IMMOBILE; BANCA/EUROANSA = firmati, no AI */
 function folderUsesAi(folderName: string): boolean {
-  const t = folderName.trim();
-  if (t === "BANCA" || t === "IMMOBILE") return true;
-  if (/\sDOC$/i.test(t)) return true;
+  const t = folderName.trim().toUpperCase();
+  if (t === "BANCA" || t === "EUROANSA" || t === "UFFICIO") return false;
+  if (t === "IMMOBILE") return true;
+  if (/\sDOC$/i.test(t) || t.endsWith(" DOC")) return true;
   return false;
 }
 

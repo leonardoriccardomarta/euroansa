@@ -20,10 +20,12 @@ import { DocumentPreviewButton } from "@/components/dashboard/document-preview";
 import { FolderUploadButton } from "@/components/dashboard/file-browser-actions";
 
 function folderHint(kind: StorageFolderKind): string {
-  if (kind === "DOC") return "Documenti cliente (checklist): CI, buste, CUD…";
-  if (kind === "BANCA") return "Estratti, movimenti, pratica banca";
-  if (kind === "IMMOBILE") return "Atto, catastale, preliminare…";
-  return "Fogli firmati (fuori checklist): privacy, contratto, DDM…";
+  if (kind === "DOC")
+    return "Documenti cliente da mail (checklist): CI, buste, CUD, estratti…";
+  if (kind === "BANCA")
+    return "Firmati / operativo banca (DDM, consegna…). Fuori checklist.";
+  if (kind === "IMMOBILE") return "Documenti immobile (checklist): atto, catastale…";
+  return "Fogli firmati Euroansa (fuori checklist): privacy, contratto…";
 }
 
 function DocRow({
@@ -194,9 +196,9 @@ export function PracticeDocumentsSection({
           Cartella documenti
         </h2>
         <p className="text-sm text-slate-600">
-          Stesse 4 cartelle di File. Mail/AI riempie DOC/BANCA/IMMOBILE e
-          aggiorna la checklist. Per i firmati scegli EUROANSA (solo salvataggio
-          + rinomina, fuori checklist). Relazione ha il blocco dedicato sopra.
+          Mail/AI → solo DOC e IMMOBILE (checklist). BANCA e EUROANSA = firmati
+          / operativo: li carichi tu, senza classifica checklist. Relazione ha
+          il blocco dedicato.
         </p>
       </div>
 

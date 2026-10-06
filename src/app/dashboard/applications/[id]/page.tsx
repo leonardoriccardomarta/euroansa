@@ -277,9 +277,8 @@ export default async function ApplicationDetailPage({
           </p>
         </div>
         <p className="mt-1 text-xs text-slate-500">
-          Checklist = tipi documento cliente. Sotto vedi sempre le 4 cartelle
-          (come in File): carica dove serve. EUROANSA = firmati (fuori
-          checklist); relazione ha il blocco dedicato.
+          Checklist = documenti in DOC e IMMOBILE. BANCA e EUROANSA sono solo
+          firmati/operativo (niente classifica). Relazione a parte.
         </p>
         {(() => {
           const unknownClient = docs.filter(
