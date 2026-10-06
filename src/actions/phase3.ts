@@ -15,7 +15,10 @@ import {
   type ResourceCategory,
 } from "@/db/schema";
 import { requireAdmin, requireSession } from "@/lib/auth";
-import { ensureBankPolicySeed } from "@/lib/banks/ensure-seed";
+import {
+  ensureBankPolicySeed,
+  syncBankPoliciesFromSeed,
+} from "@/lib/banks/ensure-seed";
 import { parseEuroExpression } from "@/lib/economics";
 import { buildPreventivoPdf } from "@/lib/pdf/relazione";
 import {
@@ -178,15 +181,13 @@ export async function deleteBankPolicyAction(id: string) {
   return { ok: true as const };
 }
 
+/** Sincronizza scheda banche dal seed completo (upsert per slug). */
 export async function reseedBankPoliciesAction() {
   await requireAdmin();
-  const existing = await db.select().from(bankPolicies).limit(1);
-  if (existing.length > 0) {
-    return { error: "Tabella già popolata: elimina le banche per ri-seedare" };
-  }
-  const n = await ensureBankPolicySeed();
+  const { inserted, updated } = await syncBankPoliciesFromSeed();
   revalidatePath("/dashboard/banche");
-  return { ok: true, count: n };
+  revalidatePath("/dashboard");
+  return { ok: true as const, inserted, updated };
 }
 
 // Preventivo

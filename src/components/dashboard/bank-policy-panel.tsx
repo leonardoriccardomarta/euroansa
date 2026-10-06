@@ -56,13 +56,16 @@ export async function BankPolicyPanel({ bankName }: { bankName: string | null })
           Scheda completa
         </Link>
       </div>
-      <dl className="mt-3 max-h-64 space-y-2 overflow-y-auto text-sm">
-        {match.rows.slice(0, 12).map((row) => (
-          <div key={row.label} className="grid gap-0.5 sm:grid-cols-[140px_1fr]">
+      <dl className="mt-3 max-h-80 space-y-2 overflow-y-auto text-sm">
+        {match.rows.map((row, idx) => (
+          <div
+            key={`${row.label}-${idx}`}
+            className="grid gap-0.5 sm:grid-cols-[160px_1fr]"
+          >
             <dt className="text-xs font-semibold uppercase text-slate-500">
               {row.label}
             </dt>
-            <dd className="text-slate-800">{row.value}</dd>
+            <dd className="whitespace-pre-wrap text-slate-800">{row.value}</dd>
           </div>
         ))}
       </dl>

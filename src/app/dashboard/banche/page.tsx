@@ -23,8 +23,9 @@ export default async function BanchePage() {
       <div>
         <h1 className="text-3xl font-bold text-slate-900">Banche</h1>
         <p className="mt-2 text-slate-600">
-          Scheda policy per istituto (ex foglio SCHEDA BANCHE). Consultazione
-          rapida in pratica e qui.
+          Scheda policy completa per istituto (matrice foglio SCHEDA BANCHE:
+          durata, garanti, contratti, CONSAP, costi…). Consultazione in pratica
+          e qui.
         </p>
       </div>
       <BanksClient rows={rows} isAdmin={session.role === "ADMIN"} />

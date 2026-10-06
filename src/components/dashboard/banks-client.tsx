@@ -4,6 +4,7 @@ import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   deleteBankPolicyAction,
+  reseedBankPoliciesAction,
   upsertBankPolicyAction,
 } from "@/actions/phase3";
 import { Button } from "@/components/ui/button";
@@ -63,17 +64,51 @@ export function BanksClient({
           />
         </div>
         {isAdmin ? (
-          <Button
-            type="button"
-            variant="outline"
-            className="min-h-10"
-            onClick={() => {
-              setEditMode(true);
-              setSelectedId("");
-            }}
-          >
-            Nuova banca
-          </Button>
+          <>
+            <Button
+              type="button"
+              variant="outline"
+              className="min-h-10"
+              onClick={() => {
+                setEditMode(true);
+                setSelectedId("");
+              }}
+            >
+              Nuova banca
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              className="min-h-10"
+              disabled={pending}
+              onClick={() => {
+                if (
+                  !confirm(
+                    "Sincronizzare tutte le banche dal foglio seed completo? Sovrascrive le schede già presenti (stesso slug).",
+                  )
+                ) {
+                  return;
+                }
+                startTransition(async () => {
+                  const res = await reseedBankPoliciesAction();
+                  if (res && "error" in res && res.error) {
+                    toast.error(String(res.error));
+                    return;
+                  }
+                  const inserted =
+                    res && "inserted" in res ? res.inserted : 0;
+                  const updated =
+                    res && "updated" in res ? res.updated : 0;
+                  toast.success(
+                    `Scheda banche aggiornata (${updated} aggiornate, ${inserted} nuove)`,
+                  );
+                  router.refresh();
+                });
+              }}
+            >
+              Sync da seed
+            </Button>
+          </>
         ) : null}
       </div>
 
@@ -176,16 +211,16 @@ export function BanksClient({
                   </div>
                 ) : null}
               </div>
-              <dl className="divide-y divide-slate-100 rounded-lg border border-slate-100">
-                {selected.rows.map((row) => (
+              <dl className="max-h-[65vh] divide-y divide-slate-100 overflow-y-auto rounded-lg border border-slate-100">
+                {selected.rows.map((row, idx) => (
                   <div
-                    key={`${row.label}-${row.value.slice(0, 24)}`}
-                    className="grid gap-1 px-3 py-2.5 sm:grid-cols-[180px_1fr]"
+                    key={`${row.label}-${idx}`}
+                    className="grid gap-1 px-3 py-2.5 sm:grid-cols-[220px_1fr]"
                   >
                     <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">
                       {row.label}
                     </dt>
-                    <dd className="text-sm text-slate-800 whitespace-pre-wrap">
+                    <dd className="text-sm whitespace-pre-wrap text-slate-800">
                       {row.value}
                     </dd>
                   </div>
@@ -272,7 +307,7 @@ function BankEditor({
         <textarea
           value={rowsText}
           onChange={(e) => setRowsText(e.target.value)}
-          rows={12}
+          rows={22}
           className="w-full rounded-lg border border-slate-200 px-3 py-2 font-mono text-xs"
         />
       </div>
