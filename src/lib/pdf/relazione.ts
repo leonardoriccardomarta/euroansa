@@ -78,9 +78,13 @@ export async function buildPreventivoPdf(params: {
     doc.y = 92;
 
     const section = (title: string) => {
+      doc.x = left;
       doc.moveDown(0.35);
       doc.font("Helvetica-Bold").fontSize(10).fillColor("#0f172a");
-      doc.text(title.toUpperCase());
+      doc.text(title.toUpperCase(), left, doc.y, {
+        width: usable,
+        align: "left",
+      });
       const y = doc.y + 2;
       doc
         .moveTo(left, y)
@@ -88,6 +92,7 @@ export async function buildPreventivoPdf(params: {
         .strokeColor("#e2e8f0")
         .lineWidth(1)
         .stroke();
+      doc.x = left;
       doc.moveDown(0.55);
     };
 
@@ -97,6 +102,7 @@ export async function buildPreventivoPdf(params: {
       doc.text(label, left, y, { width: 190, continued: false });
       doc.font("Helvetica-Bold").fontSize(10).fillColor("#0f172a");
       doc.text(value, left + 200, y, { width: usable - 200 });
+      doc.x = left;
       doc.y = Math.max(doc.y, y + 16);
     };
 
@@ -132,6 +138,7 @@ export async function buildPreventivoPdf(params: {
     if (params.notes?.trim()) {
       doc.moveDown(0.4);
       section("Note");
+      doc.x = left;
       doc.font("Helvetica").fontSize(10).fillColor("#334155");
       writeWrappedText(doc, clean(params.notes.trim()), {
         fontSize: 10,
@@ -139,6 +146,7 @@ export async function buildPreventivoPdf(params: {
       });
     }
 
+    doc.x = left;
     doc.moveDown(1.1);
     doc.font("Helvetica").fontSize(8).fillColor("#94a3b8");
     writeWrappedText(
