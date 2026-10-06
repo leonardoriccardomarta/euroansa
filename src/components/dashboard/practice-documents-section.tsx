@@ -197,13 +197,10 @@ export function PracticeDocumentsSection({
           Cartella documenti
         </h2>
         <p className="text-sm text-slate-600">
-          Checklist = documenti cliente in DOC e IMMOBILE. Fuori checklist:
-          fogli firmati (EUROANSA), BANCA operativa, relazione.
-          Cartelle:{" "}
-          {STORAGE_FOLDER_KINDS.map((k: StorageFolderKind) =>
-            storageSubfolderLabel(k, clientName),
-          ).join(", ")}
-          .
+          Quattro cartelle file: DOC (anagrafica/reddito), BANCA (estratti,
+          pratiche banca), IMMOBILE, EUROANSA (solo fogli firmati). La checklist
+          sopra guarda i tipi documento, non le cartelle. Relazione e firmati
+          EUROANSA non entrano in checklist.
         </p>
       </div>
 

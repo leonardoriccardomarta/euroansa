@@ -277,8 +277,10 @@ export default async function ApplicationDetailPage({
           </p>
         </div>
         <p className="mt-1 text-xs text-slate-500">
-          Checklist = documenti cliente (DOC + IMMOBILE). Firmati EUROANSA,
-          BANCA e relazione restano fuori.
+          La checklist sono i tipi documento del cliente (CI, buste, estratto,
+          atto…). Le cartelle sotto (DOC / BANCA / IMMOBILE / EUROANSA) sono solo
+          dove stanno i file. Fuori checklist: fogli firmati in EUROANSA e la
+          relazione.
         </p>
         {(() => {
           const unknownClient = docs.filter(
