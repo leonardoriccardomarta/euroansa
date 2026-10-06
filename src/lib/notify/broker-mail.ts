@@ -74,7 +74,7 @@ export async function notifyBrokerAssigned(params: {
   const url = `${getAppBaseUrl()}/dashboard/applications/${params.applicationId}`;
   await sendOfficeMail({
     to: broker.email,
-    subject: `${gmailSubjectTag()} Pratica ${app.clientName} — assegnata a te`,
+    subject: `${gmailSubjectTag()} Pratica ${app.clientName}   assegnata a te`,
     bodyText: `Ciao ${broker.name},
 
 ti è stata assegnata la pratica ${app.clientName} (${app.clientEmail}).
@@ -134,7 +134,7 @@ export async function notifySecretarySendFailed(params: {
   const url = `${getAppBaseUrl()}/dashboard/applications/${params.applicationId}`;
   await sendOfficeMail({
     to,
-    subject: `${gmailSubjectTag()} Invio segreteria fallito — ${app.clientName}`,
+    subject: `${gmailSubjectTag()} Invio segreteria fallito   ${app.clientName}`,
     bodyText: `Ciao ${name},
 
 l'invio automatico/manuale a segreteria per ${app.clientName} è fallito.

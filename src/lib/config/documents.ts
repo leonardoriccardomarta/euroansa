@@ -18,7 +18,7 @@ export type SheetSection = {
   items: SheetChecklistItem[];
 };
 
-/** Struttura foglio Filippo — ordine e scritte identiche */
+/** Struttura foglio Filippo   ordine e scritte identiche */
 export const SHEET_SECTIONS: SheetSection[] = [
   {
     title: "DOCUMENTAZIONE ANAGRAFICA",
@@ -190,7 +190,7 @@ export const DOCUMENT_TYPE_LABELS: Record<DocumentType, string> = {
 /** @deprecated usa SHEET_SECTIONS */
 export const CHECKLIST_GROUPS = SHEET_SECTIONS.map((s) => ({
   id: `${s.title}-${s.subtitle ?? "main"}`,
-  title: s.subtitle ? `${s.title} — ${s.subtitle}` : s.title,
+  title: s.subtitle ? `${s.title}   ${s.subtitle}` : s.title,
   types: s.items.flatMap((i) => i.types),
 }));
 

@@ -55,7 +55,7 @@ export async function uploadFilesDirectToR2(params: {
   applicationId: string;
   files: File[];
   subfolder?: string;
-  /** Se true salta Gemini (cartelle non DOC/BANCA/IMMOBILE) — gestito lato server via subfolder */
+  /** Se true salta Gemini (cartelle non DOC/BANCA/IMMOBILE)   gestito lato server via subfolder */
   skipAi?: boolean;
 }): Promise<DirectUploadResult> {
   const files = params.files.filter((f) => f && f.size > 0);

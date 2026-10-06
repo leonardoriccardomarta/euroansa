@@ -2,7 +2,7 @@ import Link from "next/link";
 import { APP_NAME, APP_TAGLINE } from "@/lib/brand";
 
 export const metadata = {
-  title: `Privacy Policy — ${APP_NAME}`,
+  title: `Privacy Policy   ${APP_NAME}`,
   description: `Informativa privacy di ${APP_NAME}`,
 };
 

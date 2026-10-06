@@ -32,7 +32,7 @@ export function writeWrappedText(
 }
 
 export function euro(n: number | null | undefined): string {
-  if (n == null || Number.isNaN(n)) return "—";
+  if (n == null || Number.isNaN(n)) return "da definire";
   return new Intl.NumberFormat("it-IT", {
     style: "currency",
     currency: "EUR",

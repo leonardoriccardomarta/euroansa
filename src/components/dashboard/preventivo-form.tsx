@@ -40,8 +40,7 @@ export function PreventivoForm({
         <div>
           <h3 className="font-semibold text-slate-900">Preventivo</h3>
           <p className="mt-1 text-sm text-slate-600">
-            Genera il PDF commerciale per {clientName} — come i preventivi che
-            facevi su Drive.
+            Compila i dati e genera un PDF pronto da consegnare al cliente ({clientName}).
           </p>
           {hasPdf ? (
             <p className="mt-2 text-sm text-emerald-700">

@@ -90,7 +90,7 @@ export function LeadsClient({
             name="outcome"
             className="h-10 w-full rounded-lg border border-slate-200 px-3 text-sm"
           >
-            <option value="">—</option>
+            <option value="">Seleziona</option>
             {LEAD_OUTCOMES.map((o) => (
               <option key={o.key} value={o.key}>
                 {o.label}
@@ -143,14 +143,14 @@ export function LeadsClient({
               rows.map((r) => (
                 <tr key={r.id} className="border-b border-slate-50">
                   <td className="px-3 py-2 font-medium">{r.clientName}</td>
-                  <td className="px-3 py-2">{r.phone ?? "—"}</td>
-                  <td className="px-3 py-2">{r.provenance ?? "—"}</td>
+                  <td className="px-3 py-2">{r.phone ?? "n.d."}</td>
+                  <td className="px-3 py-2">{r.provenance ?? "n.d."}</td>
                   <td className="px-3 py-2">
                     {LEAD_OUTCOMES.find((o) => o.key === r.outcome)?.label ??
-                      "—"}
+                      "n.d."}
                   </td>
                   <td className="max-w-[200px] truncate px-3 py-2 text-slate-600">
-                    {r.notes ?? "—"}
+                    {r.notes ?? "n.d."}
                   </td>
                   <td className="px-3 py-2 text-right">
                     <button

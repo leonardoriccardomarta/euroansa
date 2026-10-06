@@ -143,7 +143,7 @@ export const users = pgTable("users", {
   payoutSharePercent: real("payout_share_percent").notNull().default(0.3),
   /**
    * Quota nascosta sul fatturato delle pratiche di ALTRI broker (es. 0.20 Filip).
-   * Visibile solo a questo utente (e admin) — mai al broker titolare.
+   * Visibile solo a questo utente (e admin)   mai al broker titolare.
    */
   overrideOnOthersPercent: real("override_on_others_percent")
     .notNull()
@@ -214,7 +214,7 @@ export const applications = pgTable("applications", {
   ltvPercent: real("ltv_percent"),
   notaryName: varchar("notary_name", { length: 255 }),
   appraiserName: varchar("appraiser_name", { length: 255 }),
-  /** Provvigioni manuali (€) — stile foglio Filip */
+  /** Provvigioni manuali (€)   stile foglio Filip */
   commissionClient: real("commission_client"),
   commissionBank: real("commission_bank"),
   commissionPolicy: real("commission_policy"),
@@ -233,7 +233,7 @@ export const applications = pgTable("applications", {
     .default(false),
   auditArchive: boolean("audit_archive").notNull().default(false),
   economicNotes: text("economic_notes"),
-  /** Bozza relazione (testo editabile prima del PDF) */
+  /** Legacy: non più usato (relazione solo upload manuale) */
   relazioneDraftText: text("relazione_draft_text"),
   /** Preventivo PDF generato */
   preventivoStorageKey: text("preventivo_storage_key"),
@@ -330,7 +330,7 @@ export const agencyDevPhaseEnum = pgEnum("agency_dev_phase", [
   "CONSOLIDAMENTO",
 ]);
 
-/** LEADS — chiamate a freddo */
+/** LEADS   chiamate a freddo */
 export const leads = pgTable("leads", {
   id: uuid("id").defaultRandom().primaryKey(),
   brokerId: uuid("broker_id").references(() => users.id, { onDelete: "set null" }),
@@ -345,7 +345,7 @@ export const leads = pgTable("leads", {
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
-/** APPUNTAMENTI — prime visite / consulenze */
+/** APPUNTAMENTI   prime visite / consulenze */
 export const appointments = pgTable("appointments", {
   id: uuid("id").defaultRandom().primaryKey(),
   brokerId: uuid("broker_id").references(() => users.id, { onDelete: "set null" }),
@@ -375,7 +375,7 @@ export const resourceCategoryEnum = pgEnum("resource_category", [
   "ALTRO",
 ]);
 
-/** RISORSE — archivio agenzia (sostituisce Drive modulistica/template) */
+/** RISORSE   archivio agenzia (sostituisce Drive modulistica/template) */
 export const agencyResources = pgTable("agency_resources", {
   id: uuid("id").defaultRandom().primaryKey(),
   title: varchar("title", { length: 255 }).notNull(),
@@ -391,7 +391,7 @@ export const agencyResources = pgTable("agency_resources", {
 
 export type BankPolicyRow = { label: string; value: string };
 
-/** SCHEDA BANCHE — policy consultabili in-app */
+/** SCHEDA BANCHE   policy consultabili in-app */
 export const bankPolicies = pgTable("bank_policies", {
   id: uuid("id").defaultRandom().primaryKey(),
   bankName: varchar("bank_name", { length: 120 }).notNull().unique(),
@@ -403,7 +403,7 @@ export const bankPolicies = pgTable("bank_policies", {
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
-/** SVILUPPO — rapporti agenzie immobiliari */
+/** SVILUPPO   rapporti agenzie immobiliari */
 export const agencyDevelopment = pgTable("agency_development", {
   id: uuid("id").defaultRandom().primaryKey(),
   brokerId: uuid("broker_id").references(() => users.id, { onDelete: "set null" }),

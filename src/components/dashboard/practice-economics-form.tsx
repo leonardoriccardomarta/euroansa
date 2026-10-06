@@ -286,7 +286,7 @@ export function PracticeEconomicsForm({
 
       <div>
         <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-          Provvigioni (€) — a mano
+          Provvigioni (€)   a mano
         </p>
         <p className="mt-1 text-xs text-slate-500">
           Fatturato = (Polizza ÷ 2) + CQS + Banca + Cliente + Prestiti. Quota
@@ -354,14 +354,14 @@ export function PracticeEconomicsForm({
                 {formatEuro(overridePayout)}
               </p>
               <p className="mt-0.5 text-[10px] text-amber-800">
-                Visibile solo a te — il broker titolare non la vede
+                Visibile solo a te: il broker titolare non la vede
               </p>
             </div>
           ) : null}
           <div>
             <p className="text-xs font-medium text-emerald-800">% su mutuo</p>
             <p className="text-lg font-bold text-emerald-950">
-              {onLoan == null ? "—" : `${onLoan.toFixed(2)}%`}
+              {onLoan == null ? "n.d." : `${onLoan.toFixed(2)}%`}
             </p>
           </div>
         </div>

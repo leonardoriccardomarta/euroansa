@@ -104,7 +104,7 @@ export function ResourcesClient({
       {rows.length === 0 ? (
         <div className="rounded-xl border border-dashed border-slate-300 bg-white p-8 text-center text-sm text-slate-500">
           Nessuna risorsa ancora. L&apos;admin carica modulistica, template e
-          policy qui — niente più Drive.
+          policy qui   niente più Drive.
         </div>
       ) : (
         byCat.map((cat) => (

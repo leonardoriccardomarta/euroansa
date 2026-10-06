@@ -28,7 +28,7 @@ export default async function UsersPage() {
         <h1 className="text-3xl font-bold text-slate-900">Utenti</h1>
         <p className="mt-2 text-slate-600">
           Quote collaboratore per broker. L&apos;override sugli altri è
-          riservato (es. Filip 20% sul totale dell&apos;altro) — l&apos;altro
+          riservato (es. Filip 20% sul totale dell&apos;altro)   l&apos;altro
           broker non lo vede mai.
         </p>
       </div>
@@ -188,7 +188,7 @@ function UserSharesForm({
           className="h-10"
         />
         <p className="text-[11px] text-slate-500">
-          Es. 20 su fatturato degli altri — loro non lo vedono
+          Es. 20 su fatturato degli altri   loro non lo vedono
         </p>
       </div>
       <div className="flex items-end">

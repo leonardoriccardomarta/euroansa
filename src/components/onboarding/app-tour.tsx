@@ -48,7 +48,7 @@ function stepsForRole(isAdmin: boolean): TourStep[] {
       title: "1. Le pratiche nascono da sole",
       body: "Il cliente (o il broker) scrive alla Gmail di ufficio con il tag oggetto configurato e allega i PDF. Il sistema crea la pratica, le cartelle e classifica i documenti con l’AI. Non crei nulla a mano, di solito.",
       callout:
-        "La pratica «Guida — Cliente Demo» è vuota di proposito (0/9): è un banco prova. In produzione checklist e file si riempiono dalle email.",
+        "La pratica «Guida Cliente Demo» è vuota di proposito (0/9): è un banco prova. In produzione checklist e file si riempiono dalle email.",
       path: "/dashboard",
       showDemoCta: true,
     },
@@ -208,7 +208,7 @@ export function AppTour({
 
   const openDemo = useCallback(() => {
     void ensureDemoAndGo().then((id) => {
-      if (id) toast.message("Pratica Guida — è incompleta di proposito");
+      if (id) toast.message("Pratica Guida è incompleta di proposito");
     });
   }, [ensureDemoAndGo]);
 

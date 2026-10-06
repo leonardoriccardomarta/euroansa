@@ -109,7 +109,7 @@ export function ClosedPracticeCleanup({
               key={d.id}
               className="px-2 py-1 text-xs text-slate-500"
             >
-              {d.name} — già rimosso da storage
+              {d.name}   già rimosso da storage
             </li>
           ))}
       </ul>

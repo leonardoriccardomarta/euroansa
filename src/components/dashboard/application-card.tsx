@@ -94,7 +94,7 @@ export function ApplicationCard({
                 variant="outline"
                 className="border-red-200 bg-red-50 text-red-700"
               >
-                Errore — riprova
+                Errore   riprova
               </Badge>
             ) : null}
             <Badge variant="outline" className={statusClass}>

@@ -269,7 +269,7 @@ export function DocumentFileRow({
         {meta ? <p className="text-xs text-slate-500">{meta}</p> : null}
         {legacyDrive ? (
           <p className="text-xs font-medium text-amber-700">
-            Solo Drive — usa Sostituisci per metterlo sullo storage sito
+            Solo Drive   usa Sostituisci per metterlo sullo storage sito
           </p>
         ) : null}
       </div>

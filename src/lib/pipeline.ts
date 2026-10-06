@@ -634,7 +634,7 @@ export async function processIncomingFiles(
     } catch (err) {
       console.error("R2 upload failed", err);
       errors.push(
-        `${file.originalFileName}: upload storage fallito — ${
+        `${file.originalFileName}: upload storage fallito   ${
           err instanceof Error ? err.message : String(err)
         }`,
       );

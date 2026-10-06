@@ -33,7 +33,7 @@ import { ApplicationActions } from "@/components/dashboard/application-actions";
 import { ClosedPracticeCleanup } from "@/components/dashboard/closed-practice-cleanup";
 import { DocumentPreviewButton } from "@/components/dashboard/document-preview";
 import { DocumentUpload } from "@/components/dashboard/document-upload";
-import { RelazioneStudio } from "@/components/dashboard/relazione-studio";
+import { RelazioneUpload } from "@/components/dashboard/relazione-upload";
 import { PreventivoForm } from "@/components/dashboard/preventivo-form";
 import { BankPolicyPanel } from "@/components/dashboard/bank-policy-panel";
 import { RequiredDocsEditor } from "@/components/dashboard/required-docs-editor";
@@ -199,7 +199,7 @@ export default async function ApplicationDetailPage({
 
       {current.lastPipelineError ? (
         <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-900">
-          <p className="font-semibold">Operazione fallita — riprova</p>
+          <p className="font-semibold">Operazione fallita   riprova</p>
           <p className="mt-1">{current.lastPipelineError}</p>
           {current.lastPipelineErrorAt ? (
             <p className="mt-1 text-xs text-red-700">
@@ -391,7 +391,7 @@ export default async function ApplicationDetailPage({
         </div>
       )}
 
-      <RelazioneStudio
+      <RelazioneUpload
         applicationId={current.id}
         hasRelazione={Boolean(
           current.relazioneStorageKey &&
@@ -399,7 +399,6 @@ export default async function ApplicationDetailPage({
         )}
         fileName={current.relazioneFileName}
         uploadedAt={current.relazioneUploadedAt}
-        initialDraft={current.relazioneDraftText}
       />
 
       <PreventivoForm
@@ -492,7 +491,7 @@ export default async function ApplicationDetailPage({
                                   variant="outline"
                                   className="border-amber-200 bg-amber-50 text-amber-800"
                                 >
-                                  Solo Drive — ricarica
+                                  Solo Drive   ricarica
                                 </Badge>
                               ) : doc.filePurged ? (
                                 <Badge
@@ -590,7 +589,7 @@ export default async function ApplicationDetailPage({
           Economia e audit
         </h2>
         <p className="mt-1 text-sm text-slate-600">
-          Provvigioni e spunte conformità — da compilare a mano (il sistema non
+          Provvigioni e spunte conformità   da compilare a mano (il sistema non
           le conosce). Totale e quota si calcolano in automatico.
         </p>
         <div className="mt-5">

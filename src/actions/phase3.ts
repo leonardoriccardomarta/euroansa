@@ -8,23 +8,20 @@ import {
   agencyResources,
   applications,
   bankPolicies,
-  documents,
   systemSettings,
   users,
   type BankPolicyRow,
   type PreventivoData,
   type ResourceCategory,
 } from "@/db/schema";
-import { draftRelazioneText } from "@/lib/ai/draft-relazione";
 import { requireAdmin, requireSession } from "@/lib/auth";
 import { ensureBankPolicySeed } from "@/lib/banks/ensure-seed";
 import { parseEuroExpression } from "@/lib/economics";
-import { buildPreventivoPdf, buildRelazionePdf } from "@/lib/pdf/relazione";
+import { buildPreventivoPdf } from "@/lib/pdf/relazione";
 import {
   deleteBlobByPathname,
   uploadAgencyResourceFile,
   uploadPreventivoFile,
-  uploadRelazioneFile,
 } from "@/lib/storage/blob";
 import { isSiteStorageKey } from "@/lib/storage/paths";
 
@@ -52,7 +49,7 @@ function slugify(name: string): string {
     .slice(0, 80);
 }
 
-// ——— Risorse ———
+//     Risorse    
 
 export async function uploadResourceAction(formData: FormData) {
   const session = await requireAdmin();
@@ -112,7 +109,7 @@ export async function deleteResourceAction(id: string) {
   return { ok: true };
 }
 
-// ——— Banche ———
+//     Banche    
 
 export async function listBankPoliciesAction() {
   await requireSession();
@@ -185,123 +182,14 @@ export async function reseedBankPoliciesAction() {
   await requireAdmin();
   const existing = await db.select().from(bankPolicies).limit(1);
   if (existing.length > 0) {
-    return { error: "Tabella già popolata — elimina le banche per ri-seedare" };
+    return { error: "Tabella già popolata: elimina le banche per ri-seedare" };
   }
   const n = await ensureBankPolicySeed();
   revalidatePath("/dashboard/banche");
   return { ok: true, count: n };
 }
 
-// ——— Relazione ———
-
-export async function generateRelazioneDraftAction(applicationId: string) {
-  const access = await assertCanAccessApp(applicationId);
-  if (access.error || !access.app) return { error: access.error ?? "Errore" };
-
-  const docs = await db
-    .select()
-    .from(documents)
-    .where(eq(documents.applicationId, applicationId));
-
-  try {
-    const body = await draftRelazioneText({
-      app: access.app,
-      docs,
-      scoring: access.app.preScoringData ?? null,
-    });
-    await db
-      .update(applications)
-      .set({ relazioneDraftText: body, updatedAt: new Date() })
-      .where(eq(applications.id, applicationId));
-    revalidatePath(`/dashboard/applications/${applicationId}`);
-    return { ok: true, body };
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : "Generazione fallita";
-    return { error: msg };
-  }
-}
-
-export async function saveRelazioneDraftAction(
-  applicationId: string,
-  draftText: string,
-) {
-  const access = await assertCanAccessApp(applicationId);
-  if (access.error || !access.app) return { error: access.error ?? "Errore" };
-
-  await db
-    .update(applications)
-    .set({
-      relazioneDraftText: draftText,
-      updatedAt: new Date(),
-    })
-    .where(eq(applications.id, applicationId));
-  revalidatePath(`/dashboard/applications/${applicationId}`);
-  return { ok: true };
-}
-
-export async function publishRelazionePdfAction(applicationId: string) {
-  const access = await assertCanAccessApp(applicationId);
-  if (access.error || !access.app) return { error: access.error ?? "Errore" };
-
-  const draft = access.app.relazioneDraftText?.trim();
-  if (!draft) return { error: "Scrivi o genera prima la bozza relazione" };
-
-  const [settings] = await db
-    .select()
-    .from(systemSettings)
-    .where(eq(systemSettings.id, "global"))
-    .limit(1);
-
-  let brokerName = settings?.brokerName ?? "Broker";
-  if (access.app.brokerId) {
-    const [b] = await db
-      .select({ name: users.name })
-      .from(users)
-      .where(eq(users.id, access.app.brokerId))
-      .limit(1);
-    if (b?.name) brokerName = b.name;
-  }
-
-  const buffer = await buildRelazionePdf({
-    clientName: access.app.clientName,
-    brokerName,
-    body: draft,
-  });
-
-  if (
-    access.app.relazioneStorageKey &&
-    isSiteStorageKey(access.app.relazioneStorageKey)
-  ) {
-    try {
-      await deleteBlobByPathname(access.app.relazioneStorageKey);
-    } catch {
-      // ignore
-    }
-  }
-
-  const uploaded = await uploadRelazioneFile({
-    applicationId,
-    clientName: access.app.clientName,
-    fileName: "relazione.pdf",
-    mimeType: "application/pdf",
-    buffer,
-  });
-
-  await db
-    .update(applications)
-    .set({
-      relazioneStorageKey: uploaded.pathname,
-      relazioneFileName: uploaded.pathname.split("/").pop() ?? "relazione.pdf",
-      relazioneUploadedAt: new Date(),
-      updatedAt: new Date(),
-    })
-    .where(eq(applications.id, applicationId));
-
-  revalidatePath(`/dashboard/applications/${applicationId}`);
-  return { ok: true };
-}
-
-// ——— Preventivo ———
+// Preventivo
 
 function preventivoFromForm(formData: FormData, app: typeof applications.$inferSelect): PreventivoData {
   return {

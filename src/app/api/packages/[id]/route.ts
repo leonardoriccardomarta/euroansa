@@ -8,7 +8,7 @@ import {
 export const maxDuration = 60;
 
 /**
- * ZIP piatto (solo file rinominati, niente cartelle) — tipo WeTransfer.
+ * ZIP piatto (solo file rinominati, niente cartelle)   tipo WeTransfer.
  * GET /api/packages/[id]?t=TOKEN
  */
 export async function GET(

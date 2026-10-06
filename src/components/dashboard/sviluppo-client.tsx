@@ -126,7 +126,7 @@ export function SviluppoClient({ rows }: { rows: Row[] }) {
             <tr>
               <th className="px-3 py-2">Agenzia</th>
               <th className="px-3 py-2">Fase</th>
-              <th className="px-3 py-2">S1–S4</th>
+              <th className="px-3 py-2">S1 S4</th>
               <th className="px-3 py-2">Visite / App</th>
               <th className="px-3 py-2" />
             </tr>

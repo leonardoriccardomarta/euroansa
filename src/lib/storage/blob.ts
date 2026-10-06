@@ -156,7 +156,7 @@ function wrapR2Error(err: unknown): never {
     msg.includes("alert number 40")
   ) {
     throw new Error(
-      "R2: certificato SSL dell'account non ancora pronto (normale su account/bucket nuovi). Riprova tra 1–3 ore, oppure verifica su Cloudflare che l'endpoint S3 risponda.",
+      "R2: certificato SSL dell'account non ancora pronto (normale su account/bucket nuovi). Riprova tra 1 3 ore, oppure verifica su Cloudflare che l'endpoint S3 risponda.",
     );
   }
   throw err instanceof Error ? err : new Error(msg);

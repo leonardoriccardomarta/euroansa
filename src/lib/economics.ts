@@ -1,8 +1,8 @@
-/** Economia pratica — formule foglio Filip PRATICHE CONCLUSE / BUDGET */
+/** Economia pratica   formule foglio Filip PRATICHE CONCLUSE / BUDGET */
 
 export const DEFAULT_COLLABORATOR_SHARE = 0.35;
 
-/** Provenienze tipiche (foglio DATI) — editabili in Impostazioni */
+/** Provenienze tipiche (foglio DATI)   editabili in Impostazioni */
 export const DEFAULT_PROVENANCE_OPTIONS = [
   "DIRETTA",
   "INTERNET",
@@ -179,7 +179,7 @@ export function clampSharePercent(raw: unknown, fallback: number): number {
   return Math.min(1, Math.max(0, n));
 }
 
-/** % ricavo su mutuo erogato (null se mutuo assente / 0 — tipico CQS-only) */
+/** % ricavo su mutuo erogato (null se mutuo assente / 0   tipico CQS-only) */
 export function revenueOnLoanPercent(
   revenue: number,
   loanAmount: number | null | undefined,

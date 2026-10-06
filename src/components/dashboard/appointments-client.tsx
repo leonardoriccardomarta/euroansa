@@ -172,10 +172,10 @@ export function AppointmentsClient({
                   <td className="px-3 py-2">
                     {new Date(r.appointmentAt).toLocaleDateString("it-IT")}
                   </td>
-                  <td className="px-3 py-2">{r.provenance ?? "—"}</td>
-                  <td className="px-3 py-2">{r.operationType ?? "—"}</td>
+                  <td className="px-3 py-2">{r.provenance ?? "n.d."}</td>
+                  <td className="px-3 py-2">{r.operationType ?? "n.d."}</td>
                   <td className="max-w-[180px] truncate px-3 py-2 text-slate-600">
-                    {r.notes ?? "—"}
+                    {r.notes ?? "n.d."}
                   </td>
                   <td className="px-3 py-2">{r.hasMandate ? "Sì" : "No"}</td>
                   <td className="space-x-2 px-3 py-2 text-right whitespace-nowrap">

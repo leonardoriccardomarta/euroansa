@@ -49,7 +49,7 @@ export default async function RogitatePage() {
 
   const myShare = viewer?.payoutSharePercent ?? DEFAULT_COLLABORATOR_SHARE;
   const overrideShare = viewer?.overrideOnOthersPercent ?? 0;
-  /** Override/quote personali solo broker — admin non ha partecipazione economica. */
+  /** Override/quote personali solo broker   admin non ha partecipazione economica. */
   const canSeeOverride = session.role !== "ADMIN" && overrideShare > 0;
 
   const ownWhere =
@@ -144,7 +144,7 @@ export default async function RogitatePage() {
         onLoan: revenueOnLoanPercent(revenue, r.loanAmount),
         month: monthKey(when),
         brokerName:
-          allUsers.find((u) => u.id === r.brokerId)?.name ?? "—",
+          allUsers.find((u) => u.id === r.brokerId)?.name ?? "n.d.",
       };
     });
   }
@@ -351,12 +351,12 @@ export default async function RogitatePage() {
                         <td className="px-3 py-2.5 text-slate-600">
                           {r.rogitoAt
                             ? new Date(r.rogitoAt).toLocaleDateString("it-IT")
-                            : "—"}
+                            : "n.d."}
                         </td>
                         <td className="px-3 py-2.5 text-slate-700">
                           {r.loanAmount != null
                             ? formatEuro(r.loanAmount)
-                            : "—"}
+                            : "n.d."}
                         </td>
                         <td className="px-3 py-2.5">
                           {formatEuro(r.commissionClient ?? 0)}
@@ -377,7 +377,7 @@ export default async function RogitatePage() {
                           {formatEuro(r.payout)}
                         </td>
                         <td className="px-3 py-2.5 text-slate-600">
-                          {r.onLoan == null ? "—" : `${r.onLoan.toFixed(2)}%`}
+                          {r.onLoan == null ? "n.d." : `${r.onLoan.toFixed(2)}%`}
                         </td>
                       </tr>
                     ))}

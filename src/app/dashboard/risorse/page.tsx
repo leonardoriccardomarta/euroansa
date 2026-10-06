@@ -21,7 +21,7 @@ export default async function RisorsePage() {
       <div>
         <h1 className="text-3xl font-bold text-slate-900">Risorse</h1>
         <p className="mt-2 text-slate-600">
-          Modulistica, template, policy e documenti ufficio — archivio interno
+          Modulistica, template, policy e documenti ufficio   archivio interno
           al posto di Drive.
         </p>
       </div>
