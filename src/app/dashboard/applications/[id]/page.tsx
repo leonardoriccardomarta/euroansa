@@ -451,6 +451,7 @@ export default async function ApplicationDetailPage({
         applicationId={current.id}
         clientName={current.clientName}
         docs={docs}
+        requiredDocumentTypes={current.requiredDocumentTypes ?? []}
       />
 
       <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">

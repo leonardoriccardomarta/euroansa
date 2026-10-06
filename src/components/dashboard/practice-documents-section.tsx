@@ -4,7 +4,9 @@ import {
   Folder,
 } from "lucide-react";
 import type { Document } from "@/db/schema";
+import type { DocumentType } from "@/db/schema";
 import {
+  CHECKLIST_DOCUMENT_TYPES,
   DOCUMENT_TYPE_LABELS,
   isEuroansaFolder,
   STORAGE_FOLDER_KINDS,
@@ -13,6 +15,7 @@ import {
 } from "@/lib/config/documents";
 import { isLegacyDriveKey, isSiteStorageKey } from "@/lib/storage/paths";
 import { Badge } from "@/components/ui/badge";
+import { ClassifyUnknownDoc } from "@/components/dashboard/classify-unknown-doc";
 import { DocumentPreviewButton } from "@/components/dashboard/document-preview";
 import { FolderUploadButton } from "@/components/dashboard/file-browser-actions";
 
@@ -23,14 +26,27 @@ function folderHint(kind: StorageFolderKind): string {
   return "Fogli firmati (fuori checklist): privacy, contratto, DDM…";
 }
 
-function DocRow({ doc }: { doc: Document }) {
+function DocRow({
+  doc,
+  classifyOptions,
+  allowClassify,
+}: {
+  doc: Document;
+  classifyOptions: DocumentType[];
+  allowClassify: boolean;
+}) {
   const also =
     doc.extractedData?.alsoCovers?.filter((t) => t && t !== "SCONOSCIUTO") ??
     [];
+  const showClassify =
+    allowClassify &&
+    doc.documentType === "SCONOSCIUTO" &&
+    classifyOptions.length > 0;
+
   return (
     <div className="border-t border-slate-100 pt-3 first:border-0 first:pt-0">
       <div className="flex flex-wrap items-start justify-between gap-2">
-        <div>
+        <div className="min-w-0 flex-1">
           <p className="flex flex-wrap items-center gap-2 font-semibold text-slate-900">
             {DOCUMENT_TYPE_LABELS[doc.documentType] ?? doc.documentType}
             {doc.isValid ? (
@@ -80,6 +96,12 @@ function DocRow({ doc }: { doc: Document }) {
           <p className="text-xs text-slate-500">
             Rinominato: {doc.renamedFileName}
           </p>
+          {showClassify ? (
+            <ClassifyUnknownDoc
+              documentId={doc.id}
+              options={classifyOptions}
+            />
+          ) : null}
         </div>
         {doc.driveFileUrl && isSiteStorageKey(doc.driveFileId) ? (
           <DocumentPreviewButton
@@ -106,12 +128,31 @@ export function PracticeDocumentsSection({
   applicationId,
   clientName,
   docs,
+  requiredDocumentTypes,
 }: {
   applicationId: string;
   clientName: string;
   docs: Document[];
+  requiredDocumentTypes: DocumentType[];
 }) {
   const defaultDocLabel = storageSubfolderLabel("DOC", clientName);
+
+  const presentTypes = new Set(
+    docs
+      .filter((d) => d.isValid && d.documentType !== "SCONOSCIUTO")
+      .map((d) => d.documentType),
+  );
+  const required = (requiredDocumentTypes ?? []).filter(
+    (t) => t && t !== "SCONOSCIUTO",
+  );
+  const missing = required.filter((t) => !presentTypes.has(t));
+  const classifyOptions = [
+    ...new Set([
+      ...missing,
+      ...required,
+      ...CHECKLIST_DOCUMENT_TYPES,
+    ]),
+  ];
 
   const byFolder = new Map<string, Document[]>();
   for (const doc of docs) {
@@ -188,7 +229,12 @@ export function PracticeDocumentsSection({
           ) : (
             <div className="space-y-3">
               {list.map((doc) => (
-                <DocRow key={doc.id} doc={doc} />
+                <DocRow
+                  key={doc.id}
+                  doc={doc}
+                  classifyOptions={classifyOptions}
+                  allowClassify={kind !== "EUROANSA"}
+                />
               ))}
             </div>
           )}
@@ -212,7 +258,12 @@ export function PracticeDocumentsSection({
           </div>
           <div className="space-y-3">
             {list.map((doc) => (
-              <DocRow key={doc.id} doc={doc} />
+              <DocRow
+                key={doc.id}
+                doc={doc}
+                classifyOptions={classifyOptions}
+                allowClassify
+              />
             ))}
           </div>
         </div>

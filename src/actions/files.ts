@@ -4,12 +4,17 @@ import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { db } from "@/db";
 import { applications, documents } from "@/db/schema";
+import type { DocumentType } from "@/db/schema";
 import { requireSession, type SessionUser } from "@/lib/auth";
 import {
+  CHECKLIST_DOCUMENT_TYPES,
+  FILE_NAME_PREFIX,
   STORAGE_FOLDER_KINDS,
+  clientSurnameShort,
   defaultStorageFolders,
   normalizeStorageFolderName,
   sanitizeFolderName,
+  storageFolderKindForDocument,
   storageSubfolderLabel,
   type StorageFolderKind,
 } from "@/lib/config/documents";
@@ -533,6 +538,69 @@ export async function uploadRelazioneFromFilesAction(
   await refreshApplicationState(applicationId);
   revalidateFiles(applicationId);
   return { ok: true };
+}
+
+/**
+ * Classifica a mano un file SCONOSCIUTO: tipo checklist, rinomina, cartella,
+ * spunta checklist (aggiunge il tipo se mancava).
+ */
+export async function classifyUnknownDocumentAction(
+  documentId: string,
+  documentType: DocumentType,
+) {
+  const session = await requireSession();
+  if (!documentType || documentType === "SCONOSCIUTO") {
+    return { error: "Scegli un tipo dalla checklist" };
+  }
+  if (!CHECKLIST_DOCUMENT_TYPES.includes(documentType)) {
+    return { error: "Tipo non valido per la checklist" };
+  }
+
+  const [doc] = await db
+    .select()
+    .from(documents)
+    .where(eq(documents.id, documentId))
+    .limit(1);
+  if (!doc) return { error: "Documento non trovato" };
+
+  const access = await assertCanAccessApp(session, doc.applicationId);
+  if ("error" in access && access.error) return { error: access.error };
+  const app = access.app!;
+
+  const ext = doc.rawFileName.includes(".")
+    ? doc.rawFileName.slice(doc.rawFileName.lastIndexOf("."))
+    : ".pdf";
+  const surname = clientSurnameShort(app.clientName);
+  const prefix = FILE_NAME_PREFIX[documentType] ?? "doc";
+  const renamedFileName = `${surname}_${prefix}${ext}`;
+
+  const folderKind = storageFolderKindForDocument(documentType);
+  const storageSubfolder = storageSubfolderLabel(folderKind, app.clientName);
+
+  await db
+    .update(documents)
+    .set({
+      documentType,
+      isValid: true,
+      renamedFileName,
+      storageSubfolder,
+      validationIssues: [],
+    })
+    .where(eq(documents.id, documentId));
+
+  const required = new Set(app.requiredDocumentTypes ?? []);
+  required.add(documentType);
+  await db
+    .update(applications)
+    .set({
+      requiredDocumentTypes: [...required],
+      updatedAt: new Date(),
+    })
+    .where(eq(applications.id, app.id));
+
+  await refreshApplicationState(app.id);
+  revalidateFiles(app.id);
+  return { ok: true as const, renamedFileName };
 }
 
 /** Esportato per la page server: unisce cartelle salvate + trovate sui file */
