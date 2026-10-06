@@ -1,9 +1,9 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, ne, isNotNull } from "drizzle-orm";
 import { getSession } from "@/lib/auth";
 import { db } from "@/db";
-import { applications, systemSettings } from "@/db/schema";
+import { applications, systemSettings, users } from "@/db/schema";
 import {
   DEFAULT_COLLABORATOR_SHARE,
   collaboratorPayout,
@@ -16,11 +16,42 @@ import {
 
 export const dynamic = "force-dynamic";
 
+type AppRow = {
+  id: string;
+  clientName: string;
+  provenance: string | null;
+  bankName: string | null;
+  loanAmount: number | null;
+  commissionClient: number | null;
+  commissionBank: number | null;
+  commissionPolicy: number | null;
+  commissionCqs: number | null;
+  commissionLoans: number | null;
+  commissionNotary: number | null;
+  rogitoAt: Date | null;
+  updatedAt: Date;
+  brokerId: string | null;
+};
+
 export default async function RogitatePage() {
   const session = await getSession();
   if (!session) redirect("/login");
 
-  const appWhere =
+  const [viewer] = await db
+    .select({
+      id: users.id,
+      payoutSharePercent: users.payoutSharePercent,
+      overrideOnOthersPercent: users.overrideOnOthersPercent,
+    })
+    .from(users)
+    .where(eq(users.id, session.id))
+    .limit(1);
+
+  const myShare = viewer?.payoutSharePercent ?? DEFAULT_COLLABORATOR_SHARE;
+  const overrideShare = viewer?.overrideOnOthersPercent ?? 0;
+  const canSeeOverride = overrideShare > 0;
+
+  const ownWhere =
     session.role === "ADMIN"
       ? and(eq(applications.status, "ROGITATA"), eq(applications.isTest, false))
       : and(
@@ -29,54 +60,103 @@ export default async function RogitatePage() {
           eq(applications.isTest, false),
         );
 
-  const [rows, settingsRow] = await Promise.all([
+  const selectCols = {
+    id: applications.id,
+    clientName: applications.clientName,
+    provenance: applications.provenance,
+    bankName: applications.bankName,
+    loanAmount: applications.loanAmount,
+    commissionClient: applications.commissionClient,
+    commissionBank: applications.commissionBank,
+    commissionPolicy: applications.commissionPolicy,
+    commissionCqs: applications.commissionCqs,
+    commissionLoans: applications.commissionLoans,
+    commissionNotary: applications.commissionNotary,
+    rogitoAt: applications.rogitoAt,
+    updatedAt: applications.updatedAt,
+    brokerId: applications.brokerId,
+  };
+
+  const [rows, allUsers, settingsRow, othersRows] = await Promise.all([
+    db
+      .select(selectCols)
+      .from(applications)
+      .where(ownWhere)
+      .orderBy(desc(applications.rogitoAt), desc(applications.updatedAt)),
     db
       .select({
-        id: applications.id,
-        clientName: applications.clientName,
-        provenance: applications.provenance,
-        bankName: applications.bankName,
-        loanAmount: applications.loanAmount,
-        commissionClient: applications.commissionClient,
-        commissionBank: applications.commissionBank,
-        commissionPolicy: applications.commissionPolicy,
-        commissionCqs: applications.commissionCqs,
-        commissionLoans: applications.commissionLoans,
-        commissionNotary: applications.commissionNotary,
-        rogitoAt: applications.rogitoAt,
-        updatedAt: applications.updatedAt,
+        id: users.id,
+        name: users.name,
+        payoutSharePercent: users.payoutSharePercent,
       })
-      .from(applications)
-      .where(appWhere)
-      .orderBy(desc(applications.rogitoAt), desc(applications.updatedAt)),
+      .from(users),
     db
       .select()
       .from(systemSettings)
       .where(eq(systemSettings.id, "global"))
       .limit(1),
+    canSeeOverride
+      ? db
+          .select(selectCols)
+          .from(applications)
+          .where(
+            and(
+              eq(applications.status, "ROGITATA"),
+              eq(applications.isTest, false),
+              isNotNull(applications.brokerId),
+              ne(applications.brokerId, session.id),
+            ),
+          )
+          .orderBy(desc(applications.rogitoAt), desc(applications.updatedAt))
+      : Promise.resolve([] as AppRow[]),
   ]);
 
-  const share =
+  const fallbackShare =
     settingsRow[0]?.collaboratorSharePercent ?? DEFAULT_COLLABORATOR_SHARE;
 
-  type RowCalc = (typeof rows)[number] & {
+  function shareForBroker(brokerId: string | null): number {
+    if (!brokerId) return fallbackShare;
+    const u = allUsers.find((x) => x.id === brokerId);
+    return u?.payoutSharePercent ?? fallbackShare;
+  }
+
+  type RowCalc = AppRow & {
     revenue: number;
     payout: number;
     onLoan: number | null;
     month: string;
+    brokerName: string;
   };
 
-  const calculated: RowCalc[] = rows.map((r) => {
-    const revenue = practiceRevenue(r);
-    const when = r.rogitoAt ?? r.updatedAt;
-    return {
-      ...r,
-      revenue,
-      payout: collaboratorPayout(revenue, share),
-      onLoan: revenueOnLoanPercent(revenue, r.loanAmount),
-      month: monthKey(when),
-    };
-  });
+  function calcRows(
+    list: AppRow[],
+    payoutShare: (r: AppRow) => number,
+  ): RowCalc[] {
+    return list.map((r) => {
+      const revenue = practiceRevenue(r);
+      const share = payoutShare(r);
+      const when = r.rogitoAt ?? r.updatedAt;
+      return {
+        ...r,
+        revenue,
+        payout: collaboratorPayout(revenue, share),
+        onLoan: revenueOnLoanPercent(revenue, r.loanAmount),
+        month: monthKey(when),
+        brokerName:
+          allUsers.find((u) => u.id === r.brokerId)?.name ?? "—",
+      };
+    });
+  }
+
+  // Admin vede tutte le pratiche con la quota del broker titolare.
+  // Broker vede solo le sue con la sua quota.
+  const calculated = calcRows(rows as AppRow[], (r) =>
+    session.role === "ADMIN"
+      ? shareForBroker(r.brokerId)
+      : myShare,
+  );
+
+  const overrideRows = calcRows(othersRows as AppRow[], () => overrideShare);
 
   const byMonth = new Map<string, RowCalc[]>();
   for (const row of calculated) {
@@ -84,20 +164,30 @@ export default async function RogitatePage() {
     list.push(row);
     byMonth.set(row.month, list);
   }
-
   const months = [...byMonth.keys()].sort((a, b) => b.localeCompare(a));
 
   const grandRevenue = calculated.reduce((s, r) => s + r.revenue, 0);
   const grandPayout = calculated.reduce((s, r) => s + r.payout, 0);
+  const overrideRevenue = overrideRows.reduce((s, r) => s + r.revenue, 0);
+  const overridePayout = overrideRows.reduce((s, r) => s + r.payout, 0);
 
   return (
     <div className="space-y-8">
       <div>
         <h1 className="text-3xl font-bold text-slate-900">Rogitate</h1>
         <p className="mt-2 text-slate-600">
-          Resoconto automatico delle pratiche chiuse: totali per pratica e mese
-          per mese. Quota collaboratore{" "}
-          <span className="font-semibold">{(share * 100).toFixed(0)}%</span>.
+          Resoconto pratiche chiuse.{" "}
+          {session.role === "ADMIN" ? (
+            <>Quote per broker (impostate in Utenti).</>
+          ) : (
+            <>
+              La tua quota collaboratore{" "}
+              <span className="font-semibold">
+                {(myShare * 100).toFixed(0)}%
+              </span>
+              .
+            </>
+          )}
         </p>
       </div>
 
@@ -127,6 +217,62 @@ export default async function RogitatePage() {
           </p>
         </div>
       </div>
+
+      {canSeeOverride ? (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 p-5 shadow-sm">
+          <p className="text-xs font-semibold uppercase tracking-wide text-amber-800">
+            Partecipazione riservata ({(overrideShare * 100).toFixed(0)}% su
+            pratiche di altri)
+          </p>
+          <p className="mt-1 text-sm text-amber-900">
+            Visibile solo a te. I broker titolari non vedono questa voce.
+          </p>
+          <div className="mt-3 flex flex-wrap gap-6">
+            <div>
+              <p className="text-xs text-amber-800">Fatturato altri</p>
+              <p className="text-xl font-bold text-amber-950">
+                {formatEuro(overrideRevenue)}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs text-amber-800">La tua partecipazione</p>
+              <p className="text-xl font-bold text-amber-950">
+                {formatEuro(overridePayout)}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs text-amber-800">Pratiche</p>
+              <p className="text-xl font-bold text-amber-950">
+                {overrideRows.length}
+              </p>
+            </div>
+          </div>
+          {overrideRows.length > 0 ? (
+            <ul className="mt-4 max-h-48 space-y-1 overflow-y-auto text-sm text-amber-950">
+              {overrideRows.map((r) => (
+                <li key={r.id} className="flex justify-between gap-3">
+                  <Link
+                    href={`/dashboard/applications/${r.id}`}
+                    className="font-medium underline"
+                  >
+                    {r.clientName}
+                    <span className="ml-1 text-xs font-normal text-amber-800">
+                      ({r.brokerName})
+                    </span>
+                  </Link>
+                  <span>
+                    {formatEuro(r.revenue)} → {formatEuro(r.payout)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="mt-3 text-sm text-amber-800">
+              Nessuna rogitata di altri broker ancora.
+            </p>
+          )}
+        </div>
+      ) : null}
 
       {months.length === 0 ? (
         <div className="rounded-xl border border-dashed border-slate-300 bg-white p-10 text-center text-sm text-slate-500">

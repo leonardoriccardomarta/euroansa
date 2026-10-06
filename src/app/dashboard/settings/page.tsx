@@ -195,7 +195,7 @@ export default async function SettingsPage({
           </label>
           <div className="space-y-2">
             <Label htmlFor="collaboratorSharePercent" className="font-semibold">
-              Quota collaboratore (%)
+              Quota default nuovi broker (%)
             </Label>
             <Input
               id="collaboratorSharePercent"
@@ -208,7 +208,9 @@ export default async function SettingsPage({
               className="h-10 rounded-lg"
             />
             <p className="text-xs text-slate-500">
-              Percentuale sul fatturato pratica (formula Filip). Default 35.
+              Fallback se un utente non ha ancora la quota in Utenti. Le quote
+              reali (Filip 50%, altro 30%, override 20%) si impostano in{" "}
+              <strong>Utenti</strong>.
             </p>
           </div>
           <div className="space-y-2">

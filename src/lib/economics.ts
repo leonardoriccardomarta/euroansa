@@ -133,6 +133,52 @@ export function collaboratorPayout(
   return revenue * sharePercent;
 }
 
+/**
+ * Calcola quota titolare e (eventuale) override nascosta per chi guarda.
+ * L'override compare solo se il viewer ha overrideOnOthers > 0 e NON è il titolare.
+ */
+export function resolvePracticePayouts(params: {
+  revenue: number;
+  practiceBrokerId: string | null | undefined;
+  practiceBrokerShare: number;
+  viewerId: string;
+  viewerOverrideOnOthers: number;
+}): {
+  brokerShare: number;
+  brokerPayout: number;
+  overrideShare: number;
+  overridePayout: number;
+  showOverride: boolean;
+} {
+  const brokerShare = Math.min(1, Math.max(0, params.practiceBrokerShare));
+  const brokerPayout = params.revenue * brokerShare;
+  const isOwn =
+    params.practiceBrokerId != null &&
+    params.practiceBrokerId === params.viewerId;
+  const overrideShare = Math.min(
+    1,
+    Math.max(0, params.viewerOverrideOnOthers),
+  );
+  const showOverride = !isOwn && overrideShare > 0;
+  return {
+    brokerShare,
+    brokerPayout,
+    overrideShare,
+    overridePayout: showOverride ? params.revenue * overrideShare : 0,
+    showOverride,
+  };
+}
+
+export function clampSharePercent(raw: unknown, fallback: number): number {
+  let n =
+    typeof raw === "number"
+      ? raw
+      : Number(String(raw ?? "").trim().replace(",", "."));
+  if (!Number.isFinite(n)) n = fallback;
+  if (n > 1) n /= 100;
+  return Math.min(1, Math.max(0, n));
+}
+
 /** % ricavo su mutuo erogato (null se mutuo assente / 0 — tipico CQS-only) */
 export function revenueOnLoanPercent(
   revenue: number,

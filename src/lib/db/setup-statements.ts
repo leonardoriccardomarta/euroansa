@@ -228,6 +228,8 @@ export const SETUP_STATEMENTS = [
     created_at timestamptz DEFAULT now() NOT NULL,
     updated_at timestamptz DEFAULT now() NOT NULL
   )`,
+  `ALTER TABLE users ADD COLUMN IF NOT EXISTS payout_share_percent real NOT NULL DEFAULT 0.3`,
+  `ALTER TABLE users ADD COLUMN IF NOT EXISTS override_on_others_percent real NOT NULL DEFAULT 0`,
 ];
 
 export const PACKAGE_LINK_TTL_DAYS = 7;

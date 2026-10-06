@@ -50,14 +50,52 @@ export async function createUserAction(formData: FormData): Promise<void> {
   }
 
   const passwordHash = await hashPassword(password);
+  const shareRaw = String(formData.get("payoutSharePercent") ?? "30").trim();
+  let payoutSharePercent = Number(shareRaw.replace(",", "."));
+  if (!Number.isFinite(payoutSharePercent)) payoutSharePercent = 30;
+  if (payoutSharePercent > 1) payoutSharePercent /= 100;
+  payoutSharePercent = Math.min(1, Math.max(0, payoutSharePercent));
+
   try {
-    await db.insert(users).values({ email, name, passwordHash, role });
+    await db.insert(users).values({
+      email,
+      name,
+      passwordHash,
+      role,
+      payoutSharePercent,
+      overrideOnOthersPercent: 0,
+    });
   } catch {
     return;
   }
 
   const { revalidatePath } = await import("next/cache");
   revalidatePath("/dashboard/users");
+}
+
+export async function updateUserSharesAction(formData: FormData): Promise<void> {
+  await requireAdmin();
+  const userId = String(formData.get("userId") ?? "").trim();
+  if (!userId) return;
+
+  const { clampSharePercent } = await import("@/lib/economics");
+  const payoutSharePercent = clampSharePercent(
+    formData.get("payoutSharePercent"),
+    0.3,
+  );
+  const overrideOnOthersPercent = clampSharePercent(
+    formData.get("overrideOnOthersPercent"),
+    0,
+  );
+
+  await db
+    .update(users)
+    .set({ payoutSharePercent, overrideOnOthersPercent })
+    .where(eq(users.id, userId));
+
+  const { revalidatePath } = await import("next/cache");
+  revalidatePath("/dashboard/users");
+  revalidatePath("/dashboard/rogitate");
 }
 
 export async function deleteUserAction(formData: FormData) {

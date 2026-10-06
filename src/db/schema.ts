@@ -139,6 +139,15 @@ export const users = pgTable("users", {
   tutorialCompletedAt: timestamp("tutorial_completed_at", {
     withTimezone: true,
   }),
+  /** Quota su fatturato delle proprie pratiche (es. 0.50 Filip, 0.30 altro). */
+  payoutSharePercent: real("payout_share_percent").notNull().default(0.3),
+  /**
+   * Quota nascosta sul fatturato delle pratiche di ALTRI broker (es. 0.20 Filip).
+   * Visibile solo a questo utente (e admin) — mai al broker titolare.
+   */
+  overrideOnOthersPercent: real("override_on_others_percent")
+    .notNull()
+    .default(0),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
 

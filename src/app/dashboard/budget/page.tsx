@@ -5,6 +5,7 @@ import { db } from "@/db";
 import {
   applications,
   systemSettings,
+  users,
   DEFAULT_BUDGET_TARGETS,
   type BudgetTargets,
 } from "@/db/schema";
@@ -30,12 +31,17 @@ export default async function BudgetPage() {
           eq(applications.isTest, false),
         );
 
-  const [rogitate, settingsRow] = await Promise.all([
+  const [rogitate, settingsRow, viewerRow] = await Promise.all([
     db.select().from(applications).where(appWhere),
     db
       .select()
       .from(systemSettings)
       .where(eq(systemSettings.id, "global"))
+      .limit(1),
+    db
+      .select({ payoutSharePercent: users.payoutSharePercent })
+      .from(users)
+      .where(eq(users.id, session.id))
       .limit(1),
   ]);
 
@@ -43,7 +49,9 @@ export default async function BudgetPage() {
   const targets: BudgetTargets =
     settings?.budgetTargets ?? DEFAULT_BUDGET_TARGETS;
   const share =
-    settings?.collaboratorSharePercent ?? DEFAULT_COLLABORATOR_SHARE;
+    viewerRow[0]?.payoutSharePercent ??
+    settings?.collaboratorSharePercent ??
+    DEFAULT_COLLABORATOR_SHARE;
   const year = settings?.budgetYear ?? "2026";
 
   let mutuiErogato = 0;

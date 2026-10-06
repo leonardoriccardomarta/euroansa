@@ -96,6 +96,8 @@ export default async function ApplicationDetailPage({
       .select({
         id: users.id,
         name: users.name,
+        payoutSharePercent: users.payoutSharePercent,
+        overrideOnOthersPercent: users.overrideOnOthersPercent,
       })
       .from(users),
   ]);
@@ -105,6 +107,20 @@ export default async function ApplicationDetailPage({
   const brokerName = current.brokerId
     ? allUsers.find((b) => b.id === current.brokerId)?.name
     : null;
+
+  const practiceBroker = current.brokerId
+    ? allUsers.find((b) => b.id === current.brokerId)
+    : null;
+  const viewer = allUsers.find((b) => b.id === session.id);
+  const practiceBrokerShare =
+    practiceBroker?.payoutSharePercent ??
+    settings?.collaboratorSharePercent ??
+    DEFAULT_COLLABORATOR_SHARE;
+  const viewerOverride = viewer?.overrideOnOthersPercent ?? 0;
+  const showHiddenOverride =
+    viewerOverride > 0 &&
+    Boolean(current.brokerId) &&
+    current.brokerId !== session.id;
 
   const legacyDocs = docs.filter((d) => isLegacyDriveKey(d.driveFileId));
   const missingStorageDocs = docs.filter(
@@ -579,9 +595,9 @@ export default async function ApplicationDetailPage({
         <div className="mt-5">
           <PracticeEconomicsForm
             applicationId={current.id}
-            collaboratorSharePercent={
-              settings?.collaboratorSharePercent ?? DEFAULT_COLLABORATOR_SHARE
-            }
+            collaboratorSharePercent={practiceBrokerShare}
+            showOverride={showHiddenOverride}
+            overrideSharePercent={viewerOverride}
             provenanceOptions={
               settings?.provenanceOptions?.length
                 ? settings.provenanceOptions

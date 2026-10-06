@@ -62,11 +62,16 @@ export function PracticeEconomicsForm({
   values,
   provenanceOptions,
   collaboratorSharePercent,
+  showOverride,
+  overrideSharePercent,
 }: {
   applicationId: string;
   values: EconomicsValues;
   provenanceOptions: string[];
   collaboratorSharePercent: number;
+  /** Override nascosta: solo se il viewer ha diritto e non è il titolare. */
+  showOverride?: boolean;
+  overrideSharePercent?: number;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -83,6 +88,13 @@ export function PracticeEconomicsForm({
   const payout = useMemo(
     () => collaboratorPayout(revenue, collaboratorSharePercent),
     [revenue, collaboratorSharePercent],
+  );
+  const overridePayout = useMemo(
+    () =>
+      showOverride && overrideSharePercent
+        ? collaboratorPayout(revenue, overrideSharePercent)
+        : 0,
+    [revenue, showOverride, overrideSharePercent],
   );
   const onLoan = useMemo(
     () => revenueOnLoanPercent(revenue, live.loanAmount),
@@ -313,7 +325,11 @@ export function PracticeEconomicsForm({
           ))}
         </div>
 
-        <div className="mt-4 grid gap-3 rounded-xl border border-emerald-100 bg-emerald-50 p-4 sm:grid-cols-3">
+        <div
+          className={`mt-4 grid gap-3 rounded-xl border border-emerald-100 bg-emerald-50 p-4 ${
+            showOverride ? "sm:grid-cols-2 lg:grid-cols-4" : "sm:grid-cols-3"
+          }`}
+        >
           <div>
             <p className="text-xs font-medium text-emerald-800">Fatturato</p>
             <p className="text-lg font-bold text-emerald-950">
@@ -322,12 +338,26 @@ export function PracticeEconomicsForm({
           </div>
           <div>
             <p className="text-xs font-medium text-emerald-800">
-              Tua quota ({(collaboratorSharePercent * 100).toFixed(0)}%)
+              Quota broker ({(collaboratorSharePercent * 100).toFixed(0)}%)
             </p>
             <p className="text-lg font-bold text-emerald-950">
               {formatEuro(payout)}
             </p>
           </div>
+          {showOverride && overrideSharePercent ? (
+            <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2">
+              <p className="text-xs font-medium text-amber-900">
+                Tua partecipazione riservata (
+                {(overrideSharePercent * 100).toFixed(0)}%)
+              </p>
+              <p className="text-lg font-bold text-amber-950">
+                {formatEuro(overridePayout)}
+              </p>
+              <p className="mt-0.5 text-[10px] text-amber-800">
+                Visibile solo a te — il broker titolare non la vede
+              </p>
+            </div>
+          ) : null}
           <div>
             <p className="text-xs font-medium text-emerald-800">% su mutuo</p>
             <p className="text-lg font-bold text-emerald-950">
