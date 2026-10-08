@@ -6,6 +6,7 @@ import {
 } from "@/lib/google/gmail";
 import {
   ensureWaitingApplication,
+  isStaffMailboxEmail,
   mergeAllDuplicateApplications,
   mergeDuplicateOpenApplicationsByEmail,
   processIncomingFiles,
@@ -105,12 +106,18 @@ export async function GET(req: NextRequest) {
         await mergeDuplicateOpenApplicationsByEmail(email.fromEmail);
 
         if (email.attachments.length === 0) {
-          const app = await ensureWaitingApplication({
-            email: email.fromEmail,
-            clientNameHint: email.fromEmail.split("@")[0],
-            isTest,
-            brokerId: owner.id,
-          });
+          // Broker senza allegati: non creare pratica sulla sua mail (serve CF dai PDF)
+          const staff = await isStaffMailboxEmail(email.fromEmail);
+          let appId: string | null = null;
+          if (!staff) {
+            const app = await ensureWaitingApplication({
+              email: email.fromEmail,
+              clientNameHint: email.fromEmail.split("@")[0],
+              isTest,
+              brokerId: owner.id,
+            });
+            appId = app.id;
+          }
           try {
             await markMessageProcessed(email.messageId, googleAuth);
           } catch (labelError) {
@@ -124,8 +131,9 @@ export async function GET(req: NextRequest) {
             messageId: email.messageId,
             noAttachments: true,
             processed: 0,
-            applicationIds: [app.id],
+            applicationIds: appId ? [appId] : [],
             errors: [] as string[],
+            skippedStaffNoAttachments: staff || undefined,
           });
           continue;
         }

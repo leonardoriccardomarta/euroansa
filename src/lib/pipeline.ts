@@ -1,6 +1,6 @@
-import { and, desc, eq, inArray } from "drizzle-orm";
+import { and, desc, eq, inArray, or } from "drizzle-orm";
 import { db } from "@/db";
-import { applications, documents, systemSettings } from "@/db/schema";
+import { applications, documents, systemSettings, users } from "@/db/schema";
 import type { DocumentType } from "@/db/schema";
 import { analyzeDocument } from "@/lib/ai/analyze-document";
 import { checkAnagraphicCoherence } from "@/lib/ai/coherence";
@@ -138,6 +138,29 @@ async function ensureBrokerOnApp(
   return updated ?? { ...app, brokerId };
 }
 
+/**
+ * True se la mail è di un utente CRM / admin (broker che inoltra documenti).
+ * In quel caso NON si usa come chiave cliente: match solo per codice fiscale.
+ */
+export async function isStaffMailboxEmail(email: string): Promise<boolean> {
+  const normalized = email.trim().toLowerCase();
+  if (!normalized) return false;
+  const adminEnv = process.env.ADMIN_EMAIL?.trim().toLowerCase();
+  if (adminEnv && normalized === adminEnv) return true;
+
+  const [hit] = await db
+    .select({ id: users.id })
+    .from(users)
+    .where(
+      or(
+        eq(users.email, normalized),
+        eq(users.googleEmail, normalized),
+      ),
+    )
+    .limit(1);
+  return Boolean(hit);
+}
+
 async function findOrCreateApplication(params: {
   fiscalCode?: string | null;
   email?: string;
@@ -145,17 +168,39 @@ async function findOrCreateApplication(params: {
   isTest?: boolean;
   brokerId?: string | null;
 }) {
-  const email = params.email?.trim().toLowerCase() || null;
+  const rawEmail = params.email?.trim().toLowerCase() || null;
   const fiscalCode = params.fiscalCode?.trim().toUpperCase() || null;
+  const staffSender = rawEmail ? await isStaffMailboxEmail(rawEmail) : false;
+  // Mail del broker/ufficio non è l'email del cliente
+  const clientEmail = staffSender ? null : rawEmail;
 
-  // 1) Pratica aperta con stessa email
-  if (email) {
+  // 1) Match primario: codice fiscale (anche se il mittente è Filippo con la stessa mail)
+  if (fiscalCode) {
+    const [byCf] = await db
+      .select()
+      .from(applications)
+      .where(
+        and(
+          eq(applications.clientFiscalCode, fiscalCode),
+          inArray(applications.status, [
+            ...OPEN_STATUSES,
+            ...POST_SECRETARY_ACTIVE,
+          ]),
+        ),
+      )
+      .orderBy(desc(applications.updatedAt))
+      .limit(1);
+    if (byCf) return ensureBrokerOnApp(byCf, params.brokerId);
+  }
+
+  // 2) Fallback email solo se mittente = cliente (non staff) e non abbiamo CF
+  if (clientEmail) {
     const [byEmailOpen] = await db
       .select()
       .from(applications)
       .where(
         and(
-          eq(applications.clientEmail, email),
+          eq(applications.clientEmail, clientEmail),
           inArray(applications.status, [...OPEN_STATUSES]),
         ),
       )
@@ -174,14 +219,12 @@ async function findOrCreateApplication(params: {
       return ensureBrokerOnApp(app, params.brokerId);
     }
 
-    // 2) Qualsiasi pratica recente stessa email (evita doppioni dopo invio segreteria / force)
     const [byEmailAny] = await db
       .select()
       .from(applications)
       .where(
         and(
-          eq(applications.clientEmail, email),
-          // non riaprire una ROGITATA chiusa
+          eq(applications.clientEmail, clientEmail),
           inArray(applications.status, [
             ...OPEN_STATUSES,
             ...POST_SECRETARY_ACTIVE,
@@ -204,30 +247,15 @@ async function findOrCreateApplication(params: {
     }
   }
 
-  // 3) Pratica aperta con stesso CF
-  if (fiscalCode) {
-    const [byCf] = await db
-      .select()
-      .from(applications)
-      .where(
-        and(
-          eq(applications.clientFiscalCode, fiscalCode),
-          inArray(applications.status, [
-            ...OPEN_STATUSES,
-            ...POST_SECRETARY_ACTIVE,
-          ]),
-        ),
-      )
-      .orderBy(desc(applications.updatedAt))
-      .limit(1);
-    if (byCf) return ensureBrokerOnApp(byCf, params.brokerId);
-  }
+  const placeholderEmail = fiscalCode
+    ? `cf.${fiscalCode.toLowerCase()}@prontopratica.local`
+    : clientEmail ?? "sconosciuto@email.local";
 
   const [created] = await db
     .insert(applications)
     .values({
       clientName: params.clientName,
-      clientEmail: email ?? "sconosciuto@email.local",
+      clientEmail: placeholderEmail,
       clientFiscalCode: fiscalCode,
       status: "DOCUMENTI_INCOMPLETI",
       isTest: params.isTest ?? false,
@@ -260,6 +288,9 @@ export async function ensureWaitingApplication(params: {
  */
 export async function mergeDuplicateOpenApplicationsByEmail(email: string) {
   const normalized = email.trim().toLowerCase();
+  // Non fondere pratiche se la chiave è la mail di un broker (Filippo inoltra più clienti)
+  if (await isStaffMailboxEmail(normalized)) return null;
+
   const candidates = await db
     .select()
     .from(applications)
@@ -523,6 +554,7 @@ export async function processIncomingFiles(
         await mergeDuplicateOpenApplicationsByEmail(file.clientEmail);
       }
 
+      // Match per CF dal documento; la mail mittente conta solo se non è di uno staff
       app = await findOrCreateApplication({
         fiscalCode: analysis.extractedData.fiscalCode,
         email: file.clientEmail,
