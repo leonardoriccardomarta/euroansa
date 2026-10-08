@@ -11,8 +11,10 @@ import {
   inferEmploymentType,
 } from "@/lib/checklist";
 import {
+  CHECKLIST_PRESETS,
   defaultStorageFolders,
   FILE_NAME_PREFIX,
+  SHEET_SECTIONS,
   storageFolderKindForDocument,
   storageSubfolderLabel,
 } from "@/lib/config/documents";
@@ -1032,20 +1034,41 @@ export async function refreshApplicationState(applicationId: string) {
     nextStatus = "DOCUMENTI_INCOMPLETI";
   }
 
-  // Se arriva un tipo da mail/upload, entra in checklist (anche se AI lo boccia)
+  // Tipi presenti → checklist, ma solo anagrafica + categoria lavorativa inferita + ulteriore
+  // (CU/estratto non “accendono” anche pensionato/autonomo)
+  const incomePreset = new Set(
+    CHECKLIST_PRESETS[employmentType] ?? CHECKLIST_PRESETS.DIPENDENTE_INDETERMINATO,
+  );
+  const anagraficaTypes = new Set(
+    SHEET_SECTIONS.find((s) => s.title === "DOCUMENTAZIONE ANAGRAFICA")?.items.flatMap(
+      (i) => i.types,
+    ) ?? [],
+  );
+  const ulterioreTypes = new Set(
+    SHEET_SECTIONS.find((s) => s.title === "ULTERIORE DOCUMENTAZIONE")?.items.flatMap(
+      (i) => i.types,
+    ) ?? [],
+  );
+  const allowedAuto = new Set<DocumentType>([
+    ...incomePreset,
+    ...anagraficaTypes,
+    ...ulterioreTypes,
+  ]);
+
   const requiredSet = new Set(app.requiredDocumentTypes ?? []);
   let requiredChanged = false;
   for (const d of docs) {
+    const candidates: DocumentType[] = [];
     if (d.documentType && d.documentType !== "SCONOSCIUTO") {
-      if (!requiredSet.has(d.documentType)) {
-        requiredSet.add(d.documentType);
+      candidates.push(d.documentType);
+    }
+    for (const t of d.extractedData?.alsoCovers ?? []) {
+      if (t && t !== "SCONOSCIUTO") candidates.push(t);
+    }
+    for (const t of candidates) {
+      if (allowedAuto.has(t) && !requiredSet.has(t)) {
+        requiredSet.add(t);
         requiredChanged = true;
-      }
-      for (const t of d.extractedData?.alsoCovers ?? []) {
-        if (t && t !== "SCONOSCIUTO" && !requiredSet.has(t)) {
-          requiredSet.add(t);
-          requiredChanged = true;
-        }
       }
     }
   }

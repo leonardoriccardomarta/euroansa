@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useOptimistic, useTransition } from "react";
+import { useEffect, useOptimistic, useState, useTransition } from "react";
 import { updateRequiredDocumentsAction } from "@/actions/applications";
 import type { DocumentType, EmploymentType } from "@/db/schema";
 import {
@@ -9,6 +9,7 @@ import {
   EMPLOYMENT_TYPE_LABELS,
   SHEET_SECTIONS,
   type SheetChecklistItem,
+  type SheetSection,
 } from "@/lib/config/documents";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -18,6 +19,33 @@ const PRESET_ORDER: EmploymentType[] = [
   "PARTITA_IVA",
   "PENSIONATO",
 ];
+
+/** Sezioni reddituali: stessi tipi (CU, estratto…) ma una sola categoria attiva. */
+const INCOME_SUBTITLES = [
+  "LAVORATORI DIPENDENTI",
+  "LAVORATORI AUTONOMI",
+  "PENSIONATI",
+] as const;
+
+type IncomeSubtitle = (typeof INCOME_SUBTITLES)[number];
+
+function presetToIncomeSubtitle(
+  preset?: EmploymentType | null,
+): IncomeSubtitle | null {
+  if (preset === "DIPENDENTE_INDETERMINATO") return "LAVORATORI DIPENDENTI";
+  if (preset === "PARTITA_IVA") return "LAVORATORI AUTONOMI";
+  if (preset === "PENSIONATO") return "PENSIONATI";
+  return null;
+}
+
+function isIncomeSection(section: SheetSection): section is SheetSection & {
+  subtitle: IncomeSubtitle;
+} {
+  return (
+    !!section.subtitle &&
+    (INCOME_SUBTITLES as readonly string[]).includes(section.subtitle)
+  );
+}
 
 export function RequiredDocsEditor({
   applicationId,
@@ -31,6 +59,14 @@ export function RequiredDocsEditor({
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [selected, setSelected] = useOptimistic(requiredDocumentTypes);
+  const [incomeFocus, setIncomeFocus] = useState<IncomeSubtitle>(
+    () => presetToIncomeSubtitle(suggestedPreset) ?? "LAVORATORI DIPENDENTI",
+  );
+
+  useEffect(() => {
+    const fromPreset = presetToIncomeSubtitle(suggestedPreset);
+    if (fromPreset) setIncomeFocus(fromPreset);
+  }, [suggestedPreset]);
 
   function save(next: DocumentType[]) {
     startTransition(async () => {
@@ -46,12 +82,30 @@ export function RequiredDocsEditor({
     });
   }
 
-  function isItemOn(item: SheetChecklistItem) {
+  function typesSelected(item: SheetChecklistItem) {
     return item.types.every((t) => selected.includes(t));
   }
 
-  function toggleItem(item: SheetChecklistItem) {
-    const on = isItemOn(item);
+  /** Voci ripetute (CU, estratto…) solo nella categoria lavorativa attiva. */
+  function isItemOn(item: SheetChecklistItem, section: SheetSection) {
+    if (!typesSelected(item)) return false;
+    if (isIncomeSection(section) && section.subtitle !== incomeFocus) {
+      return false;
+    }
+    return true;
+  }
+
+  function toggleItem(item: SheetChecklistItem, section: SheetSection) {
+    // Click su altra categoria reddituale → sposta il focus (non doppia selezione)
+    if (isIncomeSection(section) && section.subtitle !== incomeFocus) {
+      setIncomeFocus(section.subtitle);
+      if (!typesSelected(item)) {
+        save([...new Set([...selected, ...item.types])]);
+      }
+      return;
+    }
+
+    const on = isItemOn(item, section);
     let next: DocumentType[];
     if (on) {
       next = selected.filter((t) => !item.types.includes(t));
@@ -62,6 +116,8 @@ export function RequiredDocsEditor({
   }
 
   function applyPreset(preset: EmploymentType) {
+    const sub = presetToIncomeSubtitle(preset);
+    if (sub) setIncomeFocus(sub);
     save([...(CHECKLIST_PRESETS[preset] ?? [])]);
   }
 
@@ -99,19 +155,28 @@ export function RequiredDocsEditor({
               {section.title}
             </p>
             {section.subtitle ? (
-              <p className="mt-2 text-xs font-semibold uppercase text-slate-600">
+              <p
+                className={`mt-2 text-xs font-semibold uppercase ${
+                  isIncomeSection(section) && section.subtitle === incomeFocus
+                    ? "text-primary-700"
+                    : "text-slate-600"
+                }`}
+              >
                 {section.subtitle}
+                {isIncomeSection(section) && section.subtitle === incomeFocus
+                  ? " · attiva"
+                  : ""}
               </p>
             ) : null}
             <ul className="mt-3 grid gap-2 sm:grid-cols-2">
               {section.items.map((item) => {
-                const on = isItemOn(item);
+                const on = isItemOn(item, section);
                 return (
                   <li key={`${section.subtitle ?? section.title}-${item.label}`}>
                     <button
                       type="button"
                       disabled={pending}
-                      onClick={() => toggleItem(item)}
+                      onClick={() => toggleItem(item, section)}
                       className={`flex w-full items-center gap-2.5 rounded-lg border px-3 py-2.5 text-left text-xs font-medium uppercase transition active:scale-[0.99] sm:text-[13px] ${
                         on
                           ? "border-primary-300 bg-primary-50 text-primary-900"
