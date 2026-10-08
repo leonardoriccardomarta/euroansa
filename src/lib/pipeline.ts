@@ -1,7 +1,7 @@
-import { and, desc, eq, inArray, or } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, lt, or } from "drizzle-orm";
 import { db } from "@/db";
 import { applications, documents, systemSettings, users } from "@/db/schema";
-import type { DocumentType } from "@/db/schema";
+import type { DocumentAnalysisStatus, DocumentType } from "@/db/schema";
 import { analyzeDocument } from "@/lib/ai/analyze-document";
 import { checkAnagraphicCoherence } from "@/lib/ai/coherence";
 import {
@@ -678,6 +678,7 @@ export async function processIncomingFiles(
         driveFileUrl: null,
         storageSubfolder: subfolder,
         isValid: analysis.isValid,
+        analysisStatus: "done",
         extractedData: analysis.extractedData,
         validationIssues: analysis.validationIssues,
       })
@@ -858,4 +859,485 @@ export async function refreshApplicationState(applicationId: string) {
       }
     }
   }
+}
+
+function mimeFromFileName(name: string): string {
+  const lower = name.toLowerCase();
+  if (lower.endsWith(".pdf")) return "application/pdf";
+  if (lower.endsWith(".png")) return "image/png";
+  if (lower.endsWith(".jpg") || lower.endsWith(".jpeg")) return "image/jpeg";
+  if (lower.endsWith(".webp")) return "image/webp";
+  return "application/octet-stream";
+}
+
+function isIntakeStagingEmail(email: string): boolean {
+  const e = email.trim().toLowerCase();
+  return e.startsWith("intake.") && e.endsWith("@prontopratica.local");
+}
+
+/** Pratica temporanea per mail staff (match solo dopo OCR/CF). */
+async function ensureStagingApplication(params: {
+  messageId: string;
+  clientNameHint?: string;
+  isTest?: boolean;
+  brokerId?: string | null;
+}) {
+  const safeId = params.messageId.replace(/[^a-zA-Z0-9]/g, "").slice(0, 24);
+  const stagingEmail = `intake.${safeId || Date.now()}@prontopratica.local`;
+  const [existing] = await db
+    .select()
+    .from(applications)
+    .where(eq(applications.clientEmail, stagingEmail))
+    .limit(1);
+  if (existing) return ensureBrokerOnApp(existing, params.brokerId);
+
+  const name =
+    params.clientNameHint?.trim() ||
+    `Intake ${safeId.slice(0, 8) || "mail"}`;
+  const [created] = await db
+    .insert(applications)
+    .values({
+      clientName: name,
+      clientEmail: stagingEmail,
+      status: "DOCUMENTI_INCOMPLETI",
+      isTest: params.isTest ?? false,
+      brokerId: params.brokerId ?? null,
+      storageFolders: defaultStorageFolders(name),
+    })
+    .returning();
+  return created;
+}
+
+/**
+ * Intake email senza Gemini: salva allegati su R2 + doc pending.
+ * Così il cron risponde entro il timeout di cron-job.org (~30s).
+ */
+export async function ingestEmailAttachmentsWithoutAi(
+  files: Array<{
+    buffer: Buffer;
+    mimeType: string;
+    filename: string;
+  }>,
+  options: {
+    fromEmail: string;
+    messageId: string;
+    clientNameHint?: string;
+    isTest?: boolean;
+    brokerId?: string | null;
+  },
+) {
+  if (files.length === 0) {
+    return {
+      stored: 0,
+      skipped: 0,
+      applicationId: null as string | null,
+      errors: [] as string[],
+    };
+  }
+
+  const staff = await isStaffMailboxEmail(options.fromEmail);
+  const app = staff
+    ? await ensureStagingApplication({
+        messageId: options.messageId,
+        clientNameHint: options.clientNameHint,
+        isTest: options.isTest,
+        brokerId: options.brokerId,
+      })
+    : await ensureWaitingApplication({
+        email: options.fromEmail,
+        clientNameHint: options.clientNameHint,
+        isTest: options.isTest,
+        brokerId: options.brokerId,
+      });
+
+  await mergeDuplicateOpenApplicationsByEmail(options.fromEmail);
+
+  const existing = await db
+    .select({ rawFileName: documents.rawFileName })
+    .from(documents)
+    .where(eq(documents.applicationId, app.id));
+  const knownRaw = new Set(
+    existing.map((d) => d.rawFileName.trim().toLowerCase()),
+  );
+
+  const folderPrefix = practiceStoragePrefix(app.id);
+  const folderUrl = `${getAppBaseUrl()}/dashboard/applications/${app.id}#files`;
+  if (!app.driveFolderId) {
+    await db
+      .update(applications)
+      .set({
+        driveFolderId: folderPrefix,
+        driveFolderUrl: folderUrl,
+        updatedAt: new Date(),
+      })
+      .where(eq(applications.id, app.id));
+  }
+
+  const subfolder = storageSubfolderLabel("DOC", app.clientName);
+  const errors: string[] = [];
+  let stored = 0;
+  let skipped = 0;
+
+  for (const file of files) {
+    const rawKey = file.filename.trim().toLowerCase();
+    if (knownRaw.has(rawKey)) {
+      skipped += 1;
+      continue;
+    }
+
+    let storageKey: string | null = null;
+    try {
+      const uploaded = await uploadPracticeFile({
+        applicationId: app.id,
+        subfolder,
+        fileName: file.filename,
+        mimeType: file.mimeType || mimeFromFileName(file.filename),
+        buffer: file.buffer,
+      });
+      storageKey = uploaded.pathname;
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      errors.push(`${file.filename}: upload fallito — ${msg}`);
+      console.error("intake R2 upload failed", file.filename, msg);
+      continue;
+    }
+
+    const [inserted] = await db
+      .insert(documents)
+      .values({
+        applicationId: app.id,
+        rawFileName: file.filename,
+        renamedFileName: file.filename,
+        documentType: "SCONOSCIUTO",
+        driveFileId: storageKey,
+        driveFileUrl: null,
+        storageSubfolder: subfolder,
+        isValid: false,
+        analysisStatus: "pending",
+        extractedData: null,
+        validationIssues: [],
+      })
+      .returning({ id: documents.id });
+
+    if (inserted && storageKey) {
+      await db
+        .update(documents)
+        .set({ driveFileUrl: `/api/files/${inserted.id}` })
+        .where(eq(documents.id, inserted.id));
+    }
+
+    knownRaw.add(rawKey);
+    stored += 1;
+  }
+
+  if (stored > 0) {
+    await db
+      .update(applications)
+      .set({ updatedAt: new Date() })
+      .where(eq(applications.id, app.id));
+  }
+
+  return {
+    stored,
+    skipped,
+    applicationId: app.id,
+    errors,
+  };
+}
+
+/**
+ * Analizza fino a `limit` documenti in coda (pending).
+ * Un file per volta: adatto al timeout 30s di cron-job.org.
+ */
+export async function processPendingDocumentAnalyses(limit = 2) {
+  const staleBefore = new Date(Date.now() - 5 * 60 * 1000);
+  await db
+    .update(documents)
+    .set({ analysisStatus: "pending", analysisClaimedAt: null })
+    .where(
+      and(
+        eq(documents.analysisStatus, "processing"),
+        lt(documents.analysisClaimedAt, staleBefore),
+      ),
+    );
+
+  const candidates = await db
+    .select({ id: documents.id })
+    .from(documents)
+    .where(
+      and(
+        eq(documents.analysisStatus, "pending"),
+        eq(documents.filePurged, false),
+      ),
+    )
+    .orderBy(asc(documents.createdAt))
+    .limit(Math.max(1, limit));
+
+  const results: Array<{
+    documentId: string;
+    ok: boolean;
+    applicationId?: string;
+    error?: string;
+  }> = [];
+
+  for (const row of candidates) {
+    const claimed = await db
+      .update(documents)
+      .set({
+        analysisStatus: "processing",
+        analysisClaimedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(documents.id, row.id),
+          eq(documents.analysisStatus, "pending"),
+        ),
+      )
+      .returning();
+
+    if (claimed.length === 0) continue;
+    const doc = claimed[0]!;
+
+    try {
+      if (!doc.driveFileId) {
+        await db
+          .update(documents)
+          .set({
+            analysisStatus: "failed",
+            analysisClaimedAt: null,
+            validationIssues: ["File senza storage key"],
+          })
+          .where(eq(documents.id, doc.id));
+        results.push({
+          documentId: doc.id,
+          ok: false,
+          error: "missing storage",
+        });
+        continue;
+      }
+
+      const { buffer } = await downloadBlob(doc.driveFileId);
+      const mimeType = mimeFromFileName(doc.rawFileName);
+      const analysis = await analyzeDocument({
+        buffer,
+        mimeType,
+        originalFileName: doc.rawFileName,
+      });
+
+      const [currentApp] = await db
+        .select()
+        .from(applications)
+        .where(eq(applications.id, doc.applicationId))
+        .limit(1);
+      if (!currentApp) {
+        await db
+          .update(documents)
+          .set({
+            analysisStatus: "failed",
+            analysisClaimedAt: null,
+            validationIssues: ["Pratica non trovata"],
+          })
+          .where(eq(documents.id, doc.id));
+        results.push({
+          documentId: doc.id,
+          ok: false,
+          error: "missing application",
+        });
+        continue;
+      }
+
+      const staging = isIntakeStagingEmail(currentApp.clientEmail);
+      const clientName =
+        [analysis.extractedData.lastName, analysis.extractedData.firstName]
+          .filter(Boolean)
+          .join(" ") || currentApp.clientName;
+
+      const targetApp = await findOrCreateApplication({
+        fiscalCode: analysis.extractedData.fiscalCode,
+        email: staging ? undefined : currentApp.clientEmail,
+        clientName,
+        isTest: currentApp.isTest,
+        brokerId: currentApp.brokerId,
+      });
+
+      await dedupeApplicationDocuments(targetApp.id);
+      const siblings = await db
+        .select({
+          id: documents.id,
+          rawFileName: documents.rawFileName,
+          documentType: documents.documentType,
+        })
+        .from(documents)
+        .where(eq(documents.applicationId, targetApp.id));
+
+      const knownTypes = new Set(
+        siblings
+          .filter(
+            (d) =>
+              d.id !== doc.id &&
+              d.documentType !== "SCONOSCIUTO" &&
+              d.documentType,
+          )
+          .map((d) => d.documentType),
+      );
+      const typeCounts = new Map<string, number>();
+      for (const d of siblings) {
+        if (d.id === doc.id || d.documentType === "SCONOSCIUTO") continue;
+        typeCounts.set(
+          d.documentType,
+          (typeCounts.get(d.documentType) ?? 0) + 1,
+        );
+      }
+
+      let finalAnalysis = analysis;
+      const resolved = resolveDocumentType(
+        analysis.documentType,
+        knownTypes,
+        typeCounts,
+      );
+      if (!resolved) {
+        // Tipo già coperto: tieni file come SCONOSCIUTO done (niente doppio checklist)
+        await db
+          .update(documents)
+          .set({
+            applicationId: targetApp.id,
+            documentType: "SCONOSCIUTO",
+            isValid: false,
+            analysisStatus: "done",
+            analysisClaimedAt: null,
+            extractedData: analysis.extractedData,
+            validationIssues: [
+              ...analysis.validationIssues,
+              `Tipo ${analysis.documentType} già presente in pratica`,
+            ],
+          })
+          .where(eq(documents.id, doc.id));
+
+        if (staging && targetApp.id !== currentApp.id) {
+          await deleteAppIfEmpty(currentApp.id);
+        }
+        await refreshApplicationState(targetApp.id);
+        results.push({
+          documentId: doc.id,
+          ok: true,
+          applicationId: targetApp.id,
+        });
+        continue;
+      }
+
+      finalAnalysis = withResolvedType(
+        analysis,
+        resolved,
+        doc.rawFileName,
+      );
+
+      const appUpdates: Partial<typeof applications.$inferInsert> = {
+        updatedAt: new Date(),
+      };
+      if (!targetApp.clientFiscalCode && finalAnalysis.extractedData.fiscalCode) {
+        appUpdates.clientFiscalCode =
+          finalAnalysis.extractedData.fiscalCode.toUpperCase();
+      }
+      if (
+        (targetApp.clientName === "Cliente" ||
+          targetApp.clientName.startsWith("Intake ") ||
+          isIntakeStagingEmail(targetApp.clientEmail)) &&
+        clientName !== "Cliente"
+      ) {
+        appUpdates.clientName = clientName;
+      }
+      if (Object.keys(appUpdates).length > 1) {
+        await db
+          .update(applications)
+          .set(appUpdates)
+          .where(eq(applications.id, targetApp.id));
+      }
+
+      const folderKind = storageFolderKindForDocument(
+        finalAnalysis.documentType,
+      );
+      const subfolder = storageSubfolderLabel(
+        folderKind,
+        appUpdates.clientName ?? targetApp.clientName,
+      );
+
+      let storageKey = doc.driveFileId;
+      try {
+        const uploaded = await uploadPracticeFile({
+          applicationId: targetApp.id,
+          subfolder,
+          fileName: finalAnalysis.standardizedFileName,
+          mimeType,
+          buffer,
+        });
+        if (doc.driveFileId && doc.driveFileId !== uploaded.pathname) {
+          try {
+            await deleteBlobByPathname(doc.driveFileId);
+          } catch (delErr) {
+            console.error("cleanup old intake key", delErr);
+          }
+        }
+        storageKey = uploaded.pathname;
+      } catch (err) {
+        console.error("re-upload after OCR failed", err);
+      }
+
+      await db
+        .update(documents)
+        .set({
+          applicationId: targetApp.id,
+          renamedFileName: finalAnalysis.standardizedFileName,
+          documentType: finalAnalysis.documentType,
+          driveFileId: storageKey,
+          driveFileUrl: `/api/files/${doc.id}`,
+          storageSubfolder: subfolder,
+          isValid: finalAnalysis.isValid,
+          analysisStatus: "done" satisfies DocumentAnalysisStatus,
+          analysisClaimedAt: null,
+          extractedData: finalAnalysis.extractedData,
+          validationIssues: finalAnalysis.validationIssues,
+        })
+        .where(eq(documents.id, doc.id));
+
+      if (staging && targetApp.id !== currentApp.id) {
+        await deleteAppIfEmpty(currentApp.id);
+      }
+
+      await refreshApplicationState(targetApp.id);
+      results.push({
+        documentId: doc.id,
+        ok: true,
+        applicationId: targetApp.id,
+      });
+    } catch (reason) {
+      const msg = reason instanceof Error ? reason.message : String(reason);
+      console.error("processPendingDocumentAnalyses", doc.id, msg);
+      await db
+        .update(documents)
+        .set({
+          analysisStatus: "failed",
+          analysisClaimedAt: null,
+          validationIssues: [msg.slice(0, 500)],
+        })
+        .where(eq(documents.id, doc.id));
+      results.push({ documentId: doc.id, ok: false, error: msg });
+    }
+  }
+
+  return {
+    attempted: results.length,
+    succeeded: results.filter((r) => r.ok).length,
+    failed: results.filter((r) => !r.ok).length,
+    results,
+  };
+}
+
+async function deleteAppIfEmpty(applicationId: string) {
+  const left = await db
+    .select({ id: documents.id })
+    .from(documents)
+    .where(eq(documents.applicationId, applicationId))
+    .limit(1);
+  if (left.length > 0) return;
+  await db.delete(applications).where(eq(applications.id, applicationId));
 }

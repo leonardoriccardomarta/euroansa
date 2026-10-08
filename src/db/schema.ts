@@ -263,6 +263,13 @@ export const secretarySendLogs = pgTable("secretary_send_logs", {
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
+/** Coda OCR: intake email salva pending, il cron analizza a pezzi. */
+export type DocumentAnalysisStatus =
+  | "pending"
+  | "processing"
+  | "done"
+  | "failed";
+
 export const documents = pgTable("documents", {
   id: uuid("id").defaultRandom().primaryKey(),
   applicationId: uuid("application_id")
@@ -282,6 +289,16 @@ export const documents = pgTable("documents", {
   filePurged: boolean("file_purged").notNull().default(false),
   /** Segnato da tenere nello storico a pratica chiusa */
   keptForHistory: boolean("kept_for_history").notNull().default(false),
+  /**
+   * pending = da Gemini; processing = in corso; done = ok; failed = errore.
+   * Doc legacy / upload già analizzati = done.
+   */
+  analysisStatus: varchar("analysis_status", { length: 20 })
+    .$type<DocumentAnalysisStatus>()
+    .notNull()
+    .default("done"),
+  /** Quando è passato a processing (per recuperare run crashati). */
+  analysisClaimedAt: timestamp("analysis_claimed_at", { withTimezone: true }),
   extractedData: jsonb("extracted_data").$type<ExtractedDocumentData>(),
   validationIssues: text("validation_issues").array().notNull().default([]),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),

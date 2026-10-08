@@ -232,6 +232,9 @@ export const SETUP_STATEMENTS = [
   `ALTER TABLE bank_policies ADD COLUMN IF NOT EXISTS detail_text text`,
   `ALTER TABLE users ADD COLUMN IF NOT EXISTS payout_share_percent real NOT NULL DEFAULT 0.3`,
   `ALTER TABLE users ADD COLUMN IF NOT EXISTS override_on_others_percent real NOT NULL DEFAULT 0`,
+  // Email intake: salva file subito, OCR in coda (cron ogni 1 min / timeout 30s)
+  `ALTER TABLE documents ADD COLUMN IF NOT EXISTS analysis_status varchar(20) NOT NULL DEFAULT 'done'`,
+  `ALTER TABLE documents ADD COLUMN IF NOT EXISTS analysis_claimed_at timestamptz`,
 ];
 
 export const PACKAGE_LINK_TTL_DAYS = 7;

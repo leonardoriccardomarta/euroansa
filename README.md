@@ -40,7 +40,8 @@ metti `Content-Type` esplicito e l’origine **senza** slash finale.
 [
   {
     "AllowedOrigins": [
-      "https://euroansa-pi.vercel.app",
+      "https://www.prontopratica.app",
+      "https://prontopratica.app",
       "http://localhost:3000"
     ],
     "AllowedMethods": ["GET", "PUT", "HEAD"],
@@ -60,7 +61,7 @@ metti `Content-Type` esplicito e l’origine **senza** slash finale.
 
 In Google Cloud Console registra il redirect:
 
-`https://TUO-PROGETTO.vercel.app/api/google/callback`
+`https://www.prontopratica.app/api/google/callback`
 
 ## Produzione su Vercel
 
@@ -87,8 +88,8 @@ Importa il repo e in **Settings → Environment Variables** (Production):
 | `GEMINI_API_KEY` | [Google AI Studio](https://aistudio.google.com/) |
 | `GOOGLE_CLIENT_ID` | Google Cloud OAuth |
 | `GOOGLE_CLIENT_SECRET` | Google Cloud OAuth |
-| `GOOGLE_REDIRECT_URI` | `https://….vercel.app/api/google/callback` |
-| `NEXT_PUBLIC_APP_URL` | `https://….vercel.app` |
+| `GOOGLE_REDIRECT_URI` | `https://www.prontopratica.app/api/google/callback` |
+| `NEXT_PUBLIC_APP_URL` | `https://www.prontopratica.app` |
 | `GMAIL_SUBJECT_TAG` | Tag oggetto mail clienti (obbligatorio, solo da env) |
 | `NEXT_PUBLIC_APP_NAME` | Nome UI (default `Prontopratica`) |
 | `CRON_SECRET` | Stringa random lunga |
@@ -101,7 +102,7 @@ Rimuovi `BLOB_READ_WRITE_TOKEN` se era ancora in env (non serve più).
 
 ### 4. Setup DB
 ```bash
-curl -X POST "https://TUO-PROGETTO.vercel.app/api/setup" -H "Authorization: Bearer TUO_CRON_SECRET"
+curl -X POST "https://www.prontopratica.app/api/setup" -H "Authorization: Bearer TUO_CRON_SECRET"
 ```
 
 (Al primo accesso dashboard lo schema si aggiorna anche da solo.)
@@ -109,9 +110,14 @@ curl -X POST "https://TUO-PROGETTO.vercel.app/api/setup" -H "Authorization: Bear
 Poi login → **Impostazioni → Collega Google** (solo Gmail).
 
 ### 5. Cron email (cron-job.org)
-- **URL:** `https://TUO-PROGETTO.vercel.app/api/cron/check-emails`
-- **Schedule:** ogni 5 minuti
-- **GET** + header `Authorization: Bearer TUO_CRON_SECRET`
+Con il dominio custom aggiorna (o crea) il job: il vecchio `*.vercel.app` non basta più.
+
+- **URL:** `https://www.prontopratica.app/api/cron/check-emails`
+- **Schedule:** ogni **1 minuto** (free cron-job.org ha timeout ~30s)
+- **Timeout:** 30s (max free)
+- **GET** + header `Authorization: Bearer` + valore di `CRON_SECRET` su Vercel
+- Il cron fa: (1) intake mail→R2 senza OCR, (2) analizza 1 file in coda; al minuto dopo continua
+- Dopo il cambio dominio: **Save** + **Run now** e controlla **200** (non Timeout)
 
 ### Oggetto email clienti
 il valore di **`GMAIL_SUBJECT_TAG`** nell'oggetto.
