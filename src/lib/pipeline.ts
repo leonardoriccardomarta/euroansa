@@ -981,7 +981,48 @@ export async function processDirectUploads(
   };
 }
 
+/** Una sola cartella "{COGNOME} DOC" per pratica (niente INFOINZAGO/SHEHATA DOC sparsi). */
+export async function normalizePracticeDocFolders(applicationId: string) {
+  const [app] = await db
+    .select({ id: applications.id, clientName: applications.clientName })
+    .from(applications)
+    .where(eq(applications.id, applicationId))
+    .limit(1);
+  if (!app) return;
+
+  const canonicalDoc = storageSubfolderLabel("DOC", app.clientName);
+  const docs = await db
+    .select({
+      id: documents.id,
+      storageSubfolder: documents.storageSubfolder,
+      documentType: documents.documentType,
+    })
+    .from(documents)
+    .where(eq(documents.applicationId, applicationId));
+
+  for (const doc of docs) {
+    const folder = (doc.storageSubfolder ?? "").trim();
+    const isStrayDocFolder =
+      / DOC$/i.test(folder) &&
+      folder.toUpperCase() !== canonicalDoc.toUpperCase();
+    const kind = storageFolderKindForDocument(doc.documentType);
+    if (kind === "DOC" && (isStrayDocFolder || !folder)) {
+      await db
+        .update(documents)
+        .set({ storageSubfolder: canonicalDoc })
+        .where(eq(documents.id, doc.id));
+    }
+  }
+
+  const folders = defaultStorageFolders(app.clientName);
+  await db
+    .update(applications)
+    .set({ storageFolders: folders, updatedAt: new Date() })
+    .where(eq(applications.id, applicationId));
+}
+
 export async function refreshApplicationState(applicationId: string) {
+  await normalizePracticeDocFolders(applicationId);
   await dedupeApplicationDocuments(applicationId);
 
   const [app] = await db

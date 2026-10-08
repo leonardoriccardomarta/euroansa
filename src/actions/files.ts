@@ -594,8 +594,8 @@ export async function acceptDocumentAnywayAction(documentId: string) {
 }
 
 /**
- * Classifica a mano un file SCONOSCIUTO: tipo checklist, rinomina, cartella,
- * spunta checklist (aggiunge il tipo se mancava).
+ * Classifica / cambia tipo checklist di un documento (anche già tipizzato).
+ * Rinomina, cartella DOC/IMMOBILE, spunta checklist.
  */
 export async function classifyUnknownDocumentAction(
   documentId: string,

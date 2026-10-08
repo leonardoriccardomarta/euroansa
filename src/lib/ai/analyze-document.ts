@@ -1,6 +1,10 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import type { DocumentType, ExtractedDocumentData } from "@/db/schema";
 import { FILE_NAME_PREFIX } from "@/lib/config/documents";
+import {
+  isExpiryBeforeToday,
+  sanitizeAiValidationIssues,
+} from "@/lib/ai/date-sanity";
 
 export type AnalyzeDocumentResult = {
   documentType: DocumentType;
@@ -278,11 +282,45 @@ Numeri numerici. File originale (solo hint): ${params.originalFileName}`;
           alsoCovers: alsoCovers.length ? alsoCovers : null,
         };
 
+        let validationIssues = sanitizeAiValidationIssues(
+          parsed.validationIssues ?? [],
+        );
+
+        // Scadenza: solo se expiryDate è davvero prima di oggi (Roma)
+        const expiry = extractedData.expiryDate?.trim() ?? null;
+        if (expiry && !isExpiryBeforeToday(expiry)) {
+          validationIssues = validationIssues.filter(
+            (i) => !/scadut/i.test(i),
+          );
+        }
+
+        let isValid =
+          Boolean(parsed.isValid) && documentType !== "SCONOSCIUTO";
+        // Se restano solo avvisi spurî già filtrati e il tipo è noto → valido
+        if (
+          documentType !== "SCONOSCIUTO" &&
+          validationIssues.length === 0 &&
+          parsed.isValid === false &&
+          (parsed.validationIssues?.length ?? 0) > 0
+        ) {
+          // Tutti gli issue erano date inventate → ripristina validità se leggibile
+          isValid = true;
+        }
+        if (expiry && isExpiryBeforeToday(expiry)) {
+          isValid = false;
+          if (!validationIssues.some((i) => /scadut/i.test(i))) {
+            validationIssues = [
+              ...validationIssues,
+              `Documento scaduto in data ${expiry}`,
+            ];
+          }
+        }
+
         return {
           documentType,
-          isValid: Boolean(parsed.isValid) && documentType !== "SCONOSCIUTO",
+          isValid,
           extractedData,
-          validationIssues: parsed.validationIssues ?? [],
+          validationIssues,
           standardizedFileName: buildStandardizedFileName(
             documentType,
             extractedData,

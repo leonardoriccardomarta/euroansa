@@ -11,10 +11,13 @@ import { toast } from "sonner";
 export function ClassifyUnknownDoc({
   documentId,
   options,
+  currentType,
 }: {
   documentId: string;
   /** Tipi checklist tra cui scegliere */
   options: DocumentType[];
+  /** Se già tipizzato → bottone "Cambia tipo" */
+  currentType?: DocumentType | null;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -22,6 +25,9 @@ export function ClassifyUnknownDoc({
   const [value, setValue] = useState("");
 
   if (!options.length) return null;
+
+  const isUnknown = !currentType || currentType === "SCONOSCIUTO";
+  const label = isUnknown ? "Classifica…" : "Cambia tipo…";
 
   return (
     <div className="mt-2">
@@ -33,7 +39,7 @@ export function ClassifyUnknownDoc({
           className="h-8 text-xs"
           onClick={() => setOpen(true)}
         >
-          Classifica…
+          {label}
         </Button>
       ) : (
         <div className="flex flex-wrap items-center gap-2">
@@ -67,8 +73,8 @@ export function ClassifyUnknownDoc({
                 }
                 toast.success(
                   res.renamedFileName
-                    ? `Spuntato · rinominato: ${res.renamedFileName}`
-                    : "Spuntato e rinominato",
+                    ? `Aggiornato · ${res.renamedFileName}`
+                    : "Tipo aggiornato",
                 );
                 setOpen(false);
                 router.refresh();

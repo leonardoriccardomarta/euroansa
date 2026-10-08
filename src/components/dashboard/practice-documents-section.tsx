@@ -41,10 +41,13 @@ function DocRow({
   const also =
     doc.extractedData?.alsoCovers?.filter((t) => t && t !== "SCONOSCIUTO") ??
     [];
-  const showClassify =
+  const showClassify = allowClassify && classifyOptions.length > 0;
+  const showAccept =
     allowClassify &&
-    doc.documentType === "SCONOSCIUTO" &&
-    classifyOptions.length > 0;
+    !doc.isValid &&
+    doc.documentType !== "SCONOSCIUTO" &&
+    doc.analysisStatus !== "pending" &&
+    doc.analysisStatus !== "processing";
 
   return (
     <div className="border-t border-slate-100 pt-3 first:border-0 first:pt-0">
@@ -121,11 +124,10 @@ function DocRow({
             <ClassifyUnknownDoc
               documentId={doc.id}
               options={classifyOptions}
+              currentType={doc.documentType}
             />
           ) : null}
-          {!doc.isValid &&
-          doc.documentType !== "SCONOSCIUTO" &&
-          allowClassify ? (
+          {showAccept ? (
             <AcceptDocumentAnyway documentId={doc.id} />
           ) : null}
         </div>
@@ -191,6 +193,17 @@ export function PracticeDocumentsSection({
   const mainFolders = STORAGE_FOLDER_KINDS.map((kind) => {
     const label = storageSubfolderLabel(kind, clientName);
     let list = byFolder.get(label) ?? [];
+    if (kind === "DOC") {
+      // Mostra anche vecchie cartelle "* DOC" sotto il DOC ufficiale
+      const stray = [...byFolder.entries()]
+        .filter(
+          ([k]) =>
+            / DOC$/i.test(k) &&
+            k.toUpperCase() !== label.toUpperCase(),
+        )
+        .flatMap(([, rows]) => rows);
+      list = [...list, ...stray];
+    }
     if (kind === "EUROANSA") {
       const legacy = [...byFolder.entries()]
         .filter(
@@ -206,11 +219,17 @@ export function PracticeDocumentsSection({
     mainFolders.flatMap((f) =>
       f.kind === "EUROANSA"
         ? [f.label, "EUROANSA", "UFFICIO"]
-        : [f.label],
+        : f.kind === "DOC"
+          ? [f.label]
+          : [f.label],
     ),
   );
+  // Nascondi le cartelle "* DOC" stray (già fuse nella vista DOC)
   const otherFolders = [...byFolder.entries()].filter(
-    ([k]) => !mainLabels.has(k) && !isEuroansaFolder(k),
+    ([k]) =>
+      !mainLabels.has(k) &&
+      !isEuroansaFolder(k) &&
+      !/ DOC$/i.test(k),
   );
 
   return (
@@ -288,7 +307,7 @@ export function PracticeDocumentsSection({
                 key={doc.id}
                 doc={doc}
                 classifyOptions={classifyOptions}
-                allowClassify={false}
+                allowClassify={/ DOC$/i.test(label) || label === "IMMOBILE"}
               />
             ))}
           </div>

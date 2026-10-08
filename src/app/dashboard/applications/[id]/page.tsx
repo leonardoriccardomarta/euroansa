@@ -20,6 +20,7 @@ import {
   evaluateChecklist,
   inferEmploymentType,
 } from "@/lib/checklist";
+import { normalizePracticeDocFolders } from "@/lib/pipeline";
 import {
   DOCUMENT_TYPE_LABELS,
   EMPLOYMENT_TYPE_LABELS,
@@ -71,8 +72,10 @@ export default async function ApplicationDetailPage({
     redirect("/dashboard");
   }
 
-  // Refresh stato solo dopo upload/mutazioni (pipeline), non a ogni apertura pagina
   const current = app;
+
+  // Una sola cartella DOC ufficiale (fonde INFOINZAGO/SHEHATA DOC sparsi)
+  await normalizePracticeDocFolders(id);
 
   await ensureBankPolicySeed();
 
