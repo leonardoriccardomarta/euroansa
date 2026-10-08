@@ -235,6 +235,9 @@ export const SETUP_STATEMENTS = [
   // Email intake: salva file subito, OCR in coda (cron ogni 1 min / timeout 30s)
   `ALTER TABLE documents ADD COLUMN IF NOT EXISTS analysis_status varchar(20) NOT NULL DEFAULT 'done'`,
   `ALTER TABLE documents ADD COLUMN IF NOT EXISTS analysis_claimed_at timestamptz`,
+  // Invio selettivo a segreteria
+  `ALTER TABLE secretary_send_logs ADD COLUMN IF NOT EXISTS selected_document_ids jsonb`,
+  `ALTER TABLE secretary_send_logs ADD COLUMN IF NOT EXISTS email_subject text`,
 ];
 
 export const PACKAGE_LINK_TTL_DAYS = 7;

@@ -1,6 +1,6 @@
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
-import { applications, documents } from "@/db/schema";
+import { applications, documents, secretarySendLogs } from "@/db/schema";
 import { isEuroansaFolder } from "@/lib/config/documents";
 import { downloadBlob } from "@/lib/storage/blob";
 import { isSiteStorageKey } from "@/lib/storage/paths";
@@ -65,14 +65,28 @@ export async function getPackageBundle(
     .where(eq(applications.id, applicationId))
     .limit(1);
 
-  if (!app || !app.packageToken || app.packageToken !== token) {
+  if (!app) return { status: "invalid" };
+
+  // Token valido se è quello corrente sulla pratica O un invio storico
+  const [sendLog] = await db
+    .select()
+    .from(secretarySendLogs)
+    .where(
+      and(
+        eq(secretarySendLogs.applicationId, applicationId),
+        eq(secretarySendLogs.packageToken, token),
+      ),
+    )
+    .limit(1);
+
+  const tokenMatchesApp = app.packageToken === token;
+  if (!tokenMatchesApp && !sendLog) {
     return { status: "invalid" };
   }
 
-  if (
-    app.packageTokenExpiresAt &&
-    app.packageTokenExpiresAt.getTime() < Date.now()
-  ) {
+  const expiresAt =
+    sendLog?.packageExpiresAt ?? app.packageTokenExpiresAt ?? null;
+  if (expiresAt && expiresAt.getTime() < Date.now()) {
     return { status: "expired", app };
   }
 
@@ -80,6 +94,11 @@ export async function getPackageBundle(
     .select()
     .from(documents)
     .where(eq(documents.applicationId, applicationId));
+
+  const selectedIds =
+    sendLog?.selectedDocumentIds && sendLog.selectedDocumentIds.length > 0
+      ? new Set(sendLog.selectedDocumentIds)
+      : null;
 
   const usedNames = new Set<string>();
   const files: PackageFile[] = [];
@@ -105,13 +124,13 @@ export async function getPackageBundle(
   }
 
   for (const doc of docs) {
+    if (selectedIds && !selectedIds.has(doc.id)) continue;
     if (!doc.driveFileId) continue;
     const onSite = isSiteStorageKey(doc.driveFileId);
     if (!onSite) {
       legacyCount += 1;
       continue;
     }
-    // Checklist validi + fogli firmati in EUROANSA (anche se non tipizzati AI)
     const include =
       doc.isValid || isEuroansaFolder(doc.storageSubfolder ?? "");
     if (!include) continue;

@@ -9,6 +9,7 @@ import {
   users,
 } from "@/db/schema";
 import { getAppBaseUrl } from "@/lib/app-url";
+import { isEuroansaFolder } from "@/lib/config/documents";
 import { PACKAGE_LINK_TTL_DAYS } from "@/lib/db/setup-statements";
 import { isSiteStorageKey } from "@/lib/storage/paths";
 import {
@@ -18,6 +19,15 @@ import {
   type GoogleOAuthClient,
 } from "./auth";
 import { sendGmailHtml } from "./gmail";
+import {
+  buildSecretaryEmailDraft,
+  isSecretaryPackageDoc,
+} from "./secretary-sender-draft";
+
+export {
+  buildSecretaryEmailDraft,
+  isSecretaryPackageDoc,
+} from "./secretary-sender-draft";
 
 export type SendToSecretaryOptions = {
   /** Utente CRM che invia (null = auto-invio) */
@@ -25,6 +35,15 @@ export type SendToSecretaryOptions = {
   actorName?: string | null;
   /** Forza nuovo token anche se ne esiste uno valido */
   regenerateToken?: boolean;
+  /** Solo questi documenti (id). Se omesso = tutti i candidati. */
+  documentIds?: string[];
+  /** Oggetto mail (opzionale) */
+  subject?: string;
+  /**
+   * Corpo testo. Se contiene `{{PACKAGE_URL}}` viene sostituito col link reale;
+   * altrimenti se manca un URL https nel testo, il link viene aggiunto in coda.
+   */
+  bodyText?: string;
 };
 
 async function resolveAuthForApplication(
@@ -66,6 +85,16 @@ async function resolveEmailSignature(
     if (broker?.name?.trim()) return broker.name.trim();
   }
   return settingsBrokerName.trim() || "Broker";
+}
+
+function applyPackageUrlToBody(bodyText: string, packageUrl: string): string {
+  if (bodyText.includes("{{PACKAGE_URL}}")) {
+    return bodyText.replaceAll("{{PACKAGE_URL}}", packageUrl);
+  }
+  if (/https?:\/\/\S+/i.test(bodyText)) {
+    return bodyText;
+  }
+  return `${bodyText.trim()}\n\n${packageUrl}\n`;
 }
 
 export async function regeneratePackageToken(applicationId: string): Promise<{
@@ -136,19 +165,28 @@ export async function sendApplicationToSecretary(
     };
   }
 
-  const validDocs = docs.filter(
-    (d) => d.isValid && d.driveFileId && isSiteStorageKey(d.driveFileId),
-  );
+  const eligible = docs.filter(isSecretaryPackageDoc);
+  const selectedIds = options?.documentIds?.length
+    ? new Set(options.documentIds)
+    : null;
+  const selectedDocs = selectedIds
+    ? eligible.filter((d) => selectedIds.has(d.id))
+    : eligible;
 
   const legacyCount = docs.filter(
-    (d) => d.isValid && d.driveFileId && !isSiteStorageKey(d.driveFileId),
+    (d) =>
+      (d.isValid || isEuroansaFolder(d.storageSubfolder ?? "")) &&
+      d.driveFileId &&
+      !isSiteStorageKey(d.driveFileId),
   ).length;
 
-  if (validDocs.length === 0) {
+  if (selectedDocs.length === 0) {
     throw new Error(
       legacyCount > 0
         ? "Documenti ancora su Drive: ricaricali nella sezione File (storage sito)"
-        : "Nessun documento valido sullo storage sito",
+        : selectedIds
+          ? "Nessun documento selezionato tra quelli disponibili"
+          : "Nessun documento valido sullo storage sito",
     );
   }
 
@@ -160,7 +198,13 @@ export async function sendApplicationToSecretary(
 
   let packageToken = app.packageToken;
   let expiresAt = app.packageTokenExpiresAt;
-  if (options?.regenerateToken || !tokenStillValid || !packageToken) {
+  // Invio manuale con selezione: sempre nuovo token (pacchetto dedicato)
+  const forceNew =
+    options?.regenerateToken ||
+    Boolean(options?.documentIds?.length) ||
+    !tokenStillValid ||
+    !packageToken;
+  if (forceNew) {
     const regenerated = await regeneratePackageToken(applicationId);
     packageToken = regenerated.packageToken;
     expiresAt = regenerated.expiresAt;
@@ -172,16 +216,16 @@ export async function sendApplicationToSecretary(
     settings.brokerName,
   );
 
-  const bodyText = `Buongiorno,
-
-pratica ${app.clientName} pronta.
-
-${packageUrl}
-
-(Link valido ${PACKAGE_LINK_TTL_DAYS} giorni)
-
-Grazie
-${signature}`;
+  const draft = buildSecretaryEmailDraft({
+    clientName: app.clientName,
+    signature,
+    packageUrl,
+  });
+  const subject = options?.subject?.trim() || draft.subject;
+  const bodyText = applyPackageUrlToBody(
+    options?.bodyText?.trim() || draft.bodyText,
+    packageUrl,
+  );
 
   const html = `<pre style="font-family:Arial,sans-serif;font-size:14px;white-space:pre-wrap">${bodyText
     .replace(/&/g, "&amp;")
@@ -191,7 +235,7 @@ ${signature}`;
   await sendGmailHtml(
     {
       to: settings.secretaryEmail,
-      subject: `Pratica completa ${app.clientName}`,
+      subject,
       html,
     },
     auth,
@@ -221,11 +265,13 @@ ${signature}`;
     sentByName,
     packageToken: packageToken!,
     packageExpiresAt: expiresAt ?? packageExpiryDate(sentAt),
+    selectedDocumentIds: selectedDocs.map((d) => d.id),
+    emailSubject: subject,
   });
 
   return {
     ok: true as const,
-    documents: validDocs.length,
+    documents: selectedDocs.length,
     packageUrl,
     expiresAt: expiresAt ?? packageExpiryDate(sentAt),
     legacySkipped: legacyCount,

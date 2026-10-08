@@ -119,19 +119,30 @@ export async function updateApplicationStatusAction(
   return { ok: true };
 }
 
-export async function sendToSecretaryAction(applicationId: string) {
+export async function sendToSecretaryAction(
+  applicationId: string,
+  options?: {
+    documentIds?: string[];
+    subject?: string;
+    bodyText?: string;
+  },
+) {
   const session = await requireSession();
   try {
     const result = await sendApplicationToSecretary(applicationId, {
       actorUserId: session.id,
       actorName: session.name,
       regenerateToken: true,
+      documentIds: options?.documentIds,
+      subject: options?.subject,
+      bodyText: options?.bodyText,
     });
     revalidatePath(`/dashboard/applications/${applicationId}`);
     revalidatePath("/dashboard");
     return {
       ok: true as const,
       packageUrl: result.packageUrl,
+      documents: result.documents,
       legacySkipped: result.legacySkipped,
     };
   } catch (err) {
@@ -145,6 +156,29 @@ export async function sendToSecretaryAction(applicationId: string) {
     revalidatePath("/dashboard");
     return { error: msg };
   }
+}
+
+/** Solo admin: nasconde/mostra pratica test (lista broker). */
+export async function setApplicationTestAction(
+  applicationId: string,
+  isTest: boolean,
+) {
+  await requireAdmin();
+  const [app] = await db
+    .select({ id: applications.id })
+    .from(applications)
+    .where(eq(applications.id, applicationId))
+    .limit(1);
+  if (!app) return { error: "Pratica non trovata" };
+
+  await db
+    .update(applications)
+    .set({ isTest, updatedAt: new Date() })
+    .where(eq(applications.id, applicationId));
+  revalidatePath(`/dashboard/applications/${applicationId}`);
+  revalidatePath("/dashboard");
+  revalidatePath("/dashboard/files");
+  return { ok: true as const, isTest };
 }
 
 /** Nuovo token + 7 giorni, senza reinviare email. */

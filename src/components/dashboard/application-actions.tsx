@@ -6,37 +6,50 @@ import {
   deleteApplicationAction,
   getSollecitoTextAction,
   regeneratePackageLinkAction,
-  sendToSecretaryAction,
+  setApplicationTestAction,
 } from "@/actions/applications";
 import type { ApplicationStatus } from "@/db/schema";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import {
+  SecretarySendDialog,
+  type SecretarySendDocOption,
+} from "@/components/dashboard/secretary-send-dialog";
 import { toast } from "sonner";
 
 export function ApplicationActions({
   applicationId,
   status,
   isAdmin = false,
+  isTest = false,
   clientName,
   hasRelazione = false,
   hasPackageLink = false,
+  signature = "Broker",
+  sendDocs = [],
 }: {
   applicationId: string;
   status: ApplicationStatus;
   isAdmin?: boolean;
+  isTest?: boolean;
   clientName?: string;
   hasRelazione?: boolean;
   hasPackageLink?: boolean;
+  signature?: string;
+  sendDocs?: SecretarySendDocOption[];
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [sollecito, setSollecito] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [sendOpen, setSendOpen] = useState(false);
 
   const canSendToSecretary =
     status === "DOCUMENTI_INCOMPLETI" ||
     status === "COMPLETA_DA_INOLTRARE" ||
     status === "INVIATA_A_SEGRETERIA";
+
+  const isResend = status === "INVIATA_A_SEGRETERIA";
 
   return (
     <div
@@ -50,41 +63,12 @@ export function ApplicationActions({
             title={
               !hasRelazione
                 ? "Carica prima la relazione PDF"
-                : "Invia link pacchetto a segreteria"
+                : "Scegli file e invia link pacchetto a segreteria"
             }
             className="min-h-11 flex-1 rounded-lg bg-primary-600 font-semibold shadow-md active:scale-95 hover:bg-primary-700 disabled:opacity-50 sm:flex-none"
-            onClick={() => {
-              startTransition(async () => {
-                try {
-                  const res = await sendToSecretaryAction(applicationId);
-                  if (res && "error" in res && res.error) {
-                    toast.error(res.error);
-                    router.refresh();
-                    return;
-                  }
-                  if (res && "legacySkipped" in res && res.legacySkipped) {
-                    toast.message(
-                      `${res.legacySkipped} file Drive esclusi: ricaricali sullo storage sito`,
-                    );
-                  }
-                  toast.success(
-                    status === "INVIATA_A_SEGRETERIA"
-                      ? "Reinviata a segreteria (nuovo link)"
-                      : "Inviata a segreteria",
-                  );
-                  router.refresh();
-                } catch {
-                  toast.error("Invio fallito. Verifica Google OAuth");
-                  router.refresh();
-                }
-              });
-            }}
+            onClick={() => setSendOpen(true)}
           >
-            {pending
-              ? "Invio..."
-              : status === "INVIATA_A_SEGRETERIA"
-                ? "Reinvia a segreteria"
-                : "Invia ora a segreteria"}
+            {isResend ? "Reinvia a segreteria" : "Invia ora a segreteria"}
           </Button>
         ) : null}
         {hasPackageLink || status === "INVIATA_A_SEGRETERIA" ? (
@@ -131,6 +115,33 @@ export function ApplicationActions({
           <Button
             variant="outline"
             disabled={pending}
+            className="min-h-11 flex-1 rounded-lg active:scale-95 sm:flex-none"
+            onClick={() => {
+              startTransition(async () => {
+                const res = await setApplicationTestAction(
+                  applicationId,
+                  !isTest,
+                );
+                if (res && "error" in res && res.error) {
+                  toast.error(res.error);
+                  return;
+                }
+                toast.success(
+                  !isTest
+                    ? "Segnata come test (nascosta ai broker)"
+                    : "Tolto flag test",
+                );
+                router.refresh();
+              });
+            }}
+          >
+            {isTest ? "Togli test" : "Segna come test"}
+          </Button>
+        ) : null}
+        {isAdmin ? (
+          <Button
+            variant="outline"
+            disabled={pending}
             className="min-h-11 flex-1 rounded-lg border-red-200 text-red-700 hover:bg-red-50 active:scale-95 sm:flex-none"
             onClick={() => setConfirmDelete(true)}
           >
@@ -150,6 +161,18 @@ export function ApplicationActions({
           {sollecito}
         </pre>
       )}
+
+      {clientName ? (
+        <SecretarySendDialog
+          open={sendOpen}
+          onOpenChange={setSendOpen}
+          applicationId={applicationId}
+          clientName={clientName}
+          signature={signature}
+          docs={sendDocs}
+          isResend={isResend}
+        />
+      ) : null}
 
       <ConfirmDialog
         open={confirmDelete}

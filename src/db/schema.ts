@@ -248,7 +248,7 @@ export const applications = pgTable("applications", {
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
-/** Audit invii a segreteria (chi / quando / token). */
+/** Audit invii a segreteria (chi / quando / token / file scelti). */
 export const secretarySendLogs = pgTable("secretary_send_logs", {
   id: uuid("id").defaultRandom().primaryKey(),
   applicationId: uuid("application_id")
@@ -260,6 +260,9 @@ export const secretarySendLogs = pgTable("secretary_send_logs", {
   sentByName: varchar("sent_by_name", { length: 255 }).notNull(),
   packageToken: text("package_token").notNull(),
   packageExpiresAt: timestamp("package_expires_at", { withTimezone: true }),
+  /** Doc inclusi in questo invio; null = tutti i validi (legacy). */
+  selectedDocumentIds: jsonb("selected_document_ids").$type<string[] | null>(),
+  emailSubject: text("email_subject"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
 

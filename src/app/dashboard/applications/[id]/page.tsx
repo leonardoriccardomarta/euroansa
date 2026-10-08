@@ -28,6 +28,7 @@ import {
   sheetRowsForRequired,
 } from "@/lib/config/documents";
 import { isClientChecklistFolder } from "@/lib/resources/client-doc-folders";
+import { isSecretaryPackageDoc } from "@/lib/google/secretary-sender-draft";
 import { isLegacyDriveKey, isSiteStorageKey } from "@/lib/storage/paths";
 import { PACKAGE_LINK_TTL_DAYS } from "@/lib/db/setup-statements";
 import { isTutorialPractice } from "@/lib/tutorial";
@@ -205,12 +206,23 @@ export default async function ApplicationDetailPage({
             applicationId={current.id}
             status={current.status}
             isAdmin={session.role === "ADMIN"}
+            isTest={current.isTest}
             clientName={current.clientName}
             hasRelazione={Boolean(
               current.relazioneStorageKey &&
                 isSiteStorageKey(current.relazioneStorageKey),
             )}
             hasPackageLink={Boolean(current.packageToken)}
+            signature={
+              brokerName?.trim() || settings?.brokerName?.trim() || "Broker"
+            }
+            sendDocs={docs
+              .filter(isSecretaryPackageDoc)
+              .map((d) => ({
+                id: d.id,
+                label: d.renamedFileName || d.rawFileName,
+                folder: d.storageSubfolder,
+              }))}
           />
         </div>
       </div>
@@ -552,6 +564,9 @@ export default async function ApplicationDetailPage({
                 </span>
                 <span className="font-mono text-xs text-slate-500">
                   token …{log.packageToken.slice(-8)}
+                  {log.selectedDocumentIds?.length
+                    ? ` · ${log.selectedDocumentIds.length} file`
+                    : ""}
                   {log.packageExpiresAt
                     ? ` · scade ${new Date(log.packageExpiresAt).toLocaleDateString("it-IT")}`
                     : ""}
