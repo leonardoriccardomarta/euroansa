@@ -647,8 +647,12 @@ export async function processIncomingFiles(
   for (const file of files) {
     const rawKey = file.originalFileName.trim().toLowerCase();
     if (knownRaw.has(rawKey)) {
+      errors.push(
+        `${file.originalFileName}: già in pratica con lo stesso nome — rinomina e riprova`,
+      );
       continue;
     }
+    knownRaw.add(rawKey);
 
     let analysis;
     try {

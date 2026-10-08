@@ -178,23 +178,29 @@ function DocRow({
               );
             const blocking = doc.validationIssues.filter((i) => !isDupNote(i));
             const discretionary = doc.validationIssues.filter(isDupNote);
-            // Solo copie da confrontare (discrezione Filip) → giallo; errori veri → rosso
-            const yellow = blocking.length === 0 && discretionary.length > 0;
-            const issues = yellow ? discretionary : blocking.length ? blocking : doc.validationIssues;
+            // Solo copie OK da confrontare (discrezione Filip) → giallo; errori veri → rosso
+            if (blocking.length === 0 && discretionary.length === 0) return null;
             return (
-              <div
-                className={`mt-3 rounded-lg border p-3 text-sm ${
-                  yellow
-                    ? "border-amber-200 bg-amber-50 text-amber-950"
-                    : "border-red-200 bg-red-50 text-red-800"
-                }`}
-              >
-                <ul className="list-disc pl-4">
-                  {issues.map((issue) => (
-                    <li key={issue}>{issue}</li>
-                  ))}
-                </ul>
-              </div>
+              <>
+                {blocking.length > 0 ? (
+                  <div className="mt-3 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">
+                    <ul className="list-disc pl-4">
+                      {blocking.map((issue) => (
+                        <li key={issue}>{issue}</li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
+                {discretionary.length > 0 && blocking.length === 0 ? (
+                  <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950">
+                    <ul className="list-disc pl-4">
+                      {discretionary.map((issue) => (
+                        <li key={issue}>{issue}</li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
+              </>
             );
           })()
         : null}

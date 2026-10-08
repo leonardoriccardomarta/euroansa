@@ -48,26 +48,34 @@ export function FolderUploadButton({
           const list = e.target.files;
           if (!list?.length) return;
           const files = Array.from(list);
+          e.target.value = "";
           startTransition(async () => {
-            const res = await uploadFilesDirectToR2({
-              applicationId,
-              files,
-              subfolder: folderName,
-              skipAi: !folderUsesAi(folderName),
-            });
-            if (res.count > 0) {
-              toast.success(`${res.count} file caricati`);
-            }
-            if (res.errors.length) {
-              toast.error(res.errors.slice(0, 3).join("; "));
-            } else if (res.count === 0) {
+            try {
+              const res = await uploadFilesDirectToR2({
+                applicationId,
+                files,
+                subfolder: folderName,
+                skipAi: !folderUsesAi(folderName),
+              });
+              if (res.count > 0) {
+                toast.success(`${res.count} file caricati`);
+              }
+              if (res.errors.length) {
+                toast.error(res.errors.slice(0, 3).join("; "));
+              } else if (res.count === 0) {
+                toast.error(
+                  "Nessun file elaborato — riprova o rinomina se già in pratica",
+                );
+              }
+            } catch (err) {
               toast.error(
-                "Nessun file elaborato — riprova o rinomina se già in pratica",
+                err instanceof Error
+                  ? err.message
+                  : "Caricamento fallito. Riprova",
               );
             }
             router.refresh();
           });
-          e.target.value = "";
         }}
       />
       <Button
