@@ -95,9 +95,14 @@ export async function uploadFilesDirectToR2(params: {
         },
       };
     } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      const hint =
+        /failed to fetch|networkerror|load failed/i.test(msg)
+          ? " — controlla CORS R2: AllowedOrigins deve includere https://www.prontopratica.app (Cloudflare → R2 → bucket → Settings → CORS)"
+          : "";
       return {
         ok: false as const,
-        error: `${file.name}: ${err instanceof Error ? err.message : String(err)}`,
+        error: `${file.name}: ${msg}${hint}`,
       };
     }
   });
