@@ -15,6 +15,7 @@ import {
 } from "@/lib/config/documents";
 import { isLegacyDriveKey, isSiteStorageKey } from "@/lib/storage/paths";
 import { Badge } from "@/components/ui/badge";
+import { AcceptDocumentAnyway } from "@/components/dashboard/accept-document-anyway";
 import { ClassifyUnknownDoc } from "@/components/dashboard/classify-unknown-doc";
 import { DocumentPreviewButton } from "@/components/dashboard/document-preview";
 import { FolderUploadButton } from "@/components/dashboard/file-browser-actions";
@@ -121,6 +122,11 @@ function DocRow({
               documentId={doc.id}
               options={classifyOptions}
             />
+          ) : null}
+          {!doc.isValid &&
+          doc.documentType !== "SCONOSCIUTO" &&
+          allowClassify ? (
+            <AcceptDocumentAnyway documentId={doc.id} />
           ) : null}
         </div>
         {doc.driveFileUrl && isSiteStorageKey(doc.driveFileId) ? (

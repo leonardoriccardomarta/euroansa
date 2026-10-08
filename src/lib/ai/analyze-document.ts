@@ -182,33 +182,38 @@ export async function analyzeDocument(params: {
   const prompt = `Sei un esperto di istruttoria mutui in Italia (mediatore creditizio).
 Analizza il CONTENUTO reale di questo PDF/immagine (non fidarti solo del nome file).
 
-DATA DI OGGI (Europe/Rome): ${todayRome} (${todayIso}).
-Usa QUESTA data per scadenze e "documento futuro". Esempio: se oggi è ottobre 2026, un estratto/busta di giugno 2026 è PASSATO, non futuro. Non inventare un'altra data odierna.
+DATA DI OGGI (Europe/Rome): ${todayRome} (ISO ${todayIso}).
+Usa SOLO questa data per scadenze / "futuro". Esempio: ottobre 2026 → giugno 2026 è PASSATO. Non inventare un'altra data odierna.
 
-documentType = tipo PRINCIPALE del documento (uno solo, il più importante per la checklist).
-alsoCovers (in extractedData) = altri tipi checklist presenti nello STESSO file (array, può essere vuoto).
+DATE ITALIANE (obbligatorio):
+- Formato documenti IT: GG/MM/AAAA (giorno/mese/anno). Esempio: 06/10/2026 = 6 ottobre 2026, NON giugno 2010 né 2024.
+- Leggi TUTTE e QUATTRO le cifre dell'anno. Se vedi "2026" non scrivere mai 2024/2025 per errore OCR.
+- expiryDate in extractedData: stringa GG/MM/AAAA come sul documento, senza reinterpretazioni.
+- Un titolo/permesso è scaduto SOLO se expiryDate < DATA DI OGGI. Se scadenza ≥ oggi → non dire "scaduto".
 
-Regole classificazione (guarda il contenuto):
-- Certificato ANPR / "stato di famiglia" / "certificato contestuale" / residenza anagrafica → STATO_FAMIGLIA; se include anche residenza metti CERTIFICATO_RESIDENZA in alsoCovers. NON è mai una busta paga. Il nome "cumulativo" NON significa busta paga.
-- 3 buste paga nello stesso PDF → documentType BUSTA_PAGA_1 e alsoCovers [BUSTA_PAGA_2, BUSTA_PAGA_3] (o i mesi presenti).
-- Carta d'identità + tessera sanitaria (codice fiscale) nello stesso PDF → documentType CARTA_IDENTITA e alsoCovers [TESSERA_SANITARIA]. Fronte+retro CI = solo CARTA_IDENTITA.
-- CI + permesso di soggiorno insieme → CARTA_IDENTITA + alsoCovers PERMESSO_SOGGIORNO.
-- CUD → MODELLO_CUD; 730 → MODELLO_730.
-- Modello Unico: MODELLO_UNICO_1 / _2.
+documentType = tipo PRINCIPALE checklist (uno solo). alsoCovers = altri tipi nello STESSO file.
+
+Classificazione (contenuto reale, stile checklist Filippo / mediatore):
+- ANPR / stato di famiglia / certificato contestuale / residenza → STATO_FAMIGLIA (+ CERTIFICATO_RESIDENZA in alsoCovers se c'è). Mai busta paga. "Cumulativo" ≠ busta.
+- 3 buste stesso PDF → BUSTA_PAGA_1 + alsoCovers BUSTA_PAGA_2/3.
+- CI + tessera sanitaria → CARTA_IDENTITA + alsoCovers TESSERA_SANITARIA.
+- CI + permesso → CARTA_IDENTITA + alsoCovers PERMESSO_SOGGIORNO.
+- Solo permesso di soggiorno / titolo di soggiorno (anche foto WhatsApp) → PERMESSO_SOGGIORNO (mai SCONOSCIUTO se leggibile).
+- CUD → MODELLO_CUD; 730 → MODELLO_730; Unico → MODELLO_UNICO_1/_2.
 - Estratto conto → ESTRATTO_CONTO; lista movimenti → LISTA_MOVIMENTI_3_MESI.
-- Atto provenienza → ATTO_IMMOBILE; preliminare/proposta → PRELIMINARE_COMPRAVENDITA.
-- Foto WhatsApp di documenti leggibili: classifica dal CONTENUTO (CI, certificato, estratto…), non lasciare SCONOSCIUTO solo perché il nome file è "WhatsApp Image…".
-- Fogli firmati mediatore (privacy, DDM, mandato) → SCONOSCIUTO (non tipizzare come documenti reddito).
+- Atto / preliminare → ATTO_IMMOBILE / PRELIMINARE_COMPRAVENDITA.
+- Fogli firmati mediatore (privacy, DDM, mandato) → SCONOSCIUTO.
 
-isValid = true SOLO se utilizzabile in istruttoria. False + validationIssues se:
-1) Illeggibile / scaduto / tipo incoerente col contenuto
-2) Estratto/lista movimenti incompleti o sospetti
-3) Busta con CIG/cessione/pignoramenti rilevanti (segnala in validationIssues e loanDeductions; isValid può restare true se leggibile)
-4) NON segnare "futuro" un mese/anno già trascorso rispetto alla DATA DI OGGI sopra
+isValid = true se il file è leggibile e utilizzabile in istruttoria mutua banca.
+isValid = false + validationIssues (italiano) se:
+1) Illeggibile / tipo incoerente
+2) Scaduto rispetto alla DATA DI OGGI (anno letto correttamente!)
+3) Titolo precario (es. sola "richiesta asilo" / permesso provvisorio) — segnala, ma documentType resta PERMESSO_SOGGIORNO
+4) Estratto incompleto / busta con CIG-cessioni rilevanti (loanDeductions; isValid può restare true se leggibile)
+Il broker può comunque accettare a mano: non inventare scadenze false.
 
-Estrai: nome, cognome, CF, scadenza CI, mese buste, netto, trattenute, lordo annuale.
-Numeri numerici. validationIssues in italiano.
-File originale (solo hint): ${params.originalFileName}`;
+Estrai: nome, cognome, CF, expiryDate (GG/MM/AAAA), mese buste, netto, trattenute, lordo annuale.
+Numeri numerici. File originale (solo hint): ${params.originalFileName}`;
 
   const mimeType =
     params.mimeType === "application/octet-stream" &&

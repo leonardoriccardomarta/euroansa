@@ -541,6 +541,59 @@ export async function uploadRelazioneFromFilesAction(
 }
 
 /**
+ * Broker accetta il documento nonostante i warning AI (scadenza / asilo / ecc.).
+ * Serve a non bloccare checklist e invio segreteria.
+ */
+export async function acceptDocumentAnywayAction(documentId: string) {
+  const session = await requireSession();
+  const [doc] = await db
+    .select()
+    .from(documents)
+    .where(eq(documents.id, documentId))
+    .limit(1);
+  if (!doc) return { error: "Documento non trovato" };
+
+  const access = await assertCanAccessApp(session, doc.applicationId);
+  if ("error" in access && access.error) return { error: access.error };
+  const app = access.app!;
+
+  if (doc.documentType === "SCONOSCIUTO") {
+    return {
+      error:
+        "Prima classifica il documento (tipo checklist), poi puoi accettarlo.",
+    };
+  }
+
+  const note = `Accettato manualmente da ${session.name} nonostante avvisi AI`;
+  const prev = (doc.validationIssues ?? []).filter(
+    (i) => !i.startsWith("Accettato manualmente"),
+  );
+
+  await db
+    .update(documents)
+    .set({
+      isValid: true,
+      validationIssues: [note, ...prev],
+      analysisStatus: "done",
+    })
+    .where(eq(documents.id, documentId));
+
+  const required = new Set(app.requiredDocumentTypes ?? []);
+  required.add(doc.documentType);
+  await db
+    .update(applications)
+    .set({
+      requiredDocumentTypes: [...required],
+      updatedAt: new Date(),
+    })
+    .where(eq(applications.id, app.id));
+
+  await refreshApplicationState(app.id);
+  revalidateFiles(app.id);
+  return { ok: true as const };
+}
+
+/**
  * Classifica a mano un file SCONOSCIUTO: tipo checklist, rinomina, cartella,
  * spunta checklist (aggiunge il tipo se mancava).
  */

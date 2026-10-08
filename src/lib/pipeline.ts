@@ -1405,19 +1405,28 @@ export async function processPendingDocumentAnalyses(limit = 2) {
         typeCounts,
       );
       if (!resolved) {
-        // Tipo già coperto: tieni file come SCONOSCIUTO done (niente doppio checklist)
+        // Tipo già in checklist: tieni il tipo rilevato (broker può "Accetta comunque")
+        const folderKindDup = storageFolderKindForDocument(
+          analysis.documentType,
+        );
+        const subfolderDup = storageSubfolderLabel(
+          folderKindDup,
+          targetApp.clientName,
+        );
         await db
           .update(documents)
           .set({
             applicationId: targetApp.id,
-            documentType: "SCONOSCIUTO",
+            documentType: analysis.documentType,
+            renamedFileName: analysis.standardizedFileName,
+            storageSubfolder: subfolderDup,
             isValid: false,
             analysisStatus: "done",
             analysisClaimedAt: null,
             extractedData: analysis.extractedData,
             validationIssues: [
               ...analysis.validationIssues,
-              `Tipo ${analysis.documentType} già presente in pratica`,
+              `Tipo ${analysis.documentType} già presente in pratica (copia / secondo file)`,
             ],
           })
           .where(eq(documents.id, doc.id));
