@@ -18,6 +18,7 @@ import {
 } from "@/lib/google/auth";
 import { db } from "@/db";
 import { applications, documents } from "@/db/schema";
+import { ensureSchema } from "@/lib/db/ensure-schema";
 
 export const maxDuration = 60;
 
@@ -86,6 +87,14 @@ export async function GET(req: NextRequest) {
   const withinBudget = () => Date.now() - started < TIME_BUDGET_MS;
 
   try {
+    const schema = await ensureSchema();
+    if (!schema.ok) {
+      return NextResponse.json(
+        { ok: false, error: schema.error ?? "Schema DB non aggiornato" },
+        { status: 500 },
+      );
+    }
+
     const force =
       req.nextUrl.searchParams.get("force") === "1" ||
       req.nextUrl.searchParams.get("force") === "true";
