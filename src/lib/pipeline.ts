@@ -1028,24 +1028,49 @@ export async function refreshApplicationState(applicationId: string) {
     nextStatus = "DOCUMENTI_INCOMPLETI";
   }
 
+  // Se arriva un tipo da mail/upload, entra in checklist (anche se AI lo boccia)
+  const requiredSet = new Set(app.requiredDocumentTypes ?? []);
+  let requiredChanged = false;
+  for (const d of docs) {
+    if (d.documentType && d.documentType !== "SCONOSCIUTO") {
+      if (!requiredSet.has(d.documentType)) {
+        requiredSet.add(d.documentType);
+        requiredChanged = true;
+      }
+      for (const t of d.extractedData?.alsoCovers ?? []) {
+        if (t && t !== "SCONOSCIUTO" && !requiredSet.has(t)) {
+          requiredSet.add(t);
+          requiredChanged = true;
+        }
+      }
+    }
+  }
+  const requiredDocumentTypes = [...requiredSet] as DocumentType[];
+
   const statusUnchanged = !nextStatus || nextStatus === app.status;
   const scoringUnchanged =
     JSON.stringify(app.preScoringData ?? null) === JSON.stringify(preScoring);
   const employmentUnchanged = app.employmentType === employmentType;
 
-  if (!statusUnchanged || !scoringUnchanged || !employmentUnchanged) {
+  if (
+    !statusUnchanged ||
+    !scoringUnchanged ||
+    !employmentUnchanged ||
+    requiredChanged
+  ) {
     await db
       .update(applications)
       .set({
         employmentType,
         preScoringData: preScoring,
         ...(nextStatus ? { status: nextStatus } : {}),
+        ...(requiredChanged ? { requiredDocumentTypes } : {}),
         updatedAt: new Date(),
       })
       .where(eq(applications.id, applicationId));
   }
 
-  const checklist = evaluateChecklist(app.requiredDocumentTypes, docs);
+  const checklist = evaluateChecklist(requiredDocumentTypes, docs);
   const hasRelazione = Boolean(app.relazioneStorageKey);
   if (checklist.isComplete && !coherenceIssues.length && hasRelazione) {
     const [settings] = await db

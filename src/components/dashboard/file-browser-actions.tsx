@@ -59,9 +59,11 @@ export function FolderUploadButton({
               toast.success(`${res.count} file caricati`);
             }
             if (res.errors.length) {
-              toast.error(res.errors.slice(0, 2).join("; "));
+              toast.error(res.errors.slice(0, 3).join("; "));
             } else if (res.count === 0) {
-              toast.message("Nessun file caricato");
+              toast.error(
+                "Nessun file elaborato — riprova o rinomina se già in pratica",
+              );
             }
             router.refresh();
           });

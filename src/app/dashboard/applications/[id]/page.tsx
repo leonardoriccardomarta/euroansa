@@ -316,33 +316,32 @@ export default async function ApplicationDetailPage({
             </div>
             <ul className="mt-4 grid gap-2 sm:grid-cols-2">
               {sheetRowsForRequired(checklist.required).map((row) => {
-                const ok = row.types.every((t) =>
+                const allPresent = row.types.every((t) =>
+                  checklist.present.includes(t),
+                );
+                const allValid = row.types.every((t) =>
                   checklist.presentValid.includes(t),
                 );
-                const invalid = row.types.some((t) =>
+                const needsReview = row.types.some((t) =>
                   checklist.invalid.includes(t),
                 );
                 const partial =
-                  !ok &&
-                  row.types.some(
-                    (t) =>
-                      checklist.presentValid.includes(t) ||
-                      checklist.invalid.includes(t),
-                  );
+                  !allPresent &&
+                  row.types.some((t) => checklist.present.includes(t));
                 return (
                   <li
                     key={`${row.label}-${row.types.join("-")}`}
                     className="flex items-center gap-2.5 rounded-lg bg-slate-50 px-3 py-2.5 text-xs font-medium uppercase text-slate-700 sm:text-[13px]"
                   >
-                    {ok ? (
+                    {allValid ? (
                       <CheckCircle2
                         className="h-4 w-4 shrink-0 text-emerald-600"
                         aria-label="Presente e valido"
                       />
-                    ) : invalid || partial ? (
+                    ) : allPresent || needsReview || partial ? (
                       <AlertCircle
                         className="h-4 w-4 shrink-0 text-amber-500"
-                        aria-label="Incompleto o non valido"
+                        aria-label="Presente da rivedere"
                       />
                     ) : (
                       <Circle
@@ -350,11 +349,19 @@ export default async function ApplicationDetailPage({
                         aria-label="Mancante"
                       />
                     )}
-                    <span className={ok ? "text-slate-800" : "text-slate-600"}>
+                    <span
+                      className={
+                        allValid || allPresent
+                          ? "text-slate-800"
+                          : "text-slate-600"
+                      }
+                    >
                       {row.label}
                       {row.types.length > 1
-                        ? ` (${row.types.filter((t) => checklist.presentValid.includes(t)).length}/${row.types.length})`
-                        : ""}
+                        ? ` (${row.types.filter((t) => checklist.present.includes(t)).length}/${row.types.length})`
+                        : needsReview
+                          ? " · da rivedere"
+                          : ""}
                     </span>
                   </li>
                 );

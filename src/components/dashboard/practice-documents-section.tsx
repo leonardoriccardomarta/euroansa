@@ -170,15 +170,34 @@ function DocRow({
           />
         ) : null}
       </div>
-      {doc.validationIssues?.length > 0 ? (
-        <div className="mt-3 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">
-          <ul className="list-disc pl-4">
-            {doc.validationIssues.map((issue) => (
-              <li key={issue}>{issue}</li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
+      {doc.validationIssues?.length > 0
+        ? (() => {
+            const isDupNote = (i: string) =>
+              /stesso tipo già|copia|secondo file|confronta date|già presente in pratica/i.test(
+                i,
+              );
+            const blocking = doc.validationIssues.filter((i) => !isDupNote(i));
+            const discretionary = doc.validationIssues.filter(isDupNote);
+            // Solo copie da confrontare (discrezione Filip) → giallo; errori veri → rosso
+            const yellow = blocking.length === 0 && discretionary.length > 0;
+            const issues = yellow ? discretionary : blocking.length ? blocking : doc.validationIssues;
+            return (
+              <div
+                className={`mt-3 rounded-lg border p-3 text-sm ${
+                  yellow
+                    ? "border-amber-200 bg-amber-50 text-amber-950"
+                    : "border-red-200 bg-red-50 text-red-800"
+                }`}
+              >
+                <ul className="list-disc pl-4">
+                  {issues.map((issue) => (
+                    <li key={issue}>{issue}</li>
+                  ))}
+                </ul>
+              </div>
+            );
+          })()
+        : null}
     </div>
   );
 }

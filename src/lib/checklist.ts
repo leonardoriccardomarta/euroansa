@@ -4,10 +4,13 @@ import { CHECKLIST_PRESETS } from "@/lib/config/documents";
 export type ChecklistResult = {
   required: DocumentType[];
   presentValid: DocumentType[];
+  /** Presenti in pratica (anche se AI li ha bocciati — Filippo rivede sotto). */
+  present: DocumentType[];
   missing: DocumentType[];
   invalid: DocumentType[];
   completedCount: number;
   totalRequired: number;
+  /** Tutti i tipi presenti E validi (pronti per invio senza avvisi). */
   isComplete: boolean;
   /** true se il broker non ha ancora impostato la checklist per questa pratica */
   isUnset: boolean;
@@ -88,18 +91,24 @@ export function evaluateChecklist(
   const { valid: validTypes, present: presentTypes } = coveredTypes(docs);
 
   const presentValid = required.filter((t) => validTypes.has(t));
+  const present = required.filter((t) => presentTypes.has(t));
   const missing = required.filter((t) => !presentTypes.has(t));
   const invalid = required.filter(
     (t) => presentTypes.has(t) && !validTypes.has(t),
   );
 
-  const completedCount = presentValid.length;
+  // Progress: conta anche i file “da rivedere” (presenti ma non validi)
+  const completedCount = present.length;
   const totalRequired = required.length;
-  const isComplete = !isUnset && completedCount === totalRequired;
+  const isComplete =
+    !isUnset &&
+    present.length === totalRequired &&
+    invalid.length === 0;
 
   return {
     required,
     presentValid,
+    present,
     missing,
     invalid,
     completedCount,
@@ -108,7 +117,9 @@ export function evaluateChecklist(
     isUnset,
     progressLabel: isUnset
       ? "Seleziona i documenti richiesti"
-      : `${completedCount}/${totalRequired}${isComplete ? " Completa" : ""}`,
+      : invalid.length > 0
+        ? `${completedCount}/${totalRequired} (da rivedere: ${invalid.length})`
+        : `${completedCount}/${totalRequired}${isComplete ? " Completa" : ""}`,
   };
 }
 

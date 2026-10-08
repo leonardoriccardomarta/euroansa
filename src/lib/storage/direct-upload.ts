@@ -113,34 +113,75 @@ export async function uploadFilesDirectToR2(params: {
   }
 
   if (uploaded.length === 0) {
-    return { count: 0, errors };
+    return {
+      count: 0,
+      errors: errors.length
+        ? errors
+        : ["Nessun file caricato su R2 (file vuoto o selezione annullata)"],
+    };
   }
 
-  const res = await fetch("/api/documents/process-uploads", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      applicationId: params.applicationId,
-      files: uploaded,
-      subfolder: params.subfolder,
-      skipAi: params.skipAi === true,
-    }),
-  });
-  const data = (await res.json()) as {
+  let res: Response;
+  try {
+    res = await fetch("/api/documents/process-uploads", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        applicationId: params.applicationId,
+        files: uploaded,
+        subfolder: params.subfolder,
+        skipAi: params.skipAi === true,
+      }),
+    });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return {
+      count: 0,
+      errors: [
+        ...errors,
+        `File su R2 ma elaborazione fallita (${msg}). Ricarica o riprova.`,
+      ],
+    };
+  }
+
+  let data: {
     ok?: boolean;
     count?: number;
     errors?: string[];
     error?: string;
   };
+  try {
+    data = (await res.json()) as typeof data;
+  } catch {
+    return {
+      count: 0,
+      errors: [
+        ...errors,
+        `Elaborazione risposta non valida (HTTP ${res.status}). Riprova.`,
+      ],
+    };
+  }
+
   if (!res.ok) {
     return {
       count: 0,
-      errors: [...errors, data.error || "Elaborazione fallita"],
+      errors: [...errors, data.error || `Elaborazione fallita (HTTP ${res.status})`],
+    };
+  }
+
+  const processed = data.count ?? 0;
+  if (processed === 0 && (data.errors?.length ?? 0) === 0) {
+    return {
+      count: 0,
+      errors: [
+        ...errors,
+        "Upload ok ma nessun documento nuovo (nome file già presente in pratica? Rinomina e riprova).",
+      ],
     };
   }
 
   return {
-    count: data.count ?? uploaded.length,
+    count: processed,
     errors: [...errors, ...(data.errors ?? [])],
   };
 }
