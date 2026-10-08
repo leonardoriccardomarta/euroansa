@@ -45,16 +45,6 @@ const PAYSLIP_SLOTS: DocumentType[] = [
   "BUSTA_PAGA_3",
 ];
 
-/**
- * Fronte & retro: 1 voce checklist, ma possono arrivare 1 file (unico) o 2 file.
- * Non scartare il secondo come “tipo già presente”.
- */
-const MULTI_SIDE_DOC_TYPES = new Set<DocumentType>([
-  "CARTA_IDENTITA",
-  "TESSERA_SANITARIA",
-]);
-const MULTI_SIDE_MAX = 2;
-
 function withResolvedType<
   T extends { documentType: DocumentType; standardizedFileName: string },
 >(analysis: T, resolved: DocumentType, originalFileName: string): T {
@@ -83,30 +73,22 @@ function withResolvedType<
 }
 
 /**
- * Se Gemini classifica una busta già presente, la mette nel primo slot libero.
- * CI/TS fronte-retro: fino a 2 file dello stesso tipo.
- * Altri tipi già presenti → null (skip).
+ * Remap buste negli slot liberi. Altri tipi: SEMPRE tieni il file
+ * (anche se il tipo c'è già): Filippo confronta / elimina / accetta.
  */
 function resolveDocumentType(
   detected: DocumentType,
   knownTypes: Set<string>,
-  typeCounts: Map<string, number>,
-): DocumentType | null {
+  _typeCounts: Map<string, number>,
+): DocumentType {
   if (detected === "SCONOSCIUTO") return detected;
 
   if (PAYSLIP_SLOTS.includes(detected)) {
     if (!knownTypes.has(detected)) return detected;
     const free = PAYSLIP_SLOTS.find((slot) => !knownTypes.has(slot));
-    return free ?? null;
+    return free ?? detected;
   }
 
-  if (MULTI_SIDE_DOC_TYPES.has(detected)) {
-    const n = typeCounts.get(detected) ?? 0;
-    if (n >= MULTI_SIDE_MAX) return null;
-    return detected;
-  }
-
-  if (knownTypes.has(detected)) return null;
   return detected;
 }
 
@@ -579,7 +561,11 @@ export async function mergeAllDuplicateApplications() {
   return { emailsChecked: emails.length, cfChecked: codes.length, mergedGroups };
 }
 
-/** Elimina duplicati: stesso file grezzo; stesso tipo solo se non è CI/TS (fronte-retro). */
+/**
+ * Elimina solo file grezzi identici (stesso rawFileName).
+ * NON cancella più due STATO_FAMIGLIA / CERTIFICATO_RESIDENZA diversi:
+ * restano entrambi, Filippo sceglie.
+ */
 export async function dedupeApplicationDocuments(applicationId: string) {
   const docs = await db
     .select()
@@ -588,37 +574,15 @@ export async function dedupeApplicationDocuments(applicationId: string) {
     .orderBy(desc(documents.createdAt));
 
   const seenRaw = new Set<string>();
-  const seenType = new Set<string>();
-  const multiSideCount = new Map<string, number>();
   const toDelete: string[] = [];
 
   for (const doc of docs) {
     const rawKey = doc.rawFileName.trim().toLowerCase();
-    const rawDup = seenRaw.has(rawKey);
-
-    let typeDup = false;
-    if (doc.documentType !== "SCONOSCIUTO") {
-      if (MULTI_SIDE_DOC_TYPES.has(doc.documentType)) {
-        const n = multiSideCount.get(doc.documentType) ?? 0;
-        if (n >= MULTI_SIDE_MAX) typeDup = true;
-        else multiSideCount.set(doc.documentType, n + 1);
-      } else if (seenType.has(doc.documentType)) {
-        typeDup = true;
-      }
-    }
-
-    if (rawDup || typeDup) {
+    if (seenRaw.has(rawKey)) {
       toDelete.push(doc.id);
       continue;
     }
-
     seenRaw.add(rawKey);
-    if (
-      doc.documentType !== "SCONOSCIUTO" &&
-      !MULTI_SIDE_DOC_TYPES.has(doc.documentType)
-    ) {
-      seenType.add(doc.documentType);
-    }
   }
 
   if (toDelete.length > 0) {
@@ -701,22 +665,31 @@ export async function processIncomingFiles(
       continue;
     }
 
-    // Se quel tipo c'è già, prova remap buste / CI-TS 2° lato / altrimenti skip
+    // Remap buste negli slot; tipi già presenti restano (Filippo confronta)
     if (options?.applicationId) {
+      const wasDup =
+        analysis.documentType !== "SCONOSCIUTO" &&
+        knownTypes.has(analysis.documentType) &&
+        !PAYSLIP_SLOTS.includes(analysis.documentType);
       const resolved = resolveDocumentType(
         analysis.documentType,
         knownTypes,
         typeCounts,
       );
-      if (!resolved) {
-        applicationIds.add(options.applicationId);
-        continue;
-      }
       analysis = withResolvedType(
         analysis,
         resolved,
         file.originalFileName,
       );
+      if (wasDup) {
+        analysis = {
+          ...analysis,
+          validationIssues: [
+            ...analysis.validationIssues,
+            `Stesso tipo già in pratica: confronta date e tieni il più recente/completo, oppure elimina la copia.`,
+          ],
+        };
+      }
     }
 
     const clientName =
@@ -782,20 +755,29 @@ export async function processIncomingFiles(
         continue;
       }
 
+      const wasDup =
+        analysis.documentType !== "SCONOSCIUTO" &&
+        knownTypes.has(analysis.documentType) &&
+        !PAYSLIP_SLOTS.includes(analysis.documentType);
       const resolved = resolveDocumentType(
         analysis.documentType,
         knownTypes,
         typeCounts,
       );
-      if (!resolved) {
-        applicationIds.add(app.id);
-        continue;
-      }
       analysis = withResolvedType(
         analysis,
         resolved,
         file.originalFileName,
       );
+      if (wasDup) {
+        analysis = {
+          ...analysis,
+          validationIssues: [
+            ...analysis.validationIssues,
+            `Stesso tipo già in pratica: confronta date e tieni il più recente/completo, oppure elimina la copia.`,
+          ],
+        };
+      }
     }
 
     const updates: Partial<typeof applications.$inferInsert> = {
@@ -1422,60 +1404,29 @@ export async function processPendingDocumentAnalyses(limit = 2) {
         );
       }
 
-      let finalAnalysis = analysis;
+      const wasDup =
+        analysis.documentType !== "SCONOSCIUTO" &&
+        knownTypes.has(analysis.documentType) &&
+        !PAYSLIP_SLOTS.includes(analysis.documentType);
       const resolved = resolveDocumentType(
         analysis.documentType,
         knownTypes,
         typeCounts,
       );
-      if (!resolved) {
-        // Tipo già in checklist: tieni il tipo rilevato (broker può "Accetta comunque")
-        const folderKindDup = storageFolderKindForDocument(
-          analysis.documentType,
-        );
-        const subfolderDup = storageSubfolderLabel(
-          folderKindDup,
-          targetApp.clientName,
-        );
-        await db
-          .update(documents)
-          .set({
-            applicationId: targetApp.id,
-            documentType: analysis.documentType,
-            renamedFileName: analysis.standardizedFileName,
-            storageSubfolder: subfolderDup,
-            isValid: false,
-            analysisStatus: "done",
-            analysisClaimedAt: null,
-            extractedData: analysis.extractedData,
-            validationIssues: [
-              ...analysis.validationIssues,
-              `Tipo ${analysis.documentType} già presente in pratica (copia / secondo file)`,
-            ],
-          })
-          .where(eq(documents.id, doc.id));
-
-        if (targetApp.id !== currentApp.id) {
-          await absorbApplicationInto(currentApp.id, targetApp.id);
-        }
-        const cfDup = analysis.extractedData.fiscalCode?.trim();
-        if (cfDup) {
-          await mergeDuplicateOpenApplicationsByFiscalCode(cfDup);
-        }
-        await refreshApplicationState(targetApp.id);
-        results.push({
-          documentId: doc.id,
-          ok: true,
-          applicationId: targetApp.id,
-        });
-        continue;
-      }
-
-      finalAnalysis = withResolvedType(
+      let finalAnalysis = withResolvedType(
         analysis,
         resolved,
         doc.rawFileName,
       );
+      if (wasDup) {
+        finalAnalysis = {
+          ...finalAnalysis,
+          validationIssues: [
+            ...finalAnalysis.validationIssues,
+            `Stesso tipo già in pratica (${finalAnalysis.documentType}): entrambi restano visibili — confronta, tieni il più recente/completo o elimina la copia.`,
+          ],
+        };
+      }
 
       const appUpdates: Partial<typeof applications.$inferInsert> = {
         updatedAt: new Date(),

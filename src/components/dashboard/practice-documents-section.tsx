@@ -17,8 +17,13 @@ import { isLegacyDriveKey, isSiteStorageKey } from "@/lib/storage/paths";
 import { Badge } from "@/components/ui/badge";
 import { AcceptDocumentAnyway } from "@/components/dashboard/accept-document-anyway";
 import { ClassifyUnknownDoc } from "@/components/dashboard/classify-unknown-doc";
+import { DeletePracticeDoc } from "@/components/dashboard/delete-practice-doc";
 import { DocumentPreviewButton } from "@/components/dashboard/document-preview";
 import { FolderUploadButton } from "@/components/dashboard/file-browser-actions";
+import {
+  rankDuplicateDocuments,
+  type DuplicateRankInfo,
+} from "@/lib/documents/duplicate-rank";
 
 function folderHint(kind: StorageFolderKind): string {
   if (kind === "DOC")
@@ -33,10 +38,12 @@ function DocRow({
   doc,
   classifyOptions,
   allowClassify,
+  dupRank,
 }: {
   doc: Document;
   classifyOptions: DocumentType[];
   allowClassify: boolean;
+  dupRank?: DuplicateRankInfo;
 }) {
   const also =
     doc.extractedData?.alsoCovers?.filter((t) => t && t !== "SCONOSCIUTO") ??
@@ -60,6 +67,22 @@ function DocRow({
             ) : (
               <AlertCircle className="h-4 w-4 text-red-500" />
             )}
+            {dupRank ? (
+              <Badge
+                variant="outline"
+                className={
+                  dupRank.isNewest
+                    ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+                    : "border-amber-200 bg-amber-50 text-amber-900"
+                }
+              >
+                {dupRank.isNewest
+                  ? `Copia più recente (1/${dupRank.count})`
+                  : dupRank.isOldest
+                    ? `Copia più vecchia (${dupRank.rankByRecency}/${dupRank.count})`
+                    : `Copia ${dupRank.rankByRecency}/${dupRank.count}`}
+              </Badge>
+            ) : null}
             {doc.analysisStatus === "pending" ||
             doc.analysisStatus === "processing" ? (
               <Badge
@@ -120,16 +143,24 @@ function DocRow({
           <p className="text-xs text-slate-500">
             Rinominato: {doc.renamedFileName}
           </p>
-          {showClassify ? (
-            <ClassifyUnknownDoc
-              documentId={doc.id}
-              options={classifyOptions}
-              currentType={doc.documentType}
-            />
-          ) : null}
-          {showAccept ? (
-            <AcceptDocumentAnyway documentId={doc.id} />
-          ) : null}
+          <div className="flex flex-wrap items-center gap-2">
+            {showClassify ? (
+              <ClassifyUnknownDoc
+                documentId={doc.id}
+                options={classifyOptions}
+                currentType={doc.documentType}
+              />
+            ) : null}
+            {showAccept ? (
+              <AcceptDocumentAnyway documentId={doc.id} />
+            ) : null}
+            {allowClassify ? (
+              <DeletePracticeDoc
+                documentId={doc.id}
+                fileName={doc.renamedFileName || doc.rawFileName}
+              />
+            ) : null}
+          </div>
         </div>
         {doc.driveFileUrl && isSiteStorageKey(doc.driveFileId) ? (
           <DocumentPreviewButton
@@ -181,6 +212,8 @@ export function PracticeDocumentsSection({
       ...CHECKLIST_DOCUMENT_TYPES,
     ]),
   ];
+
+  const dupRanks = rankDuplicateDocuments(docs);
 
   const byFolder = new Map<string, Document[]>();
   for (const doc of docs) {
@@ -279,6 +312,7 @@ export function PracticeDocumentsSection({
                   doc={doc}
                   classifyOptions={classifyOptions}
                   allowClassify={kind === "DOC" || kind === "IMMOBILE"}
+                  dupRank={dupRanks.get(doc.id)}
                 />
               ))}
             </div>
@@ -308,6 +342,7 @@ export function PracticeDocumentsSection({
                 doc={doc}
                 classifyOptions={classifyOptions}
                 allowClassify={/ DOC$/i.test(label) || label === "IMMOBILE"}
+                dupRank={dupRanks.get(doc.id)}
               />
             ))}
           </div>
