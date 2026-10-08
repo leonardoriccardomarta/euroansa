@@ -100,7 +100,15 @@ export default async function DashboardPage({
     docsByApp.set(d.applicationId, list);
   }
 
-  const filtered = status ? apps.filter((a) => a.status === status) : apps;
+  // Aperte sempre in alto; rogitate in fondo. Dentro ogni gruppo: più recenti prima.
+  const filtered = (status ? apps.filter((a) => a.status === status) : apps)
+    .slice()
+    .sort((a, b) => {
+      const aClosed = a.status === "ROGITATA" ? 1 : 0;
+      const bClosed = b.status === "ROGITATA" ? 1 : 0;
+      if (aClosed !== bClosed) return aClosed - bClosed;
+      return b.updatedAt.getTime() - a.updatedAt.getTime();
+    });
 
   const total = apps.length;
   // Conteggio esatto per stato corrente (si aggiorna se torni indietro)
