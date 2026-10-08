@@ -191,6 +191,7 @@ async function runEmailCronWork(force: boolean) {
         {
           fromEmail: email.fromEmail,
           messageId: email.messageId,
+          subject: email.subject,
           clientNameHint: email.fromEmail.split("@")[0],
           isTest: false,
           brokerId: owner.id,

@@ -30,6 +30,8 @@ export function ApplicationCard({
   clientName,
   clientEmail,
   clientFiscalCode,
+  isCouple,
+  applicantFiscalCodes,
   status,
   statusLabel,
   statusClass,
@@ -46,6 +48,8 @@ export function ApplicationCard({
   clientName: string;
   clientEmail: string;
   clientFiscalCode: string | null;
+  isCouple?: boolean;
+  applicantFiscalCodes?: string[];
   status: ApplicationStatus;
   statusLabel: string;
   statusClass: string;
@@ -90,6 +94,14 @@ export function ApplicationCard({
                 Test
               </Badge>
             ) : null}
+            {isCouple ? (
+              <Badge
+                variant="outline"
+                className="border-sky-200 bg-sky-50 text-sky-800"
+              >
+                Coppia
+              </Badge>
+            ) : null}
             {hasPipelineError ? (
               <Badge
                 variant="outline"
@@ -103,9 +115,11 @@ export function ApplicationCard({
             </Badge>
           </div>
           <p className="mt-1 truncate text-sm text-slate-500">
-            {clientFiscalCode
-              ? `CF ${clientFiscalCode}`
-              : "CF non ancora rilevato"}
+            {isCouple && (applicantFiscalCodes?.length ?? 0) > 0
+              ? `CF ${applicantFiscalCodes!.join(" · ")}`
+              : clientFiscalCode
+                ? `CF ${clientFiscalCode}`
+                : "CF non ancora rilevato"}
             {displayClientEmail(clientEmail)
               ? ` · ${displayClientEmail(clientEmail)}`
               : ""}

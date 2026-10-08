@@ -168,9 +168,12 @@ export default async function ApplicationDetailPage({
             {current.clientName}
           </h1>
           <p className="mt-2 text-slate-600">
-            {current.clientFiscalCode
-              ? `CF ${current.clientFiscalCode}`
-              : "CF non ancora rilevato"}
+            {current.isCouple &&
+            (current.applicantFiscalCodes?.length ?? 0) > 0
+              ? `CF ${current.applicantFiscalCodes!.join(" · ")}`
+              : current.clientFiscalCode
+                ? `CF ${current.clientFiscalCode}`
+                : "CF non ancora rilevato"}
             {displayClientEmail(current.clientEmail)
               ? ` · ${displayClientEmail(current.clientEmail)}`
               : ""}
@@ -191,6 +194,14 @@ export default async function ApplicationDetailPage({
                 className="border-violet-200 bg-violet-50 text-violet-700"
               >
                 Test
+              </Badge>
+            ) : null}
+            {current.isCouple ? (
+              <Badge
+                variant="outline"
+                className="border-sky-200 bg-sky-50 text-sky-800"
+              >
+                Coppia / cointestatari
               </Badge>
             ) : null}
             <Badge

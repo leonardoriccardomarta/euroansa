@@ -188,12 +188,16 @@ export async function fetchPendingMortgageEmails(
     throw new Error("Imposta GMAIL_SUBJECT_TAG nell'ambiente");
   }
   const subjectQuery = buildGmailSubjectQuery(subjectTag);
+  // Coppia: oggetto "COPPIA EUROANSA MUTUO" (anche se il tag ha il trattino)
+  const coupleQuery =
+    'subject:"COPPIA EUROANSA MUTUO" OR subject:"COPPIA EUROANSA-MUTUO"';
+  const subjectOrCouple = `(${subjectQuery} OR ${coupleQuery})`;
 
   const list = await gmail.users.messages.list({
     userId: "me",
     q: includeProcessed
-      ? subjectQuery
-      : `-label:MUTUO-ELABORATA ${subjectQuery}`,
+      ? subjectOrCouple
+      : `-label:MUTUO-ELABORATA ${subjectOrCouple}`,
     maxResults: maxMessages,
   });
 

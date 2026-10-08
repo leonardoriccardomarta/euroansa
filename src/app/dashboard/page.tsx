@@ -53,6 +53,8 @@ export default async function DashboardPage({
       clientName: applications.clientName,
       clientEmail: applications.clientEmail,
       clientFiscalCode: applications.clientFiscalCode,
+      isCouple: applications.isCouple,
+      applicantFiscalCodes: applications.applicantFiscalCodes,
       employmentType: applications.employmentType,
       status: applications.status,
       sentToSecretaryAt: applications.sentToSecretaryAt,
@@ -214,6 +216,8 @@ export default async function DashboardPage({
                 clientName={app.clientName}
                 clientEmail={app.clientEmail}
                 clientFiscalCode={app.clientFiscalCode}
+                isCouple={app.isCouple}
+                applicantFiscalCodes={app.applicantFiscalCodes}
                 status={app.status}
                 statusLabel={
                   APPLICATION_STATUS_LABELS[app.status] ?? app.status

@@ -1,10 +1,13 @@
-import { and, asc, desc, eq, inArray, lt, or } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, lt, or, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { applications, documents, systemSettings, users } from "@/db/schema";
 import type { DocumentAnalysisStatus, DocumentType } from "@/db/schema";
 import { isPlaceholderClientEmail } from "@/lib/client-email";
 import { analyzeDocument } from "@/lib/ai/analyze-document";
-import { checkAnagraphicCoherence } from "@/lib/ai/coherence";
+import {
+  checkAnagraphicCoherence,
+  coupleCoherenceNotes,
+} from "@/lib/ai/coherence";
 import {
   deriveApplicationStatus,
   evaluateChecklist,
@@ -18,6 +21,12 @@ import {
   storageFolderKindForDocument,
   storageSubfolderLabel,
 } from "@/lib/config/documents";
+import {
+  coupleNameHintFromSubject,
+  coupleSubjectKey,
+  isCoupleEmailSubject,
+  mergeCoupleClientName,
+} from "@/lib/couple-mail";
 import { computePreScoring } from "@/lib/prescoring";
 import {
   deleteBlobByPathname,
@@ -176,6 +185,24 @@ async function findOrCreateApplication(params: {
       .orderBy(desc(applications.updatedAt))
       .limit(1);
     if (byCf) return ensureBrokerOnApp(byCf, params.brokerId);
+
+    // 1b) CF di un cointestatario su pratica COPPIA
+    const [byCoupleCf] = await db
+      .select()
+      .from(applications)
+      .where(
+        and(
+          eq(applications.isCouple, true),
+          sql`${applications.applicantFiscalCodes} @> ARRAY[${fiscalCode}]::text[]`,
+          inArray(applications.status, [
+            ...OPEN_STATUSES,
+            ...POST_SECRETARY_ACTIVE,
+          ]),
+        ),
+      )
+      .orderBy(desc(applications.updatedAt))
+      .limit(1);
+    if (byCoupleCf) return ensureBrokerOnApp(byCoupleCf, params.brokerId);
   }
 
   // 2) Fallback email solo se mittente = cliente (non staff) e non abbiamo CF
@@ -440,6 +467,19 @@ async function absorbApplicationInto(fromId: string, intoId: string) {
   }
   if (!into.clientFiscalCode && from.clientFiscalCode) {
     patch.clientFiscalCode = from.clientFiscalCode;
+  }
+  if (from.isCouple || into.isCouple) {
+    patch.isCouple = true;
+    if (!into.coupleSubjectKey && from.coupleSubjectKey) {
+      patch.coupleSubjectKey = from.coupleSubjectKey;
+    }
+    const codes = new Set([
+      ...(into.applicantFiscalCodes ?? []),
+      ...(from.applicantFiscalCodes ?? []),
+      ...(into.clientFiscalCode ? [into.clientFiscalCode] : []),
+      ...(from.clientFiscalCode ? [from.clientFiscalCode] : []),
+    ].map((c) => c.trim().toUpperCase()).filter(Boolean));
+    if (codes.size) patch.applicantFiscalCodes = [...codes];
   }
   if (
     (into.clientName === "Cliente" || into.clientName.startsWith("Intake ")) &&
@@ -1018,10 +1058,18 @@ export async function refreshApplicationState(applicationId: string) {
     .where(eq(documents.applicationId, applicationId));
 
   const employmentType = inferEmploymentType(docs);
-  const coherenceIssues = checkAnagraphicCoherence(docs);
+  const coherenceIssues = checkAnagraphicCoherence(docs, {
+    isCouple: app.isCouple,
+  });
   const preScoring = computePreScoring(docs);
   if (coherenceIssues.length) {
     preScoring.notes = [...(preScoring.notes ?? []), ...coherenceIssues];
+  }
+  if (app.isCouple) {
+    const coupleNotes = coupleCoherenceNotes(docs);
+    if (coupleNotes.length) {
+      preScoring.notes = [...(preScoring.notes ?? []), ...coupleNotes];
+    }
   }
 
   let nextStatus = deriveApplicationStatus(
@@ -1145,13 +1193,73 @@ function isIntakeStagingEmail(email: string): boolean {
   return e.startsWith("intake.") && e.endsWith("@prontopratica.local");
 }
 
+async function findOpenCoupleBySubjectKey(key: string) {
+  const [found] = await db
+    .select()
+    .from(applications)
+    .where(
+      and(
+        eq(applications.isCouple, true),
+        eq(applications.coupleSubjectKey, key),
+        inArray(applications.status, [
+          ...OPEN_STATUSES,
+          ...POST_SECRETARY_ACTIVE,
+        ]),
+      ),
+    )
+    .orderBy(desc(applications.updatedAt))
+    .limit(1);
+  return found ?? null;
+}
+
+async function addApplicantFiscalCode(
+  applicationId: string,
+  fiscalCode: string,
+) {
+  const cf = fiscalCode.trim().toUpperCase();
+  if (!cf || cf.length < 11) return;
+  const [row] = await db
+    .select({
+      clientFiscalCode: applications.clientFiscalCode,
+      applicantFiscalCodes: applications.applicantFiscalCodes,
+    })
+    .from(applications)
+    .where(eq(applications.id, applicationId))
+    .limit(1);
+  if (!row) return;
+  const codes = new Set(
+    (row.applicantFiscalCodes ?? []).map((c) => c.trim().toUpperCase()),
+  );
+  codes.add(cf);
+  await db
+    .update(applications)
+    .set({
+      applicantFiscalCodes: [...codes],
+      clientFiscalCode: row.clientFiscalCode ?? cf,
+      updatedAt: new Date(),
+    })
+    .where(eq(applications.id, applicationId));
+}
+
 /** Pratica temporanea per mail staff (match solo dopo OCR/CF). */
 async function ensureStagingApplication(params: {
   messageId: string;
   clientNameHint?: string;
   isTest?: boolean;
   brokerId?: string | null;
+  isCouple?: boolean;
+  coupleSubjectKey?: string | null;
 }) {
+  // Mail successive stessa coppia → stessa pratica (niente staging nuovo)
+  if (params.isCouple && params.coupleSubjectKey) {
+    const existingCouple = await findOpenCoupleBySubjectKey(
+      params.coupleSubjectKey,
+    );
+    if (existingCouple) {
+      return ensureBrokerOnApp(existingCouple, params.brokerId);
+    }
+  }
+
   const safeId = params.messageId.replace(/[^a-zA-Z0-9]/g, "").slice(0, 24);
   const stagingEmail = `intake.${safeId || Date.now()}@prontopratica.local`;
   const [existing] = await db
@@ -1163,7 +1271,9 @@ async function ensureStagingApplication(params: {
 
   const name =
     params.clientNameHint?.trim() ||
-    `Intake ${safeId.slice(0, 8) || "mail"}`;
+    (params.isCouple
+      ? "Coppia"
+      : `Intake ${safeId.slice(0, 8) || "mail"}`);
   const [created] = await db
     .insert(applications)
     .values({
@@ -1171,6 +1281,8 @@ async function ensureStagingApplication(params: {
       clientEmail: stagingEmail,
       status: "DOCUMENTI_INCOMPLETI",
       isTest: params.isTest ?? false,
+      isCouple: params.isCouple ?? false,
+      coupleSubjectKey: params.coupleSubjectKey ?? null,
       brokerId: params.brokerId ?? null,
       storageFolders: defaultStorageFolders(name),
     })
@@ -1191,6 +1303,7 @@ export async function ingestEmailAttachmentsWithoutAi(
   options: {
     fromEmail: string;
     messageId: string;
+    subject?: string;
     clientNameHint?: string;
     isTest?: boolean;
     brokerId?: string | null;
@@ -1205,12 +1318,20 @@ export async function ingestEmailAttachmentsWithoutAi(
     };
   }
 
-  // Niente match sulla From: (Filippo/stessi account). Staging per messageId → merge per CF in OCR.
+  const subject = options.subject ?? "";
+  const isCouple = isCoupleEmailSubject(subject);
+  const coupleKey = coupleSubjectKey(subject);
+  const coupleHint = coupleNameHintFromSubject(subject);
+
+  // Niente match sulla From:. Staging per messageId → merge CF in OCR.
+  // COPPIA: riusa pratica con stesso oggetto / crea pratica isCouple.
   const app = await ensureStagingApplication({
     messageId: options.messageId,
-    clientNameHint: options.clientNameHint,
+    clientNameHint: coupleHint || options.clientNameHint,
     isTest: options.isTest,
     brokerId: options.brokerId,
+    isCouple,
+    coupleSubjectKey: coupleKey,
   });
 
   const existing = await db
@@ -1414,18 +1535,22 @@ export async function processPendingDocumentAnalyses(limit = 2) {
       }
 
       const staging = isIntakeStagingEmail(currentApp.clientEmail);
-      const clientName =
+      const personName =
         [analysis.extractedData.lastName, analysis.extractedData.firstName]
           .filter(Boolean)
           .join(" ") || currentApp.clientName;
 
-      const targetApp = await findOrCreateApplication({
-        fiscalCode: analysis.extractedData.fiscalCode,
-        email: staging ? undefined : currentApp.clientEmail,
-        clientName,
-        isTest: currentApp.isTest,
-        brokerId: currentApp.brokerId,
-      });
+      // Pratica COPPIA: tutti i file restano insieme (niente split per CF)
+      let targetApp = currentApp;
+      if (!currentApp.isCouple) {
+        targetApp = await findOrCreateApplication({
+          fiscalCode: analysis.extractedData.fiscalCode,
+          email: staging ? undefined : currentApp.clientEmail,
+          clientName: personName,
+          isTest: currentApp.isTest,
+          brokerId: currentApp.brokerId,
+        });
+      }
 
       await dedupeApplicationDocuments(targetApp.id);
       const siblings = await db
@@ -1487,19 +1612,34 @@ export async function processPendingDocumentAnalyses(limit = 2) {
         appUpdates.clientFiscalCode =
           finalAnalysis.extractedData.fiscalCode.toUpperCase();
       }
-      if (
+      if (targetApp.isCouple) {
+        appUpdates.clientName = mergeCoupleClientName(
+          targetApp.clientName,
+          finalAnalysis.extractedData.lastName,
+          finalAnalysis.extractedData.firstName,
+        );
+      } else if (
         (targetApp.clientName === "Cliente" ||
           targetApp.clientName.startsWith("Intake ") ||
           isIntakeStagingEmail(targetApp.clientEmail)) &&
-        clientName !== "Cliente"
+        personName !== "Cliente"
       ) {
-        appUpdates.clientName = clientName;
+        appUpdates.clientName = personName;
       }
       if (Object.keys(appUpdates).length > 1) {
         await db
           .update(applications)
           .set(appUpdates)
           .where(eq(applications.id, targetApp.id));
+      }
+      if (
+        targetApp.isCouple &&
+        finalAnalysis.extractedData.fiscalCode?.trim()
+      ) {
+        await addApplicantFiscalCode(
+          targetApp.id,
+          finalAnalysis.extractedData.fiscalCode,
+        );
       }
 
       const folderKind = storageFolderKindForDocument(
@@ -1548,11 +1688,12 @@ export async function processPendingDocumentAnalyses(limit = 2) {
         })
         .where(eq(documents.id, doc.id));
 
-      if (targetApp.id !== currentApp.id) {
+      if (targetApp.id !== currentApp.id && !currentApp.isCouple) {
         await absorbApplicationInto(currentApp.id, targetApp.id);
       }
       const cfDone = finalAnalysis.extractedData.fiscalCode?.trim();
-      if (cfDone) {
+      // Su pratica coppia non fondere con pratiche single di un solo CF
+      if (cfDone && !targetApp.isCouple) {
         await mergeDuplicateOpenApplicationsByFiscalCode(cfDone);
       }
 

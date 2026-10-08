@@ -1,8 +1,38 @@
 import type { Document } from "@/db/schema";
 
+/** Note informative cointestatari (non bloccanti). */
+export function coupleCoherenceNotes(
+  docs: Pick<Document, "extractedData">[],
+): string[] {
+  const notes: string[] = [];
+  const withData = docs.filter((d) => d.extractedData);
+
+  const fiscalCodes = withData
+    .map((d) => d.extractedData?.fiscalCode?.toUpperCase().trim())
+    .filter((c): c is string => Boolean(c && c.length >= 11));
+  const uniqueCf = [...new Set(fiscalCodes)];
+  if (uniqueCf.length > 0) {
+    notes.push(`Cointestatari (pratica coppia): CF ${uniqueCf.join(", ")}`);
+  }
+
+  const lastNames = withData
+    .map((d) => d.extractedData?.lastName?.toUpperCase().trim())
+    .filter((n): n is string => Boolean(n));
+  const uniqueLast = [...new Set(lastNames)];
+  if (uniqueLast.length > 1) {
+    notes.push(`Cointestatari: cognomi ${uniqueLast.join(", ")}`);
+  }
+
+  return notes;
+}
+
 export function checkAnagraphicCoherence(
   docs: Pick<Document, "extractedData" | "renamedFileName" | "isValid">[],
+  options?: { isCouple?: boolean },
 ): string[] {
+  // Su pratica coppia i CF/cognomi diversi sono attesi → niente errori bloccanti
+  if (options?.isCouple) return [];
+
   const issues: string[] = [];
   const withData = docs.filter((d) => d.extractedData);
 

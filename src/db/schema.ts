@@ -161,6 +161,15 @@ export const applications = pgTable("applications", {
   clientName: varchar("client_name", { length: 255 }).notNull(),
   clientEmail: varchar("client_email", { length: 255 }).notNull(),
   clientFiscalCode: varchar("client_fiscal_code", { length: 16 }),
+  /** Mutuo cointestatari (oggetto COPPIA EUROANSA MUTUO). */
+  isCouple: boolean("is_couple").notNull().default(false),
+  /** Oggetto normalizzato per riagganciare mail successive della stessa coppia. */
+  coupleSubjectKey: text("couple_subject_key"),
+  /** Tutti i CF dei cointestatari (marito/moglie…). */
+  applicantFiscalCodes: text("applicant_fiscal_codes")
+    .array()
+    .notNull()
+    .default([]),
   employmentType: employmentTypeEnum("employment_type")
     .notNull()
     .default("DIPENDENTE_INDETERMINATO"),

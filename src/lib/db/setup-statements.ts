@@ -238,6 +238,10 @@ export const SETUP_STATEMENTS = [
   // Invio selettivo a segreteria
   `ALTER TABLE secretary_send_logs ADD COLUMN IF NOT EXISTS selected_document_ids jsonb`,
   `ALTER TABLE secretary_send_logs ADD COLUMN IF NOT EXISTS email_subject text`,
+  // Mutuo cointestatari (COPPIA EUROANSA MUTUO)
+  `ALTER TABLE applications ADD COLUMN IF NOT EXISTS is_couple boolean NOT NULL DEFAULT false`,
+  `ALTER TABLE applications ADD COLUMN IF NOT EXISTS couple_subject_key text`,
+  `ALTER TABLE applications ADD COLUMN IF NOT EXISTS applicant_fiscal_codes text[] NOT NULL DEFAULT '{}'`,
 ];
 
 export const PACKAGE_LINK_TTL_DAYS = 7;
