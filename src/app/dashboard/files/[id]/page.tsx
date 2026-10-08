@@ -64,8 +64,7 @@ export default async function ClientFilesPage({
           {app.clientName}
         </h1>
         <p className="mt-2 text-slate-600">
-          {app.clientEmail}
-          {", "}
+          {app.clientFiscalCode ? `CF ${app.clientFiscalCode} · ` : null}
           <Link
             href={`/dashboard/applications/${app.id}`}
             className="font-medium text-primary-600 hover:underline"

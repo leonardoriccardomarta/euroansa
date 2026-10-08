@@ -2,6 +2,7 @@ import { and, asc, desc, eq, inArray, lt, or } from "drizzle-orm";
 import { db } from "@/db";
 import { applications, documents, systemSettings, users } from "@/db/schema";
 import type { DocumentAnalysisStatus, DocumentType } from "@/db/schema";
+import { isPlaceholderClientEmail } from "@/lib/client-email";
 import { analyzeDocument } from "@/lib/ai/analyze-document";
 import { checkAnagraphicCoherence } from "@/lib/ai/coherence";
 import {
@@ -360,15 +361,6 @@ export async function mergeDuplicateOpenApplicationsByEmail(email: string) {
 
   await dedupeApplicationDocuments(keep.id);
   return keep;
-}
-
-function isPlaceholderClientEmail(email: string): boolean {
-  const e = email.trim().toLowerCase();
-  return (
-    e.endsWith("@prontopratica.local") ||
-    e.startsWith("intake.") ||
-    e.startsWith("cf.")
-  );
 }
 
 /**
@@ -1179,22 +1171,13 @@ export async function ingestEmailAttachmentsWithoutAi(
     };
   }
 
-  const staff = await isStaffMailboxEmail(options.fromEmail);
-  const app = staff
-    ? await ensureStagingApplication({
-        messageId: options.messageId,
-        clientNameHint: options.clientNameHint,
-        isTest: options.isTest,
-        brokerId: options.brokerId,
-      })
-    : await ensureWaitingApplication({
-        email: options.fromEmail,
-        clientNameHint: options.clientNameHint,
-        isTest: options.isTest,
-        brokerId: options.brokerId,
-      });
-
-  await mergeDuplicateOpenApplicationsByEmail(options.fromEmail);
+  // Niente match sulla From: (Filippo/stessi account). Staging per messageId → merge per CF in OCR.
+  const app = await ensureStagingApplication({
+    messageId: options.messageId,
+    clientNameHint: options.clientNameHint,
+    isTest: options.isTest,
+    brokerId: options.brokerId,
+  });
 
   const existing = await db
     .select({ rawFileName: documents.rawFileName })

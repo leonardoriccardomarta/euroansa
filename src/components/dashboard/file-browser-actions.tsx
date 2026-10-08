@@ -183,7 +183,6 @@ export function CreateFolderForm({
 export function CreateClientFolderForm() {
   const router = useRouter();
   const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
   const [pending, startTransition] = useTransition();
 
   return (
@@ -195,14 +194,13 @@ export function CreateClientFolderForm() {
         const value = name.trim();
         if (!value) return;
         startTransition(async () => {
-          const res = await createClientFolderAction(value, email.trim() || null);
+          const res = await createClientFolderAction(value);
           if (res && "error" in res && res.error) {
             toast.error(res.error);
             return;
           }
           toast.success("Cartella cliente creata");
           setName("");
-          setEmail("");
           if (res && "applicationId" in res && res.applicationId) {
             router.push(`/dashboard/files/${res.applicationId}`);
           } else {
@@ -219,18 +217,6 @@ export function CreateClientFolderForm() {
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="Nome e cognome cliente"
-          className="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm outline-none focus:border-primary-400"
-        />
-      </div>
-      <div className="min-w-[220px] flex-1">
-        <label className="mb-1 block text-xs font-medium text-slate-600">
-          Email cliente (per match mail)
-        </label>
-        <input
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          type="email"
-          placeholder="cliente@email.com"
           className="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm outline-none focus:border-primary-400"
         />
       </div>

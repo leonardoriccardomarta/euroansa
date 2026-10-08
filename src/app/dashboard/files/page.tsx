@@ -25,6 +25,7 @@ export default async function FilesIndexPage() {
       id: applications.id,
       clientName: applications.clientName,
       clientEmail: applications.clientEmail,
+      clientFiscalCode: applications.clientFiscalCode,
       brokerId: applications.brokerId,
       isTest: applications.isTest,
       updatedAt: applications.updatedAt,
@@ -112,9 +113,11 @@ export default async function FilesIndexPage() {
                       </Badge>
                     ) : null}
                   </div>
-                  <p className="truncate text-xs text-slate-500">
-                    {app.clientEmail}
-                  </p>
+                  {app.clientFiscalCode ? (
+                    <p className="truncate text-xs text-slate-500">
+                      CF {app.clientFiscalCode}
+                    </p>
+                  ) : null}
                   <p className="mt-2 text-xs text-slate-600">
                     {n} file
                     {hasRelazione ? ", relazione ok" : ", senza relazione"}

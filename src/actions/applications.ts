@@ -432,6 +432,7 @@ export async function updatePracticeEconomicsAction(
       isTest: applications.isTest,
       status: applications.status,
       rogitoAt: applications.rogitoAt,
+      clientEmail: applications.clientEmail,
     })
     .from(applications)
     .where(eq(applications.id, applicationId))
@@ -453,18 +454,24 @@ export async function updatePracticeEconomicsAction(
   }
 
   const clientName = String(formData.get("clientName") ?? "").trim();
-  const clientEmail = String(formData.get("clientEmail") ?? "")
+  const clientEmailRaw = String(formData.get("clientEmail") ?? "")
     .trim()
     .toLowerCase();
-  if (clientEmail && !clientEmail.includes("@")) {
+  if (clientEmailRaw && !clientEmailRaw.includes("@")) {
     return { error: "Email cliente non valida" };
   }
+  // Vuoto = lascia placeholder tecnico (email non obbligatoria in elenco)
+  const clientEmail = clientEmailRaw.includes("@")
+    ? clientEmailRaw
+    : app.clientEmail?.endsWith("@prontopratica.local")
+      ? app.clientEmail
+      : `cartella.${app.id.replace(/-/g, "").slice(0, 12)}@prontopratica.local`;
 
   await db
     .update(applications)
     .set({
       ...(clientName ? { clientName } : {}),
-      ...(clientEmail ? { clientEmail } : {}),
+      clientEmail,
       provenance: String(formData.get("provenance") ?? "").trim() || null,
       bankName: String(formData.get("bankName") ?? "").trim() || null,
       operationType: String(formData.get("operationType") ?? "").trim() || null,

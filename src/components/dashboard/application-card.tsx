@@ -9,6 +9,7 @@ import {
 } from "@/actions/applications";
 import type { ApplicationStatus } from "@/db/schema";
 import { APPLICATION_STATUS_LABELS } from "@/lib/config/documents";
+import { displayClientEmail } from "@/lib/client-email";
 import { isTutorialPractice } from "@/lib/tutorial";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
@@ -102,8 +103,12 @@ export function ApplicationCard({
             </Badge>
           </div>
           <p className="mt-1 truncate text-sm text-slate-500">
-            {clientEmail}
-            {clientFiscalCode ? `, ${clientFiscalCode}` : ""}
+            {clientFiscalCode
+              ? `CF ${clientFiscalCode}`
+              : "CF non ancora rilevato"}
+            {displayClientEmail(clientEmail)
+              ? ` · ${displayClientEmail(clientEmail)}`
+              : ""}
           </p>
           <div className="mt-3 max-w-xs">
             <div className="mb-1 flex justify-between text-xs text-slate-500">

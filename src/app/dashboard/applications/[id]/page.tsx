@@ -20,6 +20,7 @@ import {
   evaluateChecklist,
   inferEmploymentType,
 } from "@/lib/checklist";
+import { displayClientEmail } from "@/lib/client-email";
 import { normalizePracticeDocFolders } from "@/lib/pipeline";
 import {
   DOCUMENT_TYPE_LABELS,
@@ -166,9 +167,13 @@ export default async function ApplicationDetailPage({
             {current.clientName}
           </h1>
           <p className="mt-2 text-slate-600">
-            {current.clientEmail}
-            {current.clientFiscalCode ? `, CF ${current.clientFiscalCode}` : ""}
-            {brokerName ? `, ${brokerName}` : ""}
+            {current.clientFiscalCode
+              ? `CF ${current.clientFiscalCode}`
+              : "CF non ancora rilevato"}
+            {displayClientEmail(current.clientEmail)
+              ? ` · ${displayClientEmail(current.clientEmail)}`
+              : ""}
+            {brokerName ? ` · ${brokerName}` : ""}
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
             {isTutorialPractice(current) ? (

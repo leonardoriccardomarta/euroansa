@@ -171,10 +171,7 @@ export async function createPracticeFromAppointmentAction(appointmentId: string)
     return { ok: true as const, applicationId: row.applicationId };
   }
 
-  const created = await createClientFolderAction(
-    row.clientName,
-    row.email,
-  );
+  const created = await createClientFolderAction(row.clientName);
   if (created && "error" in created && created.error) {
     return { error: created.error };
   }

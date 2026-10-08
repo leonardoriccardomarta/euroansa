@@ -131,7 +131,7 @@ export function PracticeEconomicsForm({
     >
       <div>
         <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-          Anagrafica (match mail documenti)
+          Anagrafica
         </p>
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
           <div className="space-y-1.5">
@@ -145,20 +145,23 @@ export function PracticeEconomicsForm({
             />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="clientEmail">Email cliente</Label>
+            <Label htmlFor="clientEmail">Email cliente (opzionale)</Label>
             <Input
               id="clientEmail"
               name="clientEmail"
               type="email"
-              defaultValue={values.clientEmail}
+              defaultValue={
+                values.clientEmail?.endsWith("@prontopratica.local")
+                  ? ""
+                  : values.clientEmail
+              }
+              placeholder="cliente@email.com"
               className="h-10"
-              required
             />
             <p className="text-[11px] text-slate-500">
-              Deve essere la mail da cui il cliente manda i documenti: così
-              finiscono in questa pratica. Se vedi{" "}
-              <code className="text-[10px]">@prontopratica.local</code>,
-              sostituiscila con l&apos;email reale.
+              Non obbligatoria. Compilala qui quando la conosci: in elenco
+              compare solo se impostata. I documenti da mail si agganciano per
+              codice fiscale, non per mittente.
             </p>
           </div>
         </div>
