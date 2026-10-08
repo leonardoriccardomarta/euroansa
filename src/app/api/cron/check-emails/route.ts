@@ -16,7 +16,7 @@ import {
   oauthClientFromRefreshToken,
 } from "@/lib/google/auth";
 import { db } from "@/db";
-import { applications, documents, users } from "@/db/schema";
+import { applications, documents } from "@/db/schema";
 
 export const maxDuration = 60;
 
@@ -45,24 +45,6 @@ async function alreadyProcessedFileNames(
     .where(or(...openApps.map((a) => eq(documents.applicationId, a.id))));
 
   return new Set(rows.map((r) => r.rawFileName));
-}
-
-async function isTestSender(fromEmail: string): Promise<boolean> {
-  const normalized = fromEmail.toLowerCase();
-  const adminEnv = process.env.ADMIN_EMAIL?.trim().toLowerCase();
-  if (adminEnv && normalized === adminEnv) return true;
-
-  const [admin] = await db
-    .select({ email: users.email, googleEmail: users.googleEmail })
-    .from(users)
-    .where(eq(users.role, "ADMIN"))
-    .limit(1);
-
-  if (!admin) return false;
-  return (
-    admin.email.toLowerCase() === normalized ||
-    admin.googleEmail?.toLowerCase() === normalized
-  );
 }
 
 export async function GET(req: NextRequest) {
@@ -101,8 +83,6 @@ export async function GET(req: NextRequest) {
       const results = [];
 
       for (const email of emails) {
-        const isTest = await isTestSender(email.fromEmail);
-
         await mergeDuplicateOpenApplicationsByEmail(email.fromEmail);
 
         if (email.attachments.length === 0) {
@@ -113,7 +93,7 @@ export async function GET(req: NextRequest) {
             const app = await ensureWaitingApplication({
               email: email.fromEmail,
               clientNameHint: email.fromEmail.split("@")[0],
-              isTest,
+              isTest: false,
               brokerId: owner.id,
             });
             appId = app.id;
@@ -174,7 +154,7 @@ export async function GET(req: NextRequest) {
             clientNameHint: email.fromEmail.split("@")[0],
           })),
           {
-            isTest,
+            isTest: false,
             brokerId: owner.id,
           },
         );

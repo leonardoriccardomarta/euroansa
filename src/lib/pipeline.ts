@@ -542,24 +542,17 @@ export async function processIncomingFiles(
     }
 
     if (!app) {
-      const adminEmail = process.env.ADMIN_EMAIL?.trim().toLowerCase();
-      const isTest =
-        options?.isTest === true ||
-        Boolean(
-          adminEmail &&
-            file.clientEmail?.toLowerCase() === adminEmail,
-        );
-
       if (file.clientEmail) {
         await mergeDuplicateOpenApplicationsByEmail(file.clientEmail);
       }
 
-      // Match per CF dal documento; la mail mittente conta solo se non è di uno staff
+      // Match per CF dal documento; la mail mittente conta solo se non è di uno staff.
+      // Autoinvio da casella OAuth = pratica normale (niente isTest automatico).
       app = await findOrCreateApplication({
         fiscalCode: analysis.extractedData.fiscalCode,
         email: file.clientEmail,
         clientName,
-        isTest,
+        isTest: options?.isTest === true,
         brokerId: options?.brokerId,
       });
 

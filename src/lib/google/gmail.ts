@@ -151,6 +151,28 @@ async function attachmentsFromDriveLinks(
 }
 
 /**
+ * Query Gmail per oggetto: bracket in env opzionali; virgolette per il "-".
+ * Matcha sia `EUROANSA-MUTUO` sia `[EUROANSA-MUTUO]` sia `[EXT] EUROANSA-MUTUO`.
+ */
+export function buildGmailSubjectQuery(subjectTag: string): string {
+  const searchToken = subjectTag.replace(/[\[\]]/g, "").trim();
+  if (!searchToken) {
+    throw new Error("GMAIL_SUBJECT_TAG non valida");
+  }
+  return `subject:"${searchToken.replace(/"/g, "")}"`;
+}
+
+/** True se l'oggetto mail contiene il tag (con/senza bracket, anche con prefisso [EXT]). */
+export function subjectMatchesTag(
+  subject: string,
+  subjectTag: string,
+): boolean {
+  const token = subjectTag.replace(/[\[\]]/g, "").trim().toLowerCase();
+  if (!token) return false;
+  return subject.toLowerCase().includes(token);
+}
+
+/**
  * Trova email con oggetto corretto (tag GMAIL_SUBJECT_TAG).
  * Allegati MIME + file da link Google Drive (allegati > ~25MB).
  */
@@ -165,13 +187,7 @@ export async function fetchPendingMortgageEmails(
   if (!subjectTag) {
     throw new Error("Imposta GMAIL_SUBJECT_TAG nell'ambiente");
   }
-  // Bracket in env opzionali: [EUROANSA-MUTUO] e EUROANSA-MUTUO sono equivalenti.
-  // Virgolette obbligatorie: senza, Gmail spezza su "-" e il match fallisce.
-  const searchToken = subjectTag.replace(/[\[\]]/g, "").trim();
-  if (!searchToken) {
-    throw new Error("GMAIL_SUBJECT_TAG non valida");
-  }
-  const subjectQuery = `subject:"${searchToken.replace(/"/g, "")}"`;
+  const subjectQuery = buildGmailSubjectQuery(subjectTag);
 
   const list = await gmail.users.messages.list({
     userId: "me",
