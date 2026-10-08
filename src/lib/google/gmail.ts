@@ -165,16 +165,19 @@ export async function fetchPendingMortgageEmails(
   if (!subjectTag) {
     throw new Error("Imposta GMAIL_SUBJECT_TAG nell'ambiente");
   }
+  // Bracket in env opzionali: [EUROANSA-MUTUO] e EUROANSA-MUTUO sono equivalenti.
+  // Virgolette obbligatorie: senza, Gmail spezza su "-" e il match fallisce.
   const searchToken = subjectTag.replace(/[\[\]]/g, "").trim();
   if (!searchToken) {
     throw new Error("GMAIL_SUBJECT_TAG non valida");
   }
+  const subjectQuery = `subject:"${searchToken.replace(/"/g, "")}"`;
 
   const list = await gmail.users.messages.list({
     userId: "me",
     q: includeProcessed
-      ? `subject:${searchToken}`
-      : `-label:MUTUO-ELABORATA subject:${searchToken}`,
+      ? subjectQuery
+      : `-label:MUTUO-ELABORATA ${subjectQuery}`,
     maxResults: maxMessages,
   });
 
