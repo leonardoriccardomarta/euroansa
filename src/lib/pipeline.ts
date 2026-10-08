@@ -362,10 +362,144 @@ export async function mergeDuplicateOpenApplicationsByEmail(email: string) {
   return keep;
 }
 
-/** Fusiona tutti i doppioni per email (cleanup one-shot / cron). */
+function isPlaceholderClientEmail(email: string): boolean {
+  const e = email.trim().toLowerCase();
+  return (
+    e.endsWith("@prontopratica.local") ||
+    e.startsWith("intake.") ||
+    e.startsWith("cf.")
+  );
+}
+
+/**
+ * Fondi pratiche aperte con lo stesso CF (es. cf.* + mail mittente).
+ * Tiene quella con più doc; preferisce email reale al placeholder.
+ */
+export async function mergeDuplicateOpenApplicationsByFiscalCode(
+  fiscalCode: string,
+) {
+  const cf = fiscalCode.trim().toUpperCase();
+  if (!cf) return null;
+
+  const candidates = await db
+    .select()
+    .from(applications)
+    .where(
+      and(
+        eq(applications.clientFiscalCode, cf),
+        inArray(applications.status, [
+          ...OPEN_STATUSES,
+          ...POST_SECRETARY_ACTIVE,
+        ]),
+      ),
+    );
+
+  if (candidates.length <= 1) return candidates[0] ?? null;
+
+  const ranked = await Promise.all(
+    candidates.map(async (app) => {
+      const docs = await db
+        .select({ id: documents.id })
+        .from(documents)
+        .where(eq(documents.applicationId, app.id));
+      return { app, docCount: docs.length };
+    }),
+  );
+  ranked.sort((a, b) => {
+    if (b.docCount !== a.docCount) return b.docCount - a.docCount;
+    const aReal = isPlaceholderClientEmail(a.app.clientEmail) ? 0 : 1;
+    const bReal = isPlaceholderClientEmail(b.app.clientEmail) ? 0 : 1;
+    if (bReal !== aReal) return bReal - aReal;
+    return (
+      new Date(b.app.updatedAt).getTime() - new Date(a.app.updatedAt).getTime()
+    );
+  });
+
+  const keep = ranked[0]!.app;
+  const dupes = ranked.slice(1).map((r) => r.app);
+
+  for (const dupe of dupes) {
+    await absorbApplicationInto(dupe.id, keep.id);
+  }
+
+  await dedupeApplicationDocuments(keep.id);
+  const [fresh] = await db
+    .select()
+    .from(applications)
+    .where(eq(applications.id, keep.id))
+    .limit(1);
+  return fresh ?? keep;
+}
+
+/** Sposta tutti i doc da from → into, copia email/CF utili, elimina from. */
+async function absorbApplicationInto(fromId: string, intoId: string) {
+  if (fromId === intoId) return;
+
+  const [from] = await db
+    .select()
+    .from(applications)
+    .where(eq(applications.id, fromId))
+    .limit(1);
+  const [into] = await db
+    .select()
+    .from(applications)
+    .where(eq(applications.id, intoId))
+    .limit(1);
+  if (!from || !into) return;
+
+  await db
+    .update(documents)
+    .set({ applicationId: intoId })
+    .where(eq(documents.applicationId, fromId));
+
+  const patch: Partial<typeof applications.$inferInsert> = {
+    updatedAt: new Date(),
+  };
+  if (
+    isPlaceholderClientEmail(into.clientEmail) &&
+    !isPlaceholderClientEmail(from.clientEmail) &&
+    !(await isStaffMailboxEmail(from.clientEmail))
+  ) {
+    patch.clientEmail = from.clientEmail;
+  }
+  if (!into.clientFiscalCode && from.clientFiscalCode) {
+    patch.clientFiscalCode = from.clientFiscalCode;
+  }
+  if (
+    (into.clientName === "Cliente" || into.clientName.startsWith("Intake ")) &&
+    from.clientName !== "Cliente" &&
+    !from.clientName.startsWith("Intake ")
+  ) {
+    patch.clientName = from.clientName;
+  }
+  if (!into.driveFolderId && from.driveFolderId) {
+    patch.driveFolderId = from.driveFolderId;
+    patch.driveFolderUrl = from.driveFolderUrl;
+  }
+  if (!into.brokerId && from.brokerId) {
+    patch.brokerId = from.brokerId;
+  }
+  if (!into.sentToSecretaryAt && from.sentToSecretaryAt) {
+    patch.sentToSecretaryAt = from.sentToSecretaryAt;
+    patch.status = from.status;
+  }
+  if (Object.keys(patch).length > 1) {
+    await db
+      .update(applications)
+      .set(patch)
+      .where(eq(applications.id, intoId));
+  }
+
+  await db.delete(applications).where(eq(applications.id, fromId));
+}
+
+/** Fusiona tutti i doppioni per email e per CF (cleanup / cron). */
 export async function mergeAllDuplicateApplications() {
   const rows = await db
-    .select({ email: applications.clientEmail })
+    .select({
+      email: applications.clientEmail,
+      fiscalCode: applications.clientFiscalCode,
+    })
     .from(applications);
   const emails = [
     ...new Set(rows.map((r) => r.email.trim().toLowerCase()).filter(Boolean)),
@@ -381,7 +515,76 @@ export async function mergeAllDuplicateApplications() {
       mergedGroups += 1;
     }
   }
-  return { emailsChecked: emails.length, mergedGroups };
+
+  const codes = [
+    ...new Set(
+      rows
+        .map((r) => r.fiscalCode?.trim().toUpperCase())
+        .filter((c): c is string => Boolean(c)),
+    ),
+  ];
+  for (const cf of codes) {
+    const before = await db
+      .select({ id: applications.id })
+      .from(applications)
+      .where(eq(applications.clientFiscalCode, cf));
+    if (before.length > 1) {
+      await mergeDuplicateOpenApplicationsByFiscalCode(cf);
+      mergedGroups += 1;
+    }
+  }
+
+  // Pratiche senza CF ma stesso nominativo di una con CF (es. mail intake + OCR)
+  const openApps = await db
+    .select()
+    .from(applications)
+    .where(
+      inArray(applications.status, [
+        ...OPEN_STATUSES,
+        ...POST_SECRETARY_ACTIVE,
+      ]),
+    );
+  const withCf = openApps.filter((a) => a.clientFiscalCode?.trim());
+  const withoutCf = openApps.filter((a) => !a.clientFiscalCode?.trim());
+  for (const orphan of withoutCf) {
+    const nameKey = orphan.clientName.trim().toLowerCase();
+    if (
+      !nameKey ||
+      nameKey === "cliente" ||
+      nameKey.startsWith("intake ")
+    ) {
+      continue;
+    }
+    const match = withCf.find(
+      (a) =>
+        a.id !== orphan.id &&
+        a.clientName.trim().toLowerCase() === nameKey,
+    );
+    if (!match) continue;
+    await absorbApplicationInto(orphan.id, match.id);
+    mergedGroups += 1;
+  }
+
+  // Pratiche aperte senza alcun documento = spazzatura intake
+  for (const app of openApps) {
+    const [still] = await db
+      .select({ id: applications.id })
+      .from(applications)
+      .where(eq(applications.id, app.id))
+      .limit(1);
+    if (!still) continue;
+    const docs = await db
+      .select({ id: documents.id })
+      .from(documents)
+      .where(eq(documents.applicationId, app.id))
+      .limit(1);
+    if (docs.length === 0 && isPlaceholderClientEmail(app.clientEmail)) {
+      await db.delete(applications).where(eq(applications.id, app.id));
+      mergedGroups += 1;
+    }
+  }
+
+  return { emailsChecked: emails.length, cfChecked: codes.length, mergedGroups };
 }
 
 /** Elimina duplicati: stesso file grezzo; stesso tipo solo se non è CI/TS (fronte-retro). */
@@ -1061,6 +1264,12 @@ export async function processPendingDocumentAnalyses(limit = 2) {
       ),
     );
 
+  // Riprova i falliti (quota Gemini / timeout precedenti)
+  await db
+    .update(documents)
+    .set({ analysisStatus: "pending", analysisClaimedAt: null })
+    .where(eq(documents.analysisStatus, "failed"));
+
   const candidates = await db
     .select({ id: documents.id })
     .from(documents)
@@ -1213,8 +1422,12 @@ export async function processPendingDocumentAnalyses(limit = 2) {
           })
           .where(eq(documents.id, doc.id));
 
-        if (staging && targetApp.id !== currentApp.id) {
-          await deleteAppIfEmpty(currentApp.id);
+        if (targetApp.id !== currentApp.id) {
+          await absorbApplicationInto(currentApp.id, targetApp.id);
+        }
+        const cfDup = analysis.extractedData.fiscalCode?.trim();
+        if (cfDup) {
+          await mergeDuplicateOpenApplicationsByFiscalCode(cfDup);
         }
         await refreshApplicationState(targetApp.id);
         results.push({
@@ -1299,8 +1512,12 @@ export async function processPendingDocumentAnalyses(limit = 2) {
         })
         .where(eq(documents.id, doc.id));
 
-      if (staging && targetApp.id !== currentApp.id) {
-        await deleteAppIfEmpty(currentApp.id);
+      if (targetApp.id !== currentApp.id) {
+        await absorbApplicationInto(currentApp.id, targetApp.id);
+      }
+      const cfDone = finalAnalysis.extractedData.fiscalCode?.trim();
+      if (cfDone) {
+        await mergeDuplicateOpenApplicationsByFiscalCode(cfDone);
       }
 
       await refreshApplicationState(targetApp.id);
@@ -1332,12 +1549,3 @@ export async function processPendingDocumentAnalyses(limit = 2) {
   };
 }
 
-async function deleteAppIfEmpty(applicationId: string) {
-  const left = await db
-    .select({ id: documents.id })
-    .from(documents)
-    .where(eq(documents.applicationId, applicationId))
-    .limit(1);
-  if (left.length > 0) return;
-  await db.delete(applications).where(eq(applications.id, applicationId));
-}

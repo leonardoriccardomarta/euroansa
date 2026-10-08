@@ -113,11 +113,11 @@ Poi login → **Impostazioni → Collega Google** (solo Gmail).
 Con il dominio custom aggiorna (o crea) il job: il vecchio `*.vercel.app` non basta più.
 
 - **URL:** `https://www.prontopratica.app/api/cron/check-emails`
-- **Schedule:** ogni **1 minuto** (free cron-job.org ha timeout ~30s)
-- **Timeout:** 30s (max free)
+- **Schedule:** ogni **1 minuto**
+- **Timeout cron-job.org:** 30s va bene: l’API risponde subito `200` e il lavoro continua in background su Vercel (fino a 60s)
 - **GET** + header `Authorization: Bearer` + valore di `CRON_SECRET` su Vercel
-- Il cron fa: (1) intake mail→R2 senza OCR, (2) analizza 1 file in coda; al minuto dopo continua
-- Dopo il cambio dominio: **Save** + **Run now** e controlla **200** (non Timeout)
+- Flusso: coda OCR → intake mail→R2 → altri OCR; al minuto dopo smaltisce il resto
+- Dopo il cambio dominio: **Save** + **Run now** → deve dare **200**
 
 ### Oggetto email clienti
 il valore di **`GMAIL_SUBJECT_TAG`** nell'oggetto.

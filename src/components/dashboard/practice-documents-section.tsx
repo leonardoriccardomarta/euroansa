@@ -56,6 +56,24 @@ function DocRow({
             ) : (
               <AlertCircle className="h-4 w-4 text-red-500" />
             )}
+            {doc.analysisStatus === "pending" ||
+            doc.analysisStatus === "processing" ? (
+              <Badge
+                variant="outline"
+                className="border-sky-200 bg-sky-50 text-sky-800"
+              >
+                {doc.analysisStatus === "processing"
+                  ? "Analisi in corso"
+                  : "In coda OCR"}
+              </Badge>
+            ) : doc.analysisStatus === "failed" ? (
+              <Badge
+                variant="outline"
+                className="border-red-200 bg-red-50 text-red-700"
+              >
+                Analisi fallita
+              </Badge>
+            ) : null}
             {isLegacyDriveKey(doc.driveFileId) ? (
               <Badge
                 variant="outline"

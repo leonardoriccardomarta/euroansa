@@ -165,8 +165,25 @@ export async function analyzeDocument(params: {
   const ai = new GoogleGenAI({ apiKey });
   const base64 = params.buffer.toString("base64");
 
+  const todayRome = new Intl.DateTimeFormat("it-IT", {
+    timeZone: "Europe/Rome",
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  }).format(new Date());
+  const todayIso = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/Rome",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+
   const prompt = `Sei un esperto di istruttoria mutui in Italia (mediatore creditizio).
 Analizza il CONTENUTO reale di questo PDF/immagine (non fidarti solo del nome file).
+
+DATA DI OGGI (Europe/Rome): ${todayRome} (${todayIso}).
+Usa QUESTA data per scadenze e "documento futuro". Esempio: se oggi è ottobre 2026, un estratto/busta di giugno 2026 è PASSATO, non futuro. Non inventare un'altra data odierna.
 
 documentType = tipo PRINCIPALE del documento (uno solo, il più importante per la checklist).
 alsoCovers (in extractedData) = altri tipi checklist presenti nello STESSO file (array, può essere vuoto).
@@ -180,12 +197,14 @@ Regole classificazione (guarda il contenuto):
 - Modello Unico: MODELLO_UNICO_1 / _2.
 - Estratto conto → ESTRATTO_CONTO; lista movimenti → LISTA_MOVIMENTI_3_MESI.
 - Atto provenienza → ATTO_IMMOBILE; preliminare/proposta → PRELIMINARE_COMPRAVENDITA.
+- Foto WhatsApp di documenti leggibili: classifica dal CONTENUTO (CI, certificato, estratto…), non lasciare SCONOSCIUTO solo perché il nome file è "WhatsApp Image…".
 - Fogli firmati mediatore (privacy, DDM, mandato) → SCONOSCIUTO (non tipizzare come documenti reddito).
 
 isValid = true SOLO se utilizzabile in istruttoria. False + validationIssues se:
 1) Illeggibile / scaduto / tipo incoerente col contenuto
 2) Estratto/lista movimenti incompleti o sospetti
 3) Busta con CIG/cessione/pignoramenti rilevanti (segnala in validationIssues e loanDeductions; isValid può restare true se leggibile)
+4) NON segnare "futuro" un mese/anno già trascorso rispetto alla DATA DI OGGI sopra
 
 Estrai: nome, cognome, CF, scadenza CI, mese buste, netto, trattenute, lordo annuale.
 Numeri numerici. validationIssues in italiano.
