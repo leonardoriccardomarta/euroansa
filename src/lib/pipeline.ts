@@ -1417,6 +1417,12 @@ export async function ingestEmailAttachmentsWithoutAi(
       .update(applications)
       .set({ updatedAt: new Date() })
       .where(eq(applications.id, app.id));
+    try {
+      const { markOcrPending } = await import("@/lib/cron/neon-gate");
+      await markOcrPending();
+    } catch (flagErr) {
+      console.error("markOcrPending", flagErr);
+    }
   }
 
   return {
@@ -1716,6 +1722,13 @@ export async function processPendingDocumentAnalyses(limit = 2) {
         .where(eq(documents.id, doc.id));
       results.push({ documentId: doc.id, ok: false, error: msg });
     }
+  }
+
+  try {
+    const { syncOcrPendingFlagFromDb } = await import("@/lib/cron/neon-gate");
+    await syncOcrPendingFlagFromDb();
+  } catch (flagErr) {
+    console.error("syncOcrPendingFlagFromDb", flagErr);
   }
 
   return {

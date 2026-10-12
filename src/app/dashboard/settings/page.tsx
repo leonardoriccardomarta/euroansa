@@ -110,6 +110,10 @@ export default async function SettingsPage({
                 </code>
               </p>
             ) : null}
+            <p className="text-xs text-slate-500">
+              Cron mail: se non ci sono mail né coda OCR, Neon non viene
+              svegliato (check Gmail via token su R2).
+            </p>
             <div className="flex flex-wrap gap-2">
               <a href="/api/google/connect">
                 <Button

@@ -19,6 +19,13 @@ import {
 import { db } from "@/db";
 import { applications, documents } from "@/db/schema";
 import { ensureSchema } from "@/lib/db/ensure-schema";
+import {
+  getCronGoogleAuth,
+  readOcrPendingFlag,
+  saveGoogleHubToR2,
+  shouldWakeNeon,
+  syncOcrPendingFlagFromDb,
+} from "@/lib/cron/neon-gate";
 
 export const maxDuration = 60;
 
@@ -42,7 +49,7 @@ async function alreadyProcessedFileNames(
 
   const staff = await isStaffMailboxEmail(fromEmail);
   if (staff && messageId) {
-    const safeId = messageId.replace(/[^a-zA-Z0-9]/g, "").slice(0, 24);
+    const safeId = messageId.replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 24);
     const stagingEmail = `intake.${safeId || "x"}@prontopratica.local`;
     const [staging] = await db
       .select({ id: applications.id })
@@ -98,7 +105,24 @@ async function runEmailCronWork(force: boolean) {
   const connectedUsers = await listConnectedGoogleUsers();
   if (connectedUsers.length === 0) {
     console.warn("cron check-emails: nessun Google collegato");
-    return { analysis, accountResults: [], ok: false as const };
+    try {
+      await syncOcrPendingFlagFromDb();
+    } catch {
+      // ignore
+    }
+    return { analysis, accountResults: [], ok: false as const, neon: true };
+  }
+
+  // Specchia hub su R2 così i prossimi tick Gmail non toccano Neon
+  const hub = connectedUsers[0]!;
+  try {
+    await saveGoogleHubToR2({
+      refreshToken: hub.googleRefreshToken,
+      userId: hub.id,
+      googleEmail: hub.googleEmail,
+    });
+  } catch (hubErr) {
+    console.error("saveGoogleHubToR2 from cron", hubErr);
   }
 
   const accountResults = [];
@@ -232,20 +256,23 @@ async function runEmailCronWork(force: boolean) {
 
     accountResults.push({
       userId: owner.id,
-      userEmail: owner.email,
-      googleEmail: owner.googleEmail,
-      emails: emails.length,
-      attachments: emails.reduce((n, e) => n + e.attachments.length, 0),
+      email: owner.googleEmail ?? owner.email,
       results,
     });
   }
 
-  // 3) Se restano secondi dopo intake, altri OCR
+  // 3) Ancora OCR se resta budget (file appena messi in coda)
   let analysisAfter: Awaited<
     ReturnType<typeof processPendingDocumentAnalyses>
   > | null = null;
   if (withinBudget()) {
-    analysisAfter = await processPendingDocumentAnalyses(2);
+    analysisAfter = await processPendingDocumentAnalyses(MAX_ANALYSES_PER_RUN);
+  }
+
+  try {
+    await syncOcrPendingFlagFromDb();
+  } catch (flagErr) {
+    console.error("syncOcrPendingFlagFromDb end", flagErr);
   }
 
   console.log("cron check-emails done", {
@@ -253,6 +280,7 @@ async function runEmailCronWork(force: boolean) {
     analysis,
     analysisAfter,
     accounts: accountResults.length,
+    neon: true,
   });
 
   return {
@@ -261,7 +289,104 @@ async function runEmailCronWork(force: boolean) {
     analysis,
     analysisAfter,
     accountResults,
+    neon: true,
   };
+}
+
+/**
+ * Gate senza Neon: Gmail (token R2/env) + flag OCR su R2.
+ * Solo se c’è lavoro (o force / flag sconosciuto) → ensureSchema + pipeline.
+ */
+async function runCronWithNeonGate(force: boolean) {
+  const started = Date.now();
+
+  let gmailCount = 0;
+  let ocrFlag: boolean | null = null;
+  let probeError: string | null = null;
+
+  try {
+    ocrFlag = await readOcrPendingFlag();
+  } catch (err) {
+    probeError = err instanceof Error ? err.message : String(err);
+    console.error("readOcrPendingFlag", err);
+    // In dubbio: apri Neon (non perdere OCR)
+    ocrFlag = null;
+  }
+
+  try {
+    const auth = await getCronGoogleAuth();
+    if (auth) {
+      const emails = await fetchPendingMortgageEmails(
+        MAX_EMAILS_PER_ACCOUNT,
+        force,
+        auth,
+      );
+      gmailCount = emails.length;
+    } else {
+      // Nessun token fuori Neon → serve DB per hub, oppure idle se flag false
+      if (ocrFlag !== false || force) {
+        const schema = await ensureSchema();
+        if (!schema.ok) {
+          return {
+            ok: false as const,
+            error: schema.error ?? "Schema DB non aggiornato",
+            neon: true,
+          };
+        }
+        return await runEmailCronWork(force);
+      }
+      console.log("cron check-emails idle (no google token outside neon, ocr=false)", {
+        elapsedMs: Date.now() - started,
+      });
+      return {
+        ok: true as const,
+        skipped: "idle" as const,
+        reason: "no_token_ocr_clear",
+        neon: false,
+        elapsedMs: Date.now() - started,
+      };
+    }
+  } catch (err) {
+    probeError = err instanceof Error ? err.message : String(err);
+    console.error("gmail probe without neon failed", err);
+    // Probe fallita → meglio aprire Neon che perdere mail
+    ocrFlag = ocrFlag === false ? null : ocrFlag;
+  }
+
+  const wake = shouldWakeNeon({
+    force,
+    gmailMessageCount: gmailCount,
+    ocrFlag,
+  });
+
+  if (!wake) {
+    console.log("cron check-emails idle (no neon)", {
+      gmailCount,
+      ocrFlag,
+      elapsedMs: Date.now() - started,
+    });
+    return {
+      ok: true as const,
+      skipped: "idle" as const,
+      gmailCount,
+      ocrFlag,
+      neon: false,
+      elapsedMs: Date.now() - started,
+      probeError,
+    };
+  }
+
+  const schema = await ensureSchema();
+  if (!schema.ok) {
+    return {
+      ok: false as const,
+      error: schema.error ?? "Schema DB non aggiornato",
+      neon: true,
+    };
+  }
+
+  const result = await runEmailCronWork(force);
+  return { ...result, probeError, gmailProbeCount: gmailCount, ocrFlag };
 }
 
 export async function GET(req: NextRequest) {
@@ -272,14 +397,6 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const schema = await ensureSchema();
-  if (!schema.ok) {
-    return NextResponse.json(
-      { ok: false, error: schema.error ?? "Schema DB non aggiornato" },
-      { status: 500 },
-    );
-  }
-
   const force =
     req.nextUrl.searchParams.get("force") === "1" ||
     req.nextUrl.searchParams.get("force") === "true";
@@ -287,7 +404,7 @@ export async function GET(req: NextRequest) {
   // Rispondi subito a cron-job.org; il lavoro continua su Vercel (maxDuration).
   after(async () => {
     try {
-      await runEmailCronWork(force);
+      await runCronWithNeonGate(force);
     } catch (error) {
       console.error("cron check-emails background error", error);
     }
@@ -298,6 +415,7 @@ export async function GET(req: NextRequest) {
     accepted: true,
     mode: "background",
     force,
+    neonGate: true,
   });
 }
 

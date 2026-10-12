@@ -324,3 +324,49 @@ export async function deletePracticeBlobs(applicationId: string): Promise<void> 
       : undefined;
   } while (continuationToken);
 }
+
+/** Blob di sistema (cron gate, token hub) — non legati a una pratica. */
+export async function putSystemBlob(
+  pathname: string,
+  body: string | Buffer,
+  contentType = "application/json",
+): Promise<void> {
+  const buf = typeof body === "string" ? Buffer.from(body, "utf8") : body;
+  await putObject(pathname.replace(/^\/+/, ""), buf, contentType);
+}
+
+export async function getSystemBlob(
+  pathname: string,
+): Promise<{ buffer: Buffer; contentType: string } | null> {
+  const { bucket } = requireR2Config();
+  const client = getR2Client();
+  const key = pathname.replace(/^\/+/, "");
+  try {
+    const result = await client.send(
+      new GetObjectCommand({ Bucket: bucket, Key: key }),
+    );
+    if (!result.Body) return null;
+    const bytes = await result.Body.transformToByteArray();
+    return {
+      buffer: Buffer.from(bytes),
+      contentType: result.ContentType || "application/octet-stream",
+    };
+  } catch (err) {
+    const name = err instanceof Error ? err.name : "";
+    const msg = err instanceof Error ? err.message : String(err);
+    if (
+      name === "NoSuchKey" ||
+      name === "NotFound" ||
+      msg.includes("NoSuchKey") ||
+      msg.includes("Not Found") ||
+      msg.includes("404")
+    ) {
+      return null;
+    }
+    throw err;
+  }
+}
+
+export async function deleteSystemBlob(pathname: string): Promise<void> {
+  await deleteBlobByPathname(pathname.replace(/^\/+/, ""));
+}

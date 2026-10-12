@@ -85,6 +85,18 @@ export async function GET(req: NextRequest) {
       })
       .where(eq(users.id, userId));
 
+    // Copia su R2: il cron Gmail può girare senza svegliare Neon
+    try {
+      const { saveGoogleHubToR2 } = await import("@/lib/cron/neon-gate");
+      await saveGoogleHubToR2({
+        refreshToken: tokens.refresh_token,
+        userId,
+        googleEmail,
+      });
+    } catch (r2Err) {
+      console.error("saveGoogleHubToR2 failed", r2Err);
+    }
+
     return NextResponse.redirect(`${base}/dashboard/settings?google=ok`);
   } catch (error) {
     console.error("google callback error", error);

@@ -8,5 +8,11 @@ import { clearAllGoogleConnections } from "@/lib/google/auth";
 export async function disconnectGoogleAction(): Promise<void> {
   await requireAdmin();
   await clearAllGoogleConnections();
+  try {
+    const { clearGoogleHubFromR2 } = await import("@/lib/cron/neon-gate");
+    await clearGoogleHubFromR2();
+  } catch (err) {
+    console.error("clearGoogleHubFromR2", err);
+  }
   revalidatePath("/dashboard/settings");
 }
