@@ -90,25 +90,26 @@ export function RequiredDocsEditor({
     return item.types.length > 0 && selectedCount(item) === item.types.length;
   }
 
-  /** Voci ripetute (CU, estratto…) solo nella categoria lavorativa attiva. */
+  /**
+   * Checklist = “questa voce serve”.
+   * Multi-slot (3 buste): basta 1 slot selezionato → voce segnata (senza 1/3).
+   * L’incompiutezza resta sotto nei file / stato pratica.
+   */
   function itemState(
     item: SheetChecklistItem,
     section: SheetSection,
-  ): "off" | "partial" | "on" {
+  ): "off" | "on" {
     if (isIncomeSection(section) && section.subtitle !== incomeFocus) {
       return "off";
     }
-    const n = selectedCount(item);
-    if (n === 0) return "off";
-    if (n < item.types.length) return "partial";
-    return "on";
+    return selectedCount(item) > 0 ? "on" : "off";
   }
 
   function toggleItem(item: SheetChecklistItem, section: SheetSection) {
     // Click su altra categoria reddituale → sposta il focus (non doppia selezione)
     if (isIncomeSection(section) && section.subtitle !== incomeFocus) {
       setIncomeFocus(section.subtitle);
-      if (!typesFullySelected(item)) {
+      if (selectedCount(item) === 0) {
         save([...new Set([...selected, ...item.types])]);
       }
       return;
@@ -119,7 +120,7 @@ export function RequiredDocsEditor({
     if (state === "on") {
       next = selected.filter((t) => !item.types.includes(t));
     } else {
-      // off o parziale → completa tutti gli slot (es. 3 buste)
+      // Accende tutti gli slot del gruppo (es. 3 buste richieste)
       next = [...new Set([...selected, ...item.types])];
     }
     save(next);
@@ -181,11 +182,6 @@ export function RequiredDocsEditor({
             <ul className="mt-3 grid gap-2 sm:grid-cols-2">
               {section.items.map((item) => {
                 const state = itemState(item, section);
-                const n = selectedCount(item);
-                const multiHint =
-                  item.types.length > 1 && n > 0
-                    ? ` (${n}/${item.types.length})`
-                    : "";
                 return (
                   <li key={`${section.subtitle ?? section.title}-${item.label}`}>
                     <button
@@ -195,25 +191,20 @@ export function RequiredDocsEditor({
                       className={`flex w-full items-center gap-2.5 rounded-lg border px-3 py-2.5 text-left text-xs font-medium uppercase transition active:scale-[0.99] sm:text-[13px] ${
                         state === "on"
                           ? "border-primary-300 bg-primary-50 text-primary-900"
-                          : state === "partial"
-                            ? "border-amber-300 bg-amber-50 text-amber-950"
-                            : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                          : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
                       }`}
                     >
                       <span
                         className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full border text-[10px] ${
                           state === "on"
                             ? "border-primary-600 bg-primary-600 text-white"
-                            : state === "partial"
-                              ? "border-amber-500 bg-amber-500 text-white"
-                              : "border-slate-400 bg-white"
+                            : "border-slate-400 bg-white"
                         }`}
                         aria-hidden
                       >
-                        {state === "on" ? "✓" : state === "partial" ? "·" : ""}
+                        {state === "on" ? "✓" : ""}
                       </span>
                       {item.label}
-                      {multiHint}
                     </button>
                   </li>
                 );

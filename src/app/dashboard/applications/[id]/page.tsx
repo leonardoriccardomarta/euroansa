@@ -349,33 +349,25 @@ export default async function ApplicationDetailPage({
                 const needsReview = row.types.some((t) =>
                   checklist.invalid.includes(t),
                 );
-                const partial =
-                  !allPresent && presentCount > 0;
-                const multiLabel =
-                  row.types.length > 1
-                    ? ` (${presentCount}/${row.types.length})`
-                    : "";
+                // Multi-slot: la voce si “segna” appena c’è almeno un pezzo (niente 1/3 qui)
+                const categoryStarted = presentCount > 0;
                 return (
                   <li
                     key={`${row.label}-${row.types.join("-")}`}
-                    className={`flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-xs font-medium uppercase sm:text-[13px] ${
-                      partial
-                        ? "bg-amber-50 text-amber-950"
-                        : "bg-slate-50 text-slate-700"
-                    }`}
+                    className="flex items-center gap-2.5 rounded-lg bg-slate-50 px-3 py-2.5 text-xs font-medium uppercase text-slate-700 sm:text-[13px]"
                   >
                     {allValid ? (
                       <CheckCircle2
                         className="h-4 w-4 shrink-0 text-emerald-600"
                         aria-label="Presente e valido"
                       />
-                    ) : allPresent || needsReview || partial ? (
-                      <AlertCircle
-                        className="h-4 w-4 shrink-0 text-amber-500"
+                    ) : categoryStarted || needsReview ? (
+                      <CheckCircle2
+                        className="h-4 w-4 shrink-0 text-primary-600"
                         aria-label={
-                          partial
-                            ? `Parziale ${presentCount}/${row.types.length}`
-                            : "Presente da rivedere"
+                          allPresent
+                            ? "Presente da rivedere"
+                            : "Categoria presente (ancora pezzi mancanti sotto)"
                         }
                       />
                     ) : (
@@ -386,17 +378,13 @@ export default async function ApplicationDetailPage({
                     )}
                     <span
                       className={
-                        allValid
+                        allValid || categoryStarted
                           ? "text-slate-800"
-                          : partial
-                            ? "text-amber-950"
-                            : "text-slate-600"
+                          : "text-slate-600"
                       }
                     >
                       {row.label}
-                      {multiLabel}
-                      {needsReview && !partial ? " · da rivedere" : ""}
-                      {partial && !allValid ? " · incompleto" : ""}
+                      {needsReview && allPresent ? " · da rivedere" : ""}
                     </span>
                   </li>
                 );
