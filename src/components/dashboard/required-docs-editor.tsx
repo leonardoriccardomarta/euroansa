@@ -86,10 +86,6 @@ export function RequiredDocsEditor({
     return item.types.filter((t) => selected.includes(t)).length;
   }
 
-  function typesFullySelected(item: SheetChecklistItem) {
-    return item.types.length > 0 && selectedCount(item) === item.types.length;
-  }
-
   /**
    * Checklist = “questa voce serve”.
    * Multi-slot (3 buste): basta 1 slot selezionato → voce segnata (senza 1/3).
