@@ -150,26 +150,42 @@ async function attachmentsFromDriveLinks(
   return out;
 }
 
+/** Normalizza trattini/spazi: "EUROANSA-MUTUO" ≈ "EUROANSA MUTUO". */
+function normalizeSubjectToken(raw: string): string {
+  return raw
+    .replace(/[\[\]]/g, "")
+    .trim()
+    .toLowerCase()
+    .replace(/[_\-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 /**
- * Query Gmail per oggetto: bracket in env opzionali; virgolette per il "-".
- * Matcha sia `EUROANSA-MUTUO` sia `[EUROANSA-MUTUO]` sia `[EXT] EUROANSA-MUTUO`.
+ * Query Gmail: tag da env + variante con spazio al posto del trattino.
+ * Matcha `EUROANSA-MUTUO`, `EUROANSA MUTUO`, `[EUROANSA-MUTUO]`, `[EXT] …`.
  */
 export function buildGmailSubjectQuery(subjectTag: string): string {
   const searchToken = subjectTag.replace(/[\[\]]/g, "").trim();
   if (!searchToken) {
     throw new Error("GMAIL_SUBJECT_TAG non valida");
   }
-  return `subject:"${searchToken.replace(/"/g, "")}"`;
+  const primary = searchToken.replace(/"/g, "");
+  const spaced = primary.replace(/[_\-]+/g, " ").replace(/\s+/g, " ").trim();
+  if (spaced && spaced.toLowerCase() !== primary.toLowerCase()) {
+    return `(subject:"${primary}" OR subject:"${spaced}")`;
+  }
+  return `subject:"${primary}"`;
 }
 
-/** True se l'oggetto mail contiene il tag (con/senza bracket, anche con prefisso [EXT]). */
+/** True se l'oggetto mail contiene il tag (trattino o spazio, bracket, [EXT]). */
 export function subjectMatchesTag(
   subject: string,
   subjectTag: string,
 ): boolean {
-  const token = subjectTag.replace(/[\[\]]/g, "").trim().toLowerCase();
+  const token = normalizeSubjectToken(subjectTag);
   if (!token) return false;
-  return subject.toLowerCase().includes(token);
+  return normalizeSubjectToken(subject).includes(token);
 }
 
 /**

@@ -53,8 +53,10 @@ async function main() {
 
   const subjects = [
     "EUROANSA-MUTUO",
+    "EUROANSA MUTUO",
     "[EUROANSA-MUTUO] Documenti Rossi",
     "[EXT] EUROANSA-MUTUO",
+    "[EXT] EUROANSA MUTUO allegati",
     `[EXT] [${TOKEN}] allegati`,
   ];
   for (const s of subjects) {

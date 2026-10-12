@@ -104,7 +104,11 @@ export default async function SettingsPage({
                 <code className="rounded bg-slate-100 px-1">
                   {process.env.GMAIL_SUBJECT_TAG}
                 </code>
-                {" · "}coppia/cointestatari:{" "}
+                {" o "}
+                <code className="rounded bg-slate-100 px-1">
+                  EUROANSA MUTUO
+                </code>
+                {" · "}coppia:{" "}
                 <code className="rounded bg-slate-100 px-1">
                   COPPIA EUROANSA MUTUO
                 </code>
