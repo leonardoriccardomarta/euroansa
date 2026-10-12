@@ -41,7 +41,8 @@ export function LeadsClient({
         className="grid gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:grid-cols-2 lg:grid-cols-3"
         onSubmit={(e) => {
           e.preventDefault();
-          const fd = new FormData(e.currentTarget);
+          const form = e.currentTarget;
+          const fd = new FormData(form);
           startTransition(async () => {
             const res = await upsertLeadAction(fd);
             if (res && "error" in res && res.error) {
@@ -49,7 +50,7 @@ export function LeadsClient({
               return;
             }
             toast.success("Lead salvato");
-            e.currentTarget.reset();
+            form.reset();
             router.refresh();
           });
         }}
