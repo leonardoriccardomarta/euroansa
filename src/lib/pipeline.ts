@@ -16,6 +16,7 @@ import {
 import {
   CHECKLIST_PRESETS,
   defaultStorageFolders,
+  expandMultiSlotTypes,
   FILE_NAME_PREFIX,
   SHEET_SECTIONS,
   storageFolderKindForDocument,
@@ -1114,9 +1115,13 @@ export async function refreshApplicationState(applicationId: string) {
       if (t && t !== "SCONOSCIUTO") candidates.push(t);
     }
     for (const t of candidates) {
-      if (allowedAuto.has(t) && !requiredSet.has(t)) {
-        requiredSet.add(t);
-        requiredChanged = true;
+      if (!allowedAuto.has(t)) continue;
+      for (const slot of expandMultiSlotTypes([t])) {
+        if (!allowedAuto.has(slot)) continue;
+        if (!requiredSet.has(slot)) {
+          requiredSet.add(slot);
+          requiredChanged = true;
+        }
       }
     }
   }

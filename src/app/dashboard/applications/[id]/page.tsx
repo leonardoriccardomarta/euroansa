@@ -339,9 +339,10 @@ export default async function ApplicationDetailPage({
             </div>
             <ul className="mt-4 grid gap-2 sm:grid-cols-2">
               {sheetRowsForRequired(checklist.required).map((row) => {
-                const allPresent = row.types.every((t) =>
+                const presentCount = row.types.filter((t) =>
                   checklist.present.includes(t),
-                );
+                ).length;
+                const allPresent = presentCount === row.types.length;
                 const allValid = row.types.every((t) =>
                   checklist.presentValid.includes(t),
                 );
@@ -349,12 +350,19 @@ export default async function ApplicationDetailPage({
                   checklist.invalid.includes(t),
                 );
                 const partial =
-                  !allPresent &&
-                  row.types.some((t) => checklist.present.includes(t));
+                  !allPresent && presentCount > 0;
+                const multiLabel =
+                  row.types.length > 1
+                    ? ` (${presentCount}/${row.types.length})`
+                    : "";
                 return (
                   <li
                     key={`${row.label}-${row.types.join("-")}`}
-                    className="flex items-center gap-2.5 rounded-lg bg-slate-50 px-3 py-2.5 text-xs font-medium uppercase text-slate-700 sm:text-[13px]"
+                    className={`flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-xs font-medium uppercase sm:text-[13px] ${
+                      partial
+                        ? "bg-amber-50 text-amber-950"
+                        : "bg-slate-50 text-slate-700"
+                    }`}
                   >
                     {allValid ? (
                       <CheckCircle2
@@ -364,7 +372,11 @@ export default async function ApplicationDetailPage({
                     ) : allPresent || needsReview || partial ? (
                       <AlertCircle
                         className="h-4 w-4 shrink-0 text-amber-500"
-                        aria-label="Presente da rivedere"
+                        aria-label={
+                          partial
+                            ? `Parziale ${presentCount}/${row.types.length}`
+                            : "Presente da rivedere"
+                        }
                       />
                     ) : (
                       <Circle
@@ -374,17 +386,17 @@ export default async function ApplicationDetailPage({
                     )}
                     <span
                       className={
-                        allValid || allPresent
+                        allValid
                           ? "text-slate-800"
-                          : "text-slate-600"
+                          : partial
+                            ? "text-amber-950"
+                            : "text-slate-600"
                       }
                     >
                       {row.label}
-                      {row.types.length > 1
-                        ? ` (${row.types.filter((t) => checklist.present.includes(t)).length}/${row.types.length})`
-                        : needsReview
-                          ? " · da rivedere"
-                          : ""}
+                      {multiLabel}
+                      {needsReview && !partial ? " · da rivedere" : ""}
+                      {partial && !allValid ? " · incompleto" : ""}
                     </span>
                   </li>
                 );

@@ -9,6 +9,7 @@ import {
   CHECKLIST_DOCUMENT_TYPES,
   DOCUMENT_TYPE_LABELS,
   isEuroansaFolder,
+  multiSlotGroupFor,
   STORAGE_FOLDER_KINDS,
   storageSubfolderLabel,
   type StorageFolderKind,
@@ -39,11 +40,14 @@ function DocRow({
   classifyOptions,
   allowClassify,
   dupRank,
+  presentTypes,
 }: {
   doc: Document;
   classifyOptions: DocumentType[];
   allowClassify: boolean;
   dupRank?: DuplicateRankInfo;
+  /** Tipi presenti in pratica (anche non validi) per badge multi-slot */
+  presentTypes: Set<DocumentType>;
 }) {
   const also =
     doc.extractedData?.alsoCovers?.filter((t) => t && t !== "SCONOSCIUTO") ??
@@ -56,6 +60,16 @@ function DocRow({
     doc.analysisStatus !== "pending" &&
     doc.analysisStatus !== "processing";
 
+  const multiGroup = multiSlotGroupFor(doc.documentType);
+  const multiPresent = multiGroup
+    ? multiGroup.filter((t) => presentTypes.has(t)).length
+    : 0;
+  const multiTotal = multiGroup?.length ?? 0;
+  const slotIndex = multiGroup
+    ? multiGroup.indexOf(doc.documentType) + 1
+    : 0;
+  const monthHint = doc.extractedData?.referenceMonth?.trim();
+
   return (
     <div className="border-t border-slate-100 pt-3 first:border-0 first:pt-0">
       <div className="flex flex-wrap items-start justify-between gap-2">
@@ -67,6 +81,23 @@ function DocRow({
             ) : (
               <AlertCircle className="h-4 w-4 text-red-500" />
             )}
+            {multiGroup && multiTotal > 1 ? (
+              <Badge
+                variant="outline"
+                className={
+                  multiPresent >= multiTotal
+                    ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+                    : "border-sky-200 bg-sky-50 text-sky-900"
+                }
+              >
+                {monthHint
+                  ? `${monthHint} · slot ${slotIndex}/${multiTotal}`
+                  : `Slot ${slotIndex}/${multiTotal}`}
+                {multiPresent < multiTotal
+                  ? ` · in pratica ${multiPresent}/${multiTotal}`
+                  : ""}
+              </Badge>
+            ) : null}
             {dupRank ? (
               <Badge
                 variant="outline"
@@ -226,6 +257,18 @@ export function PracticeDocumentsSection({
       .filter((d) => d.isValid && d.documentType !== "SCONOSCIUTO")
       .map((d) => d.documentType),
   );
+  /** Per badge multi-slot: conta anche i da rivedere */
+  const presentTypesAny = new Set<DocumentType>(
+    docs
+      .filter((d) => d.documentType && d.documentType !== "SCONOSCIUTO")
+      .flatMap((d) => {
+        const extra =
+          d.extractedData?.alsoCovers?.filter(
+            (t): t is DocumentType => Boolean(t && t !== "SCONOSCIUTO"),
+          ) ?? [];
+        return [d.documentType, ...extra];
+      }),
+  );
   const required = (requiredDocumentTypes ?? []).filter(
     (t) => t && t !== "SCONOSCIUTO",
   );
@@ -338,6 +381,7 @@ export function PracticeDocumentsSection({
                   classifyOptions={classifyOptions}
                   allowClassify={kind === "DOC" || kind === "IMMOBILE"}
                   dupRank={dupRanks.get(doc.id)}
+                  presentTypes={presentTypesAny}
                 />
               ))}
             </div>
@@ -368,6 +412,7 @@ export function PracticeDocumentsSection({
                 classifyOptions={classifyOptions}
                 allowClassify={/ DOC$/i.test(label) || label === "IMMOBILE"}
                 dupRank={dupRanks.get(doc.id)}
+                presentTypes={presentTypesAny}
               />
             ))}
           </div>

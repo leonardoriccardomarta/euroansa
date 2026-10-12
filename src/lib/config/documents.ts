@@ -198,14 +198,40 @@ export const CHECKLIST_DOCUMENT_TYPES: DocumentType[] = [
   ...new Set(SHEET_SECTIONS.flatMap((s) => s.items.flatMap((i) => i.types))),
 ];
 
+/** Voci foglio con più slot (3 buste, 2 unici…). */
+export const MULTI_SLOT_GROUPS: DocumentType[][] = SHEET_SECTIONS.flatMap((s) =>
+  s.items.filter((i) => i.types.length > 1).map((i) => i.types),
+);
+
+export function multiSlotGroupFor(
+  type: DocumentType,
+): DocumentType[] | null {
+  for (const g of MULTI_SLOT_GROUPS) {
+    if (g.includes(type)) return g;
+  }
+  return null;
+}
+
+/** Se arriva BUSTA_1 → richiedi anche 2 e 3 (stesso per unici). */
+export function expandMultiSlotTypes(types: DocumentType[]): DocumentType[] {
+  const set = new Set(types);
+  for (const group of MULTI_SLOT_GROUPS) {
+    if (group.some((t) => set.has(t))) {
+      for (const t of group) set.add(t);
+    }
+  }
+  return [...set];
+}
+
 /**
  * Collassa i tipi richiesti nelle righe del foglio (es. 3 buste → 1 riga).
+ * Per multi-slot usa sempre tutti gli slot del foglio (così vedi 1/3).
  */
 export function sheetRowsForRequired(required: DocumentType[]): Array<{
   label: string;
   types: DocumentType[];
 }> {
-  const req = new Set(required);
+  const req = new Set(expandMultiSlotTypes(required));
   const rows: Array<{ label: string; types: DocumentType[] }> = [];
   const seen = new Set<string>();
 
@@ -216,7 +242,9 @@ export function sheetRowsForRequired(required: DocumentType[]): Array<{
       const key = `${item.label}::${item.types.join(",")}`;
       if (seen.has(key)) continue;
       seen.add(key);
-      rows.push({ label: item.label, types: matched });
+      // Multi-slot: conta sul gruppo intero (1/3), non solo gli slot già in required
+      const types = item.types.length > 1 ? item.types : matched;
+      rows.push({ label: item.label, types });
     }
   }
 
