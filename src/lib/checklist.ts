@@ -1,5 +1,8 @@
 import type { Document, DocumentType, EmploymentType } from "@/db/schema";
-import { CHECKLIST_PRESETS } from "@/lib/config/documents";
+import {
+  CHECKLIST_PRESETS,
+  expandMultiSlotTypes,
+} from "@/lib/config/documents";
 
 export type ChecklistResult = {
   required: DocumentType[];
@@ -83,8 +86,8 @@ export function evaluateChecklist(
   requiredTypes: DocumentType[] | null | undefined,
   docs: ChecklistDoc[],
 ): ChecklistResult {
-  const required = (requiredTypes ?? []).filter(
-    (t) => t && t !== "SCONOSCIUTO",
+  const required = expandMultiSlotTypes(
+    (requiredTypes ?? []).filter((t) => t && t !== "SCONOSCIUTO"),
   );
   const isUnset = required.length === 0;
 

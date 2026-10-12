@@ -82,34 +82,44 @@ export function RequiredDocsEditor({
     });
   }
 
-  function typesSelected(item: SheetChecklistItem) {
-    return item.types.every((t) => selected.includes(t));
+  function selectedCount(item: SheetChecklistItem) {
+    return item.types.filter((t) => selected.includes(t)).length;
+  }
+
+  function typesFullySelected(item: SheetChecklistItem) {
+    return item.types.length > 0 && selectedCount(item) === item.types.length;
   }
 
   /** Voci ripetute (CU, estratto…) solo nella categoria lavorativa attiva. */
-  function isItemOn(item: SheetChecklistItem, section: SheetSection) {
-    if (!typesSelected(item)) return false;
+  function itemState(
+    item: SheetChecklistItem,
+    section: SheetSection,
+  ): "off" | "partial" | "on" {
     if (isIncomeSection(section) && section.subtitle !== incomeFocus) {
-      return false;
+      return "off";
     }
-    return true;
+    const n = selectedCount(item);
+    if (n === 0) return "off";
+    if (n < item.types.length) return "partial";
+    return "on";
   }
 
   function toggleItem(item: SheetChecklistItem, section: SheetSection) {
     // Click su altra categoria reddituale → sposta il focus (non doppia selezione)
     if (isIncomeSection(section) && section.subtitle !== incomeFocus) {
       setIncomeFocus(section.subtitle);
-      if (!typesSelected(item)) {
+      if (!typesFullySelected(item)) {
         save([...new Set([...selected, ...item.types])]);
       }
       return;
     }
 
-    const on = isItemOn(item, section);
+    const state = itemState(item, section);
     let next: DocumentType[];
-    if (on) {
+    if (state === "on") {
       next = selected.filter((t) => !item.types.includes(t));
     } else {
+      // off o parziale → completa tutti gli slot (es. 3 buste)
       next = [...new Set([...selected, ...item.types])];
     }
     save(next);
@@ -170,7 +180,12 @@ export function RequiredDocsEditor({
             ) : null}
             <ul className="mt-3 grid gap-2 sm:grid-cols-2">
               {section.items.map((item) => {
-                const on = isItemOn(item, section);
+                const state = itemState(item, section);
+                const n = selectedCount(item);
+                const multiHint =
+                  item.types.length > 1 && n > 0
+                    ? ` (${n}/${item.types.length})`
+                    : "";
                 return (
                   <li key={`${section.subtitle ?? section.title}-${item.label}`}>
                     <button
@@ -178,22 +193,27 @@ export function RequiredDocsEditor({
                       disabled={pending}
                       onClick={() => toggleItem(item, section)}
                       className={`flex w-full items-center gap-2.5 rounded-lg border px-3 py-2.5 text-left text-xs font-medium uppercase transition active:scale-[0.99] sm:text-[13px] ${
-                        on
+                        state === "on"
                           ? "border-primary-300 bg-primary-50 text-primary-900"
-                          : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                          : state === "partial"
+                            ? "border-amber-300 bg-amber-50 text-amber-950"
+                            : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
                       }`}
                     >
                       <span
                         className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full border text-[10px] ${
-                          on
+                          state === "on"
                             ? "border-primary-600 bg-primary-600 text-white"
-                            : "border-slate-400 bg-white"
+                            : state === "partial"
+                              ? "border-amber-500 bg-amber-500 text-white"
+                              : "border-slate-400 bg-white"
                         }`}
                         aria-hidden
                       >
-                        {on ? "✓" : ""}
+                        {state === "on" ? "✓" : state === "partial" ? "·" : ""}
                       </span>
                       {item.label}
+                      {multiHint}
                     </button>
                   </li>
                 );
