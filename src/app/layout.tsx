@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { APP_NAME, APP_TAGLINE } from "@/lib/brand";
@@ -35,6 +36,7 @@ export default function RootLayout({
           {children}
           <Toaster />
         </TooltipProvider>
+        <Analytics />
       </body>
     </html>
   );
