@@ -238,12 +238,11 @@ export default async function ApplicationDetailPage({
       {legacyDocs.length > 0 || missingStorageDocs.length > 0 ? (
         <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
           <p className="font-semibold">
-            File non sullo storage sito ({legacyDocs.length || missingStorageDocs.length})
+            Documenti da aggiornare ({legacyDocs.length || missingStorageDocs.length})
           </p>
           <p className="mt-1">
-            File vecchi (Drive / storage precedente) non finiscono nello ZIP
-            segreteria. Usa <strong>Sostituisci</strong> o ricarica i PDF in
-            File / qui sotto.
+            Alcuni file devono essere ricaricati per essere inclusi nel pacchetto
+            segreteria. Usa <strong>Sostituisci</strong> o ricarica i PDF qui sotto.
           </p>
         </div>
       ) : null}
@@ -293,8 +292,7 @@ export default async function ApplicationDetailPage({
           </p>
         </div>
         <p className="mt-1 text-xs text-slate-500">
-          Checklist = documenti in DOC e IMMOBILE. BANCA e EUROANSA sono solo
-          firmati/operativo (niente classifica). Relazione a parte.
+          Documenti del cliente e dell&apos;immobile necessari per l&apos;istruttoria.
         </p>
         {(() => {
           const unknownClient = docs.filter(
@@ -304,8 +302,7 @@ export default async function ApplicationDetailPage({
           ).length;
           return unknownClient > 0 ? (
             <p className="mt-2 text-sm text-amber-800">
-              {unknownClient} file in DOC/IMMOBILE ancora senza tipo: usa
-              Risorse → Riconosci tipi da nomi file.
+              {unknownClient} file da classificare: assegna il tipo direttamente dall&apos;elenco documenti qui sotto.
             </p>
           ) : null;
         })()}

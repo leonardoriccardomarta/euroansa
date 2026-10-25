@@ -6,7 +6,6 @@ import {
   deleteApplicationAction,
   getSollecitoTextAction,
   regeneratePackageLinkAction,
-  setApplicationTestAction,
 } from "@/actions/applications";
 import type { ApplicationStatus } from "@/db/schema";
 import { Button } from "@/components/ui/button";
@@ -21,7 +20,6 @@ export function ApplicationActions({
   applicationId,
   status,
   isAdmin = false,
-  isTest = false,
   clientName,
   hasRelazione = false,
   hasPackageLink = false,
@@ -111,33 +109,6 @@ export function ApplicationActions({
         >
           Copia sollecito
         </Button>
-        {isAdmin ? (
-          <Button
-            variant="outline"
-            disabled={pending}
-            className="min-h-11 flex-1 rounded-lg active:scale-95 sm:flex-none"
-            onClick={() => {
-              startTransition(async () => {
-                const res = await setApplicationTestAction(
-                  applicationId,
-                  !isTest,
-                );
-                if (res && "error" in res && res.error) {
-                  toast.error(res.error);
-                  return;
-                }
-                toast.success(
-                  !isTest
-                    ? "Segnata come test (nascosta ai broker)"
-                    : "Tolto flag test",
-                );
-                router.refresh();
-              });
-            }}
-          >
-            {isTest ? "Togli test" : "Segna come test"}
-          </Button>
-        ) : null}
         {isAdmin ? (
           <Button
             variant="outline"

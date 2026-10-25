@@ -20,11 +20,11 @@ export async function GET(
   }
 
   const bundle = await getPackageBundle(id, token);
-  if (bundle.status === "invalid") {
-    return NextResponse.json({ error: "Link non valido" }, { status: 403 });
-  }
-  if (bundle.status === "expired") {
-    return NextResponse.json({ error: "Link scaduto" }, { status: 410 });
+  if (bundle.status === "invalid" || bundle.status === "expired") {
+    return new Response(JSON.stringify({ error: "Link scaduto o non valido" }), {
+      status: 410,
+      headers: { "Content-Type": "application/json" },
+    });
   }
 
   const file = bundle.files.find((f) => f.storageKey === key);
@@ -33,7 +33,7 @@ export async function GET(
   }
 
   try {
-    const url = await createPresignedGetUrl(file.storageKey, 7200, {
+    const url = await createPresignedGetUrl(file.storageKey, 600, {
       fileName: file.name,
     });
     return NextResponse.redirect(url, 302);

@@ -49,7 +49,7 @@ export default async function SettingsPage({
       <div>
         <h1 className="text-3xl font-bold text-slate-900">Impostazioni</h1>
         <p className="mt-2 text-slate-600">
-          Collega la Gmail di ufficio e imposta i dati agenzia.
+          Configurazione filiale e account.
         </p>
       </div>
 
@@ -115,8 +115,7 @@ export default async function SettingsPage({
               </p>
             ) : null}
             <p className="text-xs text-slate-500">
-              Cron mail: se non ci sono mail né coda OCR, Neon non viene
-              svegliato (check Gmail via token su R2).
+              Controllo automatico: la posta in arrivo viene verificata periodicamente in background per rilevare nuove pratiche.
             </p>
             <div className="flex flex-wrap gap-2">
               <a href="/api/google/connect">

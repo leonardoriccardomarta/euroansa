@@ -1,7 +1,6 @@
 "use client";
 
 import Image from "next/image";
-import { Suspense } from "react";
 import { usePathname } from "next/navigation";
 import {
   BookOpen,
@@ -16,9 +15,9 @@ import {
   Settings,
   Users,
 } from "lucide-react";
+import Link from "next/link";
 import { logoutAction } from "@/actions/auth";
 import { NavLink } from "@/components/layout/nav-link";
-import { AppTour } from "@/components/onboarding/app-tour";
 import { APP_NAME } from "@/lib/brand";
 import { cn } from "@/lib/utils";
 
@@ -33,12 +32,11 @@ export function AppShell({
   children,
   userName,
   isAdmin,
-  tutorialDone,
 }: {
   children: React.ReactNode;
   userName: string;
   isAdmin: boolean;
-  tutorialDone: boolean;
+  tutorialDone?: boolean;
 }) {
   const pathname = usePathname();
 
@@ -142,9 +140,20 @@ export function AppShell({
             </NavLink>
 
             <div className="flex shrink-0 items-center gap-3">
-              <span className="hidden max-w-[160px] truncate text-sm text-slate-500 md:inline">
-                {userName}
-              </span>
+              <div className="flex flex-col items-end text-xs text-slate-500">
+                <span className="font-medium text-slate-900">
+                  {isAdmin ? "Admin" : (userName || "Operatore")}
+                </span>
+                <div className="flex items-center gap-1.5 mt-0.5">
+                  <Link className="hover:underline hover:text-slate-800" href="/privacy">
+                    Privacy
+                  </Link>
+                  <span>·</span>
+                  <Link className="hover:underline hover:text-slate-800" href="/terms">
+                    Termini
+                  </Link>
+                </div>
+              </div>
               <form action={logoutAction}>
                 <button
                   type="submit"
@@ -212,10 +221,6 @@ export function AppShell({
           );
         })}
       </nav>
-
-      <Suspense fallback={null}>
-        <AppTour isAdmin={isAdmin} tutorialDone={tutorialDone} />
-      </Suspense>
     </div>
   );
 }

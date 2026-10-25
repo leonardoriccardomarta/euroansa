@@ -3,12 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
 import {
-  reclassifyImportedDocsAction,
-  syncClosedPracticesFromDriveAction,
-} from "@/actions/drive-import";
-import {
   deleteResourceAction,
-  syncResourcesFromDriveAction,
   uploadResourceAction,
 } from "@/actions/phase3";
 import { Button } from "@/components/ui/button";
@@ -49,106 +44,6 @@ export function ResourcesClient({
 
   return (
     <div className="space-y-8">
-      {isAdmin ? (
-        <div className="flex flex-wrap gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            className="min-h-10"
-            disabled={pending}
-            onClick={() => {
-              if (
-                !confirm(
-                  "Scaricare da Drive i file ufficio (modulistica, template, policy) e caricarli in Risorse?",
-                )
-              ) {
-                return;
-              }
-              startTransition(async () => {
-                const res = await syncResourcesFromDriveAction();
-                if (!res || !("ok" in res) || !res.ok) {
-                  toast.error(
-                    res && "error" in res && res.error
-                      ? String(res.error)
-                      : "Sync fallito",
-                  );
-                  return;
-                }
-                toast.success(
-                  `Risorse: ${res.inserted} nuove, ${res.skipped} già presenti${
-                    res.failed ? `, ${res.failed} errori` : ""
-                  }`,
-                );
-                if (res.errors.length) {
-                  toast.message(res.errors.slice(0, 3).join(" · "));
-                }
-                router.refresh();
-              });
-            }}
-          >
-            Sync risorse da Drive
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            className="min-h-10"
-            disabled={pending}
-            onClick={() => {
-              if (
-                !confirm(
-                  "Importare pratiche concluse 2026 da Excel FILIPPO/MARCO su Drive (status ROGITATA, economia, broker)?",
-                )
-              ) {
-                return;
-              }
-              startTransition(async () => {
-                const res = await syncClosedPracticesFromDriveAction();
-                if (!res || !("ok" in res) || !res.ok) {
-                  toast.error(
-                    res && "error" in res && res.error
-                      ? String(res.error)
-                      : "Import fallito",
-                  );
-                  return;
-                }
-                toast.success(
-                  `Pratiche: ${res.created} create, ${res.updated} aggiornate · ${res.docsAttached ?? 0} file · ${res.junkRemoved ?? 0} spazzatura rimossa`,
-                );
-                if (res.errors?.length) {
-                  toast.message(res.errors.slice(0, 3).join(" · "));
-                }
-                router.refresh();
-              });
-            }}
-          >
-            Sync pratiche chiuse 2026
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            className="min-h-10"
-            disabled={pending}
-            onClick={() => {
-              startTransition(async () => {
-                const res = await reclassifyImportedDocsAction();
-                if (!res || !("ok" in res) || !res.ok) {
-                  toast.error("Riconoscimento tipi fallito");
-                  return;
-                }
-                toast.success(
-                  `Tipi: ${res.typesUpdated} (AI ${res.aiClassified ?? 0}) · checklist: ${res.checklistsUpdated}` +
-                    (res.stillUnknownClient
-                      ? ` · ancora sconosciuti in DOC/IMMOBILE: ${res.stillUnknownClient}`
-                      : ""),
-                );
-                router.refresh();
-              });
-            }}
-          >
-            Riconosci tipi da nomi file
-          </Button>
-        </div>
-      ) : null}
 
       {isAdmin ? (
         <form

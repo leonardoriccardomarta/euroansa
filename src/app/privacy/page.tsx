@@ -1,165 +1,177 @@
 import Link from "next/link";
-import { APP_NAME, APP_TAGLINE } from "@/lib/brand";
+import { APP_NAME } from "@/lib/brand";
 
 export const metadata = {
-  title: `Privacy Policy   ${APP_NAME}`,
+  title: `Informativa sulla privacy · ${APP_NAME}`,
   description: `Informativa privacy di ${APP_NAME}`,
 };
 
 export default function PrivacyPage() {
-  const contact =
-    process.env.NEXT_PUBLIC_PRIVACY_EMAIL?.trim() ||
-    process.env.ADMIN_EMAIL?.trim() ||
-    "privacy@prontopratica.local";
-  const updated = "4 ottobre 2026";
-
   return (
     <div className="min-h-screen bg-slate-50 px-4 py-12">
-      <article className="mx-auto max-w-2xl rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
+      <article className="mx-auto max-w-3xl rounded-2xl border border-slate-200 bg-white p-8 shadow-sm md:p-10">
         <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
           {APP_NAME}
         </p>
         <h1 className="mt-2 text-3xl font-bold text-slate-900">
           Informativa sulla privacy
         </h1>
-        <p className="mt-2 text-sm text-slate-500">Ultimo aggiornamento: {updated}</p>
-        <p className="mt-4 text-sm text-slate-600">{APP_TAGLINE}</p>
+        <p className="mt-1 text-sm text-slate-500">
+          Ultimo aggiornamento: 25 ottobre 2026
+        </p>
+        <p className="mt-2 font-medium text-slate-700">
+          Gestione pratiche mutuo
+        </p>
 
-        <div className="prose prose-slate mt-8 max-w-none space-y-6 text-sm leading-relaxed text-slate-700">
-          <section>
-            <h2 className="text-lg font-semibold text-slate-900">1. Titolare</h2>
+        <div className="mt-8 space-y-6 text-sm leading-relaxed text-slate-700">
+          <section className="space-y-2">
+            <h2 className="text-lg font-semibold text-slate-900">
+              1. Ruoli del Trattamento
+            </h2>
             <p>
-              Il titolare del trattamento dei dati relativi all&apos;uso di{" "}
-              {APP_NAME} è l&apos;organizzazione che gestisce l&apos;istanza
-              dell&apos;applicazione (di seguito &quot;Titolare&quot;). Per
-              richieste privacy:{" "}
-              <a className="text-primary-700 underline" href={`mailto:${contact}`}>
-                {contact}
+              La presente piattaforma è uno strumento gestionale tecnico a uso interno e riservato, destinato agli operatori autorizzati della filiale per l&apos;istruttoria delle pratiche di credito.
+            </p>
+            <ul className="list-disc space-y-1 pl-5">
+              <li>
+                <strong>Titolari del Trattamento:</strong> I titolari del trattamento dei dati dei clienti finali sono i professionisti / mediatori creditizi della filiale che raccolgono la documentazione e gestiscono il rapporto contrattuale.
+              </li>
+              <li>
+                <strong>Responsabile del Trattamento (Fornitore Tecnico):</strong> Lo sviluppatore/gestore tecnico dell&apos;infrastruttura software agisce esclusivamente quale Responsabile del Trattamento (ex art. 28 GDPR) su istruzione documentata dei Titolari.
+              </li>
+            </ul>
+            <p>
+              Per comunicazioni tecniche o privacy:{" "}
+              <a className="text-primary-700 underline" href="mailto:aiorchestratoor@gmail.com">
+                aiorchestratoor@gmail.com
               </a>
               .
             </p>
           </section>
 
-          <section>
+          <section className="space-y-2">
             <h2 className="text-lg font-semibold text-slate-900">
-              2. Cosa fa l&apos;app
+              2. Finalità del Servizio
             </h2>
             <p>
-              {APP_NAME} è uno strumento interno per mediatori creditizi / agenzie
-              mutui: ricezione e organizzazione documenti pratiche, analisi
-              assistita, gestione checklist e invio pacchetti alla segreteria.
+              Prontopratica è un software di ausilio tecnico per mediatori creditizi: ricezione, archiviazione protetta e organizzazione documentale, estrazione assistita dei parametri di calcolo reddituale, checklist operative e condivisione sicura dei fascicoli con la segreteria.
             </p>
           </section>
 
-          <section>
+          <section className="space-y-2">
             <h2 className="text-lg font-semibold text-slate-900">
               3. Dati trattati
             </h2>
             <ul className="list-disc space-y-1 pl-5">
               <li>
-                Dati di account operatori (email, nome, ruolo, credenziali hash)
+                <strong>Dati degli account operatori:</strong> email Google Workspace aziendale, nominativo, identificativo di sessione tecnico.
               </li>
               <li>
-                Dati delle pratiche e dei clienti forniti via email o caricati
-                dagli operatori (anagrafiche, documenti, metadati estratti)
+                <strong>Dati delle pratiche e dei clienti finali:</strong> dati anagrafici, codici fiscali, documenti d&apos;identità, buste paga, certificazioni uniche (CU), modelli 730/Unico ed estratti conto bancari, preventivamente acquisiti dai Titolari con idoneo consenso e informativa privacy.
               </li>
               <li>
-                Contenuti della casella Gmail di ufficio collegata via Google
-                OAuth, limitatamente a quanto necessario per individuare e
-                gestire le pratiche (messaggi, allegati, invio email di
-                servizio)
+                <strong>Contenuti della casella Gmail di ufficio:</strong> messaggi e allegati pertinenti alle pratiche, limitatamente a quanto autorizzato via Google OAuth.
               </li>
-              <li>Log tecnici di sicurezza e funzionamento</li>
+              <li>
+                <strong>Log tecnici di sicurezza:</strong> registri di accesso per finalità di auditing e protezione informatica.
+              </li>
             </ul>
           </section>
 
-          <section>
+          <section className="space-y-2">
             <h2 className="text-lg font-semibold text-slate-900">
-              4. Accesso Google (Gmail)
+              4. Integrazione Google (Gmail) e Informativa &quot;Limited Use&quot;
             </h2>
             <p>
-              Se un amministratore collega Google, {APP_NAME} richiede
-              autorizzazioni Gmail solo per:
+              L&apos;accesso alla casella di posta dell&apos;ufficio via Google OAuth avviene unicamente per:
             </p>
-            <ul className="mt-2 list-disc space-y-1 pl-5">
-              <li>leggere le email rilevanti per le pratiche mutuo</li>
-              <li>
-                inviare email di servizio (es. link pacchetto a segreteria,
-                notifiche interne)
-              </li>
-              <li>gestire etichette di elaborazione sulla casella ufficio</li>
+            <ul className="list-disc space-y-1 pl-5">
+              <li>Individuare e acquisire gli allegati documentali pertinenti all&apos;istruttoria.</li>
+              <li>Inviare notifiche e pacchetti documentali alla segreteria.</li>
+              <li>Aggiornare lo stato di elaborazione tramite etichette email.</li>
             </ul>
-            <p className="mt-2">
-              Non vendiamo dati Google. Non usiamo i contenuti Gmail per
-              pubblicità. L&apos;accesso è limitato alla casella di ufficio
-              collegata dall&apos;admin e alle finalità sopra.
-            </p>
+            <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+              <p className="font-semibold text-slate-900">
+                Dichiarazione d&apos;uso limitato Google:
+              </p>
+              <p className="mt-1">
+                L&apos;uso e il trasferimento ad altre app di informazioni ricevute dalle API di Google da parte di Prontopratica sono rigorosamente conformi alle norme{" "}
+                <a
+                  className="text-primary-700 underline"
+                  href="https://developers.google.com/terms/api-services-user-data-policy"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Google API Services User Data Policy
+                </a>
+                , compresi i requisiti di Uso Limitato (Limited Use).
+              </p>
+              <p className="mt-2">
+                I dati della casella Gmail non vengono mai venduti, non vengono utilizzati per annunci pubblicitari e non vengono condivisi con terzi per finalità estranee al funzionamento tecnico del servizio.
+              </p>
+            </div>
           </section>
 
-          <section>
+          <section className="space-y-2">
             <h2 className="text-lg font-semibold text-slate-900">
-              5. Finalità e basi giuridiche
+              5. Destinatari, Infrastruttura e Modelli AI
             </h2>
             <p>
-              Trattamento per esecuzione del servizio richiesto
-              dall&apos;organizzazione, legittimo interesse alla gestione
-              operativa delle pratiche e, ove richiesto, adempimenti
-              contrattuali / precontrattuali verso i clienti dell&apos;agenzia.
+              I dati transitano e risiedono su infrastrutture tecniche sicure e circoscritte:
             </p>
+            <ul className="list-disc space-y-1 pl-5">
+              <li>
+                <strong>Archiviazione Documenti:</strong> Storage protetto su Cloudflare R2 con allocazione dati all&apos;interno della giurisdizione dell&apos;Unione Europea (UE). L&apos;accesso ai documenti avviene tramite link temporanei firmati e protetti.
+              </li>
+              <li>
+                <strong>Elaborazione AI:</strong> L&apos;estrazione documentale avviene tramite chiamate API a pagamento su Google Cloud (Gemini API) con divieto contrattuale di ritenzione dei dati e divieto di riutilizzo per l&apos;addestramento dei modelli.
+              </li>
+            </ul>
           </section>
 
-          <section>
+          <section className="space-y-2">
             <h2 className="text-lg font-semibold text-slate-900">
-              6. Conservazione
+              6. Condivisione e Conservazione dei Dati
+            </h2>
+            <ul className="list-disc space-y-1 pl-5">
+              <li>
+                <strong>Condivisione sicura:</strong> I pacchetti trasmessi alla segreteria sono accessibili esclusivamente tramite link crittografati con scadenza prefissata a 7 giorni.
+              </li>
+              <li>
+                <strong>Conservazione:</strong> I file restano memorizzati per il tempo strettamente necessario all&apos;istruttoria. Gli operatori autorizzati possono selezionare ed eliminare manualmente la documentazione al completamento della pratica.
+              </li>
+            </ul>
+          </section>
+
+          <section className="space-y-2">
+            <h2 className="text-lg font-semibold text-slate-900">
+              7. Diritti dell&apos;Interessato
             </h2>
             <p>
-              I dati restano finché la pratica e l&apos;account sono necessari
-              all&apos;attività, oppure fino a cancellazione da parte degli
-              operatori autorizzati. I file possono essere rimossi dallo storage
-              a pratica chiusa mantenendo eventuali metadati storici.
+              Gli interessati possono esercitare i diritti previsti dal Regolamento UE 2016/679 (accesso, rettifica, cancellazione, limitazione) rivolgendosi ai Titolari del Trattamento (la filiale) o al supporto tecnico all&apos;indirizzo{" "}
+              <a className="text-primary-700 underline" href="mailto:aiorchestratoor@gmail.com">
+                aiorchestratoor@gmail.com
+              </a>
+              .
             </p>
           </section>
 
-          <section>
+          <section className="space-y-2">
             <h2 className="text-lg font-semibold text-slate-900">
-              7. Destinatari e fornitori
+              8. Revoca dell&apos;Accesso Google
             </h2>
             <p>
-              I dati possono essere trattati da fornitori tecnici che ospitano
-              l&apos;app, il database e lo storage file, e da Google per le API
-              Gmail. Non sono comunicati a terzi per finalità di marketing.
-            </p>
-          </section>
-
-          <section>
-            <h2 className="text-lg font-semibold text-slate-900">8. Diritti</h2>
-            <p>
-              Gli interessati possono chiedere accesso, rettifica, cancellazione,
-              limitazione, opposizione e portabilità nei limiti di legge,
-              contattando {contact}. È possibile presentare reclamo
-              all&apos;Autorità Garante per la protezione dei dati personali.
-            </p>
-          </section>
-
-          <section>
-            <h2 className="text-lg font-semibold text-slate-900">
-              9. Revoca Google
-            </h2>
-            <p>
-              L&apos;admin può scollegare Google dalle Impostazioni
-              dell&apos;app. È inoltre possibile revocare l&apos;accesso dalla
-              pagina delle autorizzazioni Google dell&apos;account.
+              L&apos;amministratore può revocare in qualsiasi momento i permessi concessi a Prontopratica dalla console dell&apos;applicazione o tramite la pagina di gestione autorizzazioni del proprio account Google.
             </p>
           </section>
         </div>
 
-        <p className="mt-10 text-sm">
+        <p className="mt-10 border-t border-slate-100 pt-6 text-sm text-slate-500">
           <Link href="/terms" className="text-primary-700 underline">
             Termini di servizio
           </Link>
           {" · "}
-          <Link href="/login" className="text-primary-700 underline">
-            Accedi
+          <Link href="/dashboard" className="text-primary-700 underline">
+            Torna alla dashboard
           </Link>
         </p>
       </article>

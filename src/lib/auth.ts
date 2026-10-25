@@ -13,6 +13,27 @@ function getSecret() {
   return new TextEncoder().encode(secret);
 }
 
+export const ALLOWED_EMAILS = [
+  "info.inzago@euroansa.it",
+  "martaleo110@gmail.com",
+  "aiorchestratoor@gmail.com",
+  "leonardoriccar.marta01@universitadipavia.it",
+];
+
+export function isEmailAuthorized(email?: string | null): boolean {
+  if (!email) return false;
+  const norm = email.trim().toLowerCase();
+  if (ALLOWED_EMAILS.some((a) => a.toLowerCase() === norm)) return true;
+  if (norm.endsWith("@euroansa.it")) return true;
+  if (
+    process.env.ADMIN_EMAIL &&
+    norm === process.env.ADMIN_EMAIL.trim().toLowerCase()
+  ) {
+    return true;
+  }
+  return false;
+}
+
 export type SessionUser = {
   id: string;
   email: string;
@@ -75,6 +96,9 @@ export async function getSession(): Promise<SessionUser | null> {
 export async function requireSession(): Promise<SessionUser> {
   const session = await getSession();
   if (!session) throw new Error("Non autenticato");
+  if (!isEmailAuthorized(session.email)) {
+    throw new Error("Accesso non autorizzato");
+  }
   return session;
 }
 
@@ -88,6 +112,9 @@ export async function authenticateUser(
   email: string,
   password: string,
 ): Promise<User | null> {
+  if (!isEmailAuthorized(email)) {
+    return null;
+  }
   const [user] = await db
     .select()
     .from(users)

@@ -1,146 +1,106 @@
 import Link from "next/link";
-import { APP_NAME, APP_TAGLINE } from "@/lib/brand";
+import { APP_NAME } from "@/lib/brand";
 
 export const metadata = {
-  title: `Termini di servizio   ${APP_NAME}`,
+  title: `Termini di servizio · ${APP_NAME}`,
   description: `Termini di servizio di ${APP_NAME}`,
 };
 
 export default function TermsPage() {
-  const contact =
-    process.env.NEXT_PUBLIC_PRIVACY_EMAIL?.trim() ||
-    process.env.ADMIN_EMAIL?.trim() ||
-    "privacy@prontopratica.local";
-  const updated = "4 ottobre 2026";
-
   return (
     <div className="min-h-screen bg-slate-50 px-4 py-12">
-      <article className="mx-auto max-w-2xl rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
+      <article className="mx-auto max-w-3xl rounded-2xl border border-slate-200 bg-white p-8 shadow-sm md:p-10">
         <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
           {APP_NAME}
         </p>
         <h1 className="mt-2 text-3xl font-bold text-slate-900">
           Termini di servizio
         </h1>
-        <p className="mt-2 text-sm text-slate-500">Ultimo aggiornamento: {updated}</p>
-        <p className="mt-4 text-sm text-slate-600">{APP_TAGLINE}</p>
+        <p className="mt-1 text-sm text-slate-500">
+          Ultimo aggiornamento: 25 ottobre 2026
+        </p>
+        <p className="mt-2 font-medium text-slate-700">
+          Gestione pratiche mutuo
+        </p>
 
         <div className="mt-8 space-y-6 text-sm leading-relaxed text-slate-700">
-          <section>
-            <h2 className="text-lg font-semibold text-slate-900">1. Accettazione</h2>
-            <p>
-              Accedendo a {APP_NAME} accetti questi termini. L&apos;uso è
-              riservato agli operatori autorizzati dall&apos;organizzazione che
-              gestisce l&apos;istanza.
-            </p>
-          </section>
-
-          <section>
-            <h2 className="text-lg font-semibold text-slate-900">2. Servizio</h2>
-            <p>
-              {APP_NAME} fornisce strumenti per gestire pratiche mutuo:
-              ricezione documenti, organizzazione file, supporto all&apos;analisi,
-              checklist e comunicazione con la segreteria. Non è un servizio
-              bancario né sostituisce obblighi professionali del mediatore.
-            </p>
-          </section>
-
-          <section>
+          <section className="space-y-2">
             <h2 className="text-lg font-semibold text-slate-900">
-              3. Account e responsabilità
+              1. Accettazione e Accesso
+            </h2>
+            <p>
+              L&apos;accesso e l&apos;uso di Prontopratica sono riservati esclusivamente agli operatori autorizzati della filiale e implicano la totale accettazione dei presenti termini.
+            </p>
+          </section>
+
+          <section className="space-y-2">
+            <h2 className="text-lg font-semibold text-slate-900">
+              2. Servizio e Funzionalità Assistite da AI
+            </h2>
+            <p>
+              Prontopratica fornisce strumenti software per organizzare le pratiche mutuo, archiviare file ed estrarre dati reddituali mediante intelligenza artificiale.
+            </p>
+            <p>
+              L&apos;applicazione costituisce un mero strumento tecnico di ausilio e non sostituisce in alcun modo l&apos;obbligo di verifica professionale del mediatore creditizio. L&apos;operatore umano è tenuto a controllare l&apos;esattezza di tutti i dati estratti prima di inviarli agli istituti bancari o alla segreteria.
+            </p>
+          </section>
+
+          <section className="space-y-2">
+            <h2 className="text-lg font-semibold text-slate-900">
+              3. Account e Misure di Sicurezza
             </h2>
             <ul className="list-disc space-y-1 pl-5">
-              <li>Conserva le credenziali in modo sicuro</li>
               <li>
-                Usa l&apos;app solo per finalità professionali legittime
+                Gli operatori devono accedere tramite account Google Workspace verificato e mantenere riservate le proprie sessioni.
               </li>
               <li>
-                Sei responsabile dei documenti e dei dati che carichi o fai
-                elaborare
+                L&apos;accesso al sistema è protetto da whitelist lato server: qualsiasi tentativo di accesso con credenziali non preventivamente autorizzate sarà respinto.
               </li>
               <li>
-                Non tentare accessi non autorizzati né uso abusivo delle API
-                Google collegate
+                I link generati per la trasmissione dei documenti alla segreteria hanno una validità limitata a 7 giorni.
               </li>
             </ul>
           </section>
 
-          <section>
+          <section className="space-y-2">
             <h2 className="text-lg font-semibold text-slate-900">
-              4. Integrazione Google
+              4. Limitazione di Responsabilità
             </h2>
             <p>
-              L&apos;uso di Gmail tramite OAuth è soggetto anche ai termini di
-              Google. L&apos;accesso alla casella ufficio è gestito
-              dall&apos;amministratore e può essere revocato in qualsiasi
-              momento.
+              Il software è fornito a supporto delle attività operative interne. Nei limiti consentiti dalla legge, il fornitore tecnico non risponde di eventuali imprecisioni nelle analisi automatiche AI, di ritardi nell&apos;istruttoria o di mancate concessioni di credito da parte degli istituti finanziari. L&apos;operatore si assume la piena responsabilità della verifica finale dei dati e della conformità della documentazione inoltrata.
             </p>
           </section>
 
-          <section>
+          <section className="space-y-2">
             <h2 className="text-lg font-semibold text-slate-900">
-              5. Disponibilità
+              5. Sospensione e Modifiche
             </h2>
             <p>
-              Il servizio è fornito &quot;così com&apos;è&quot;. Possibili
-              interruzioni per manutenzione, limiti dei fornitori cloud o errori
-              di terzi (es. Google, hosting). Non si garantisce assenza di
-              interruzioni.
+              L&apos;accesso può essere revocato in caso di violazione dei presenti termini o su istruzione dei titolari dell&apos;ufficio. I termini possono essere aggiornati; la data in alto attesta l&apos;ultima revisione.
             </p>
           </section>
 
-          <section>
+          <section className="space-y-2">
             <h2 className="text-lg font-semibold text-slate-900">
-              6. Limitazione di responsabilità
+              6. Contatti
             </h2>
             <p>
-              Nei limiti consentiti dalla legge, il fornitore dell&apos;istanza
-              non risponde di danni indiretti, perdita di dati non imputabile a
-              dolo o colpa grave, o decisioni creditizie basate sull&apos;uso
-              dell&apos;app. L&apos;analisi assistita è di supporto e va
-              verificata dall&apos;operatore.
-            </p>
-          </section>
-
-          <section>
-            <h2 className="text-lg font-semibold text-slate-900">7. Sospensione</h2>
-            <p>
-              L&apos;accesso può essere sospeso in caso di violazione dei
-              termini, rischi di sicurezza o richiesta dell&apos;organizzazione
-              cliente.
-            </p>
-          </section>
-
-          <section>
-            <h2 className="text-lg font-semibold text-slate-900">
-              8. Modifiche
-            </h2>
-            <p>
-              Questi termini possono essere aggiornati. La data in alto indica
-              l&apos;ultima revisione. L&apos;uso continuato dopo la
-              pubblicazione costituisce accettazione delle modifiche.
-            </p>
-          </section>
-
-          <section>
-            <h2 className="text-lg font-semibold text-slate-900">9. Contatti</h2>
-            <p>
-              Per domande sui termini:{" "}
-              <a className="text-primary-700 underline" href={`mailto:${contact}`}>
-                {contact}
+              Per supporto o segnalazioni tecniche:{" "}
+              <a className="text-primary-700 underline" href="mailto:aiorchestratoor@gmail.com">
+                aiorchestratoor@gmail.com
               </a>
               .
             </p>
           </section>
         </div>
 
-        <p className="mt-10 text-sm">
+        <p className="mt-10 border-t border-slate-100 pt-6 text-sm text-slate-500">
           <Link href="/privacy" className="text-primary-700 underline">
-            Privacy Policy
+            Informativa sulla privacy
           </Link>
           {" · "}
-          <Link href="/login" className="text-primary-700 underline">
-            Accedi
+          <Link href="/dashboard" className="text-primary-700 underline">
+            Torna alla dashboard
           </Link>
         </p>
       </article>

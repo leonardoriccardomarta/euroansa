@@ -122,13 +122,14 @@ export async function createPresignedPutUrl(params: {
 
 export async function createPresignedGetUrl(
   pathnameOrUrl: string,
-  expiresIn = 7200,
+  expiresIn = 600,
   options?: { fileName?: string; contentType?: string },
 ): Promise<string> {
   const { bucket } = requireR2Config();
   const client = getR2Client();
   const key = normalizeKey(pathnameOrUrl);
   const safeName = options?.fileName?.replace(/["\r\n]+/g, "").slice(0, 180);
+  const effectiveExpiresIn = Math.min(Math.max(expiresIn, 300), 600);
   return getSignedUrl(
     client,
     new GetObjectCommand({
@@ -143,7 +144,7 @@ export async function createPresignedGetUrl(
         ? { ResponseContentType: options.contentType }
         : {}),
     }),
-    { expiresIn },
+    { expiresIn: effectiveExpiresIn },
   );
 }
 

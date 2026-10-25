@@ -22,17 +22,11 @@ export async function GET(
   }
 
   const bundle = await getPackageBundle(id, token);
-  if (bundle.status === "invalid") {
-    return NextResponse.json({ error: "Link non valido" }, { status: 403 });
-  }
-  if (bundle.status === "expired") {
-    return new NextResponse(
-      "Link scaduto. Chiedi al broker di rigenerare il pacchetto.",
-      {
-        status: 410,
-        headers: { "Content-Type": "text/plain; charset=utf-8" },
-      },
-    );
+  if (bundle.status === "invalid" || bundle.status === "expired") {
+    return new Response(JSON.stringify({ error: "Link scaduto o non valido" }), {
+      status: 410,
+      headers: { "Content-Type": "application/json" },
+    });
   }
 
   const { app, files } = bundle;
