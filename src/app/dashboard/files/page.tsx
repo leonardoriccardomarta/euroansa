@@ -8,12 +8,20 @@ import { applications, documents } from "@/db/schema";
 import { CreateClientFolderForm } from "@/components/dashboard/file-browser-actions";
 import { isTutorialPractice } from "@/lib/tutorial";
 import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
-export default async function FilesIndexPage() {
+export default async function FilesIndexPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ tab?: string }>;
+}) {
   const session = await getSession();
   if (!session) redirect("/login");
+
+  const { tab } = (await searchParams) ?? {};
+  const currentTab = tab === "archiviate" ? "archiviate" : "tutte";
 
   const appWhere =
     session.role === "ADMIN"
@@ -28,6 +36,7 @@ export default async function FilesIndexPage() {
       clientFiscalCode: applications.clientFiscalCode,
       brokerId: applications.brokerId,
       isTest: applications.isTest,
+      status: applications.status,
       updatedAt: applications.updatedAt,
       relazioneStorageKey: applications.relazioneStorageKey,
     })
@@ -38,7 +47,10 @@ export default async function FilesIndexPage() {
     desc(applications.updatedAt),
   );
 
-  const filtered = apps;
+  const activeApps = apps.filter((a) => a.status !== "ROGITATA");
+  const archivedApps = apps.filter((a) => a.status === "ROGITATA");
+
+  const filtered = currentTab === "archiviate" ? archivedApps : activeApps;
   const appIds = filtered.map((a) => a.id);
 
   const counts =
@@ -71,11 +83,37 @@ export default async function FilesIndexPage() {
 
       <CreateClientFolderForm />
 
+      <div className="flex flex-wrap items-center gap-2 border-b border-slate-200 pb-3">
+        <Link
+          href="/dashboard/files"
+          className={cn(
+            "inline-flex min-h-10 shrink-0 items-center rounded-lg px-4 text-sm font-medium transition-colors",
+            currentTab === "tutte"
+              ? "bg-primary-600 text-white shadow-sm"
+              : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50",
+          )}
+        >
+          Tutte ({activeApps.length})
+        </Link>
+        <Link
+          href="/dashboard/files?tab=archiviate"
+          className={cn(
+            "inline-flex min-h-10 shrink-0 items-center rounded-lg px-4 text-sm font-medium transition-colors",
+            currentTab === "archiviate"
+              ? "bg-primary-600 text-white shadow-sm"
+              : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50",
+          )}
+        >
+          Archiviate ({archivedApps.length})
+        </Link>
+      </div>
+
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {filtered.length === 0 ? (
           <div className="col-span-full rounded-xl border border-dashed border-slate-300 bg-white p-10 text-center text-sm text-slate-500">
-            Nessuna cartella. Creane una sopra, oppure arriva dalle email /
-            pratiche.
+            {currentTab === "archiviate"
+              ? "Nessuna cartella archiviata. Le cartelle delle pratiche completate (rogitate) compariranno qui."
+              : "Nessuna cartella attiva. Creane una sopra, oppure arriva dalle email / pratiche."}
           </div>
         ) : (
           filtered.map((app) => {

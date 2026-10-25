@@ -1,5 +1,5 @@
 import { notFound, redirect } from "next/navigation";
-import { asc, desc, eq } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 import {
   CheckCircle2,
   Circle,
@@ -8,13 +8,11 @@ import { getSession } from "@/lib/auth";
 import { db } from "@/db";
 import {
   applications,
-  bankPolicies,
   documents,
   secretarySendLogs,
   systemSettings,
   users,
 } from "@/db/schema";
-import { ensureBankPolicySeed } from "@/lib/banks/ensure-seed";
 import {
   evaluateChecklist,
   inferEmploymentType,
@@ -35,7 +33,6 @@ import { ApplicationActions } from "@/components/dashboard/application-actions";
 import { ClosedPracticeCleanup } from "@/components/dashboard/closed-practice-cleanup";
 import { PracticeDocumentsSection } from "@/components/dashboard/practice-documents-section";
 import { RelazioneUpload } from "@/components/dashboard/relazione-upload";
-import { PreventivoForm } from "@/components/dashboard/preventivo-form";
 import { RequiredDocsEditor } from "@/components/dashboard/required-docs-editor";
 import { PracticeEconomicsForm } from "@/components/dashboard/practice-economics-form";
 import { TutorialPracticeBanner } from "@/components/onboarding/tutorial-practice-banner";
@@ -77,9 +74,7 @@ export default async function ApplicationDetailPage({
   // Una sola cartella DOC ufficiale (fonde INFOINZAGO/SHEHATA DOC sparsi)
   await normalizePracticeDocFolders(id);
 
-  await ensureBankPolicySeed();
-
-  const [docs, sendLogs, settingsRow, allUsers, bankRows] = await Promise.all([
+  const [docs, sendLogs, settingsRow, allUsers] = await Promise.all([
     db
       .select()
       .from(documents)
@@ -104,15 +99,6 @@ export default async function ApplicationDetailPage({
         overrideOnOthersPercent: users.overrideOnOthersPercent,
       })
       .from(users),
-    db
-      .select({
-        bankName: bankPolicies.bankName,
-        summary: bankPolicies.summary,
-        rows: bankPolicies.rows,
-        detailText: bankPolicies.detailText,
-      })
-      .from(bankPolicies)
-      .orderBy(asc(bankPolicies.sortOrder), asc(bankPolicies.bankName)),
   ]);
 
   const [settings] = settingsRow;
@@ -463,24 +449,6 @@ export default async function ApplicationDetailPage({
         )}
         fileName={current.relazioneFileName}
         uploadedAt={current.relazioneUploadedAt}
-      />
-
-      <PreventivoForm
-        applicationId={current.id}
-        clientName={current.clientName}
-        banks={bankRows}
-        defaults={{
-          ...(current.preventivoData ?? {}),
-          bankName: current.preventivoData?.bankName ?? current.bankName,
-          propertyAmount:
-            current.preventivoData?.propertyAmount ?? current.propertyAmount,
-          loanAmount: current.preventivoData?.loanAmount ?? current.loanAmount,
-        }}
-        hasPdf={Boolean(
-          current.preventivoStorageKey &&
-            isSiteStorageKey(current.preventivoStorageKey),
-        )}
-        fileName={current.preventivoFileName}
       />
 
       <PracticeDocumentsSection

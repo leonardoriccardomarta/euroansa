@@ -11,7 +11,6 @@ import {
   FolderKanban,
   HardDrive,
   Landmark,
-  LineChart,
   LogOut,
   Phone,
   Settings,
@@ -78,11 +77,6 @@ export function AppShell({
       tourId: "nav-rogitate",
     },
     ...brokerCrm,
-    {
-      href: "/dashboard/budget",
-      label: "Budget",
-      icon: LineChart,
-    },
     {
       href: "/dashboard/files",
       label: "File",

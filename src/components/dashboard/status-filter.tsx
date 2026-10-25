@@ -1,17 +1,18 @@
 "use client";
 
 import Link from "next/link";
-import { APPLICATION_STATUS_LABELS } from "@/lib/config/documents";
 import { cn } from "@/lib/utils";
 
 const FILTERS = [
   { value: "", label: "Tutti" },
-  ...Object.entries(APPLICATION_STATUS_LABELS)
-    .filter(([value]) => value !== "ROGITATA")
-    .map(([value, label]) => ({
-      value,
-      label,
-    })),
+  { value: "DOCUMENTI_INCOMPLETI", label: "Documenti incompleti" },
+  { value: "COMPLETA_DA_INOLTRARE", label: "Completa da inoltrare" },
+  { value: "INVIATA_A_SEGRETERIA", label: "Inviata a segreteria" },
+  { value: "DELIBERA_REDDITUALE", label: "Delibera reddituale" },
+  { value: "PERIZIA_PRESA", label: "Perizia presa" },
+  { value: "PERIZIA_EFFETTUATA", label: "Perizia effettuata" },
+  { value: "DELIBERA_FINALE", label: "Delibera finale" },
+  { value: "ROGITATA", label: "Rogitate" },
 ];
 
 export function StatusFilter({ current }: { current?: string }) {

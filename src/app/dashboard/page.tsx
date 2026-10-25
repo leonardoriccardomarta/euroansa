@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray, ne } from "drizzle-orm";
+import { and, desc, eq, inArray } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import { db } from "@/db";
@@ -29,6 +29,16 @@ function statusBadgeClass(status: string) {
   return "bg-slate-100 text-slate-700 border-slate-200";
 }
 
+const PIPELINE_PRIORITY: Record<string, number> = {
+  DOCUMENTI_INCOMPLETI: 1,
+  COMPLETA_DA_INOLTRARE: 2,
+  INVIATA_A_SEGRETERIA: 3,
+  DELIBERA_REDDITUALE: 4,
+  PERIZIA_PRESA: 5,
+  PERIZIA_EFFETTUATA: 6,
+  DELIBERA_FINALE: 7,
+};
+
 export default async function DashboardPage({
   searchParams,
 }: {
@@ -39,15 +49,12 @@ export default async function DashboardPage({
 
   const { status } = await searchParams;
 
-  // Hub: mail ufficio (OAuth admin). Documenti su Cloudflare R2.
-  // Esclude sempre ROGITATA dalla dashboard principale (visibili solo in /dashboard/rogitate).
   const appWhere =
     session.role === "ADMIN"
-      ? ne(applications.status, "ROGITATA")
+      ? undefined
       : and(
           eq(applications.brokerId, session.id),
           eq(applications.isTest, false),
-          ne(applications.status, "ROGITATA"),
         );
 
   const appsQuery = db
@@ -66,6 +73,7 @@ export default async function DashboardPage({
       requiredDocumentTypes: applications.requiredDocumentTypes,
       lastPipelineError: applications.lastPipelineError,
       updatedAt: applications.updatedAt,
+      rogitoAt: applications.rogitoAt,
     })
     .from(applications)
     .$dynamic();
@@ -105,17 +113,56 @@ export default async function DashboardPage({
     docsByApp.set(d.applicationId, list);
   }
 
-  // Ordine pratiche attive: più recenti prima.
-  const filtered = (status ? apps.filter((a) => a.status === status) : apps)
-    .slice()
-    .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
+  let filtered: typeof apps = [];
+  if (status === "ROGITATA") {
+    filtered = apps
+      .filter((a) => a.status === "ROGITATA")
+      .slice()
+      .sort((a, b) => {
+        const timeA = a.rogitoAt
+          ? new Date(a.rogitoAt).getTime()
+          : a.updatedAt.getTime();
+        const timeB = b.rogitoAt
+          ? new Date(b.rogitoAt).getTime()
+          : b.updatedAt.getTime();
+        return timeB - timeA;
+      });
+  } else if (status) {
+    filtered = apps
+      .filter((a) => a.status === status)
+      .slice()
+      .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
+  } else {
+    // "Tutti" tab: esclude categoricamente le pratiche ROGITATA
+    // Ordine di pipeline: 1. Doc incompleti, 2. Completa da inoltrare, 3. Inviata segreteria,
+    // 4. Delibera reddituale, 5. Perizia presa, 6. Perizia effettuata, 7. Delibera finale
+    // Ordinamento secondario: updatedAt decrescente
+    filtered = apps
+      .filter((a) => a.status !== "ROGITATA")
+      .slice()
+      .sort((a, b) => {
+        const prioA = PIPELINE_PRIORITY[a.status] ?? 99;
+        const prioB = PIPELINE_PRIORITY[b.status] ?? 99;
+        if (prioA !== prioB) {
+          return prioA - prioB;
+        }
+        return b.updatedAt.getTime() - a.updatedAt.getTime();
+      });
+  }
 
-  const total = apps.length;
-  // Conteggio esatto per stato corrente pratiche attive
+  // KPI Counters:
+  // PRATICHE ATTIVE: conteggio totale pratiche non rogitate
+  const totalActive = apps.filter((a) => a.status !== "ROGITATA").length;
+  // INVIATE A SEGRETERIA: conteggio pratiche attualmente in stato INVIATA_A_SEGRETERIA
   const sentToSecretary = apps.filter(
     (a) => a.status === "INVIATA_A_SEGRETERIA",
   ).length;
-  const inProgress = total - sentToSecretary;
+  // IN LAVORAZIONE: conteggio strettamente delle pratiche preliminari prima dell'invio (DOCUMENTI_INCOMPLETI e COMPLETA_DA_INOLTRARE)
+  const inProgress = apps.filter(
+    (a) =>
+      a.status === "DOCUMENTI_INCOMPLETI" ||
+      a.status === "COMPLETA_DA_INOLTRARE",
+  ).length;
 
   const brokers = brokerRows
     .filter((b) => b.role === "BROKER")
@@ -129,7 +176,7 @@ export default async function DashboardPage({
 
   const alerts = buildPracticeAlerts(
     apps
-      .filter((a) => !a.isTest)
+      .filter((a) => !a.isTest && a.status !== "ROGITATA")
       .map((a) => ({
         id: a.id,
         clientName: a.clientName,
@@ -161,7 +208,7 @@ export default async function DashboardPage({
           <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
             Pratiche attive
           </p>
-          <p className="mt-2 text-3xl font-bold text-slate-900">{total}</p>
+          <p className="mt-2 text-3xl font-bold text-slate-900">{totalActive}</p>
         </div>
         <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
           <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
