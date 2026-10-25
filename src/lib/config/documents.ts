@@ -184,6 +184,7 @@ export const DOCUMENT_TYPE_LABELS: Record<DocumentType, string> = {
     "EVENTUALI POLIZZE ASSICURATIVE O STRUMENTI DI RISPARMIO",
   CONTRATTI_FINANZIAMENTO: "CONTRATTI DI FINANZIAMENTO",
   QUIETANZA_RATA_MUTUO: "ULTIMA QUIETANZA RATA MUTUO",
+  APE: "ATTESTATO DI PRESTAZIONE ENERGETICA (APE)",
   SCONOSCIUTO: "SCONOSCIUTO",
 };
 
@@ -356,6 +357,7 @@ export function storageFolderKindForDocument(
   type: DocumentType,
 ): StorageFolderKind {
   if (
+    type === "APE" ||
     type === "ATTO_IMMOBILE" ||
     type === "PRELIMINARE_COMPRAVENDITA" ||
     type === "SCHEDE_CATASTALI" ||
@@ -411,7 +413,7 @@ export const FILE_NAME_PREFIX: Record<DocumentType, string> = {
   F24: "f24",
   CEDOLINO_PENSIONE: "cedolino pensione",
   MODELLO_OBIS_M: "obis",
-  ESTRATTO_CONTO: "ecc",
+  ESTRATTO_CONTO: "ec",
   LISTA_MOVIMENTI_3_MESI: "lista movimenti",
   CONTRATTO_AFFITTO: "affitto",
   PRELIMINARE_COMPRAVENDITA: "preliminare",
@@ -420,6 +422,7 @@ export const FILE_NAME_PREFIX: Record<DocumentType, string> = {
   POLIZZE_RISPARMIO: "polizze",
   CONTRATTI_FINANZIAMENTO: "finanziamenti",
   QUIETANZA_RATA_MUTUO: "quietanza mutuo",
+  APE: "ape",
   SCONOSCIUTO: "doc",
 };
 

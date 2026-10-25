@@ -6,6 +6,7 @@ import { db } from "@/db";
 import { applications, documents } from "@/db/schema";
 import type { DocumentType } from "@/db/schema";
 import { requireSession, type SessionUser } from "@/lib/auth";
+import { getAppBaseUrl } from "@/lib/app-url";
 import {
   CHECKLIST_DOCUMENT_TYPES,
   FILE_NAME_PREFIX,
@@ -18,12 +19,15 @@ import {
   storageSubfolderLabel,
   type StorageFolderKind,
 } from "@/lib/config/documents";
-import { getAppBaseUrl } from "@/lib/app-url";
-import { practiceStoragePrefix } from "@/lib/storage/blob";
-import { processIncomingFiles, refreshApplicationState } from "@/lib/pipeline";
+import {
+  processIncomingFiles,
+  refreshApplicationState,
+  resolveUniqueFileName,
+} from "@/lib/pipeline";
 import { setApplicationPipelineError } from "@/lib/applications/errors";
 import {
   deleteBlobByPathname,
+  practiceStoragePrefix,
   uploadPracticeFile,
   uploadRelazioneFile,
 } from "@/lib/storage/blob";
@@ -133,6 +137,52 @@ export async function deleteDocumentFileAction(documentId: string) {
   await refreshApplicationState(doc.applicationId);
   revalidateFiles(doc.applicationId);
   return { ok: true };
+}
+
+export async function renameDocumentFileAction(
+  documentId: string,
+  newFileName: string,
+): Promise<{ ok: true; renamedFileName: string } | { error: string }> {
+  const session = await requireSession();
+  const [doc] = await db
+    .select()
+    .from(documents)
+    .where(eq(documents.id, documentId))
+    .limit(1);
+  if (!doc) return { error: "Documento non trovato" };
+
+  const access = await assertCanAccessApp(session, doc.applicationId);
+  if ("error" in access && access.error) return { error: access.error };
+
+  let cleaned = newFileName.trim().replace(/[\\/]+/g, "_");
+  if (!cleaned) return { error: "Nome file non valido" };
+
+  // Preserva estensione .pdf
+  if (!cleaned.toLowerCase().endsWith(".pdf")) {
+    cleaned = `${cleaned}.pdf`;
+  }
+
+  // Risolve collisioni di nomi su documenti attivi della stessa pratica
+  const uniqueName = await resolveUniqueFileName(
+    doc.applicationId,
+    cleaned,
+    doc.id,
+  );
+
+  await db
+    .update(documents)
+    .set({
+      renamedFileName: uniqueName,
+    })
+    .where(eq(documents.id, documentId));
+
+  await db
+    .update(applications)
+    .set({ updatedAt: new Date() })
+    .where(eq(applications.id, doc.applicationId));
+
+  revalidateFiles(doc.applicationId);
+  return { ok: true, renamedFileName: uniqueName };
 }
 
 export async function deleteRelazioneAction(applicationId: string) {

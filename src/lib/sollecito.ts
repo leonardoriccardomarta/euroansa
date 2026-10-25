@@ -1,7 +1,4 @@
-import {
-  DOCUMENT_TYPE_LABELS,
-  sheetRowsForRequired,
-} from "@/lib/config/documents";
+import { sheetRowsForRequired } from "@/lib/config/documents";
 import type { ChecklistResult } from "@/lib/checklist";
 
 export function buildSollecitoMessage(params: {

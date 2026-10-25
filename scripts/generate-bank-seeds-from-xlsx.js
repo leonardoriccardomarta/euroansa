@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
 /**
  * Genera src/lib/banks/seed-data.json dal file Excel SCHEDA BANCHE.
  * Uso: node scripts/generate-bank-seeds-from-xlsx.js [path.xlsx]

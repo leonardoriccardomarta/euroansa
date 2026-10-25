@@ -215,6 +215,9 @@ async function runEmailCronWork(force: boolean) {
         {
           fromEmail: email.fromEmail,
           messageId: email.messageId,
+          threadId: email.threadId,
+          inReplyTo: email.inReplyTo,
+          references: email.references,
           subject: email.subject,
           clientNameHint: email.fromEmail.split("@")[0],
           isTest: false,

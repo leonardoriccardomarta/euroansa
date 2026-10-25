@@ -15,6 +15,7 @@ import {
   FolderUploadButton,
 } from "@/components/dashboard/file-browser-actions";
 import { RelazioneFileActions } from "@/components/dashboard/relazione-file-actions";
+import { ZipDownloadButton } from "@/components/dashboard/zip-download-button";
 
 export const dynamic = "force-dynamic";
 
@@ -51,27 +52,35 @@ export default async function ClientFilesPage({
 
   return (
     <div className="space-y-6">
-      <div>
-        <Link
-          href="/dashboard/files"
-          className="inline-flex items-center gap-1 text-sm font-medium text-primary-600 hover:underline"
-        >
-          <ChevronLeft className="h-4 w-4" />
-          Tutte le cartelle
-        </Link>
-        <h1 className="mt-3 flex items-center gap-2 text-3xl font-bold text-slate-900">
-          <Folder className="h-8 w-8 text-amber-600" />
-          {app.clientName}
-        </h1>
-        <p className="mt-2 text-slate-600">
-          {app.clientFiscalCode ? `CF ${app.clientFiscalCode} · ` : null}
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
           <Link
-            href={`/dashboard/applications/${app.id}`}
-            className="font-medium text-primary-600 hover:underline"
+            href="/dashboard/files"
+            className="inline-flex items-center gap-1 text-sm font-medium text-primary-600 hover:underline"
           >
-            Apri pratica
+            <ChevronLeft className="h-4 w-4" />
+            Tutte le cartelle
           </Link>
-        </p>
+          <h1 className="mt-3 flex items-center gap-2 text-3xl font-bold text-slate-900">
+            <Folder className="h-8 w-8 text-amber-600" />
+            {app.clientName}
+          </h1>
+          <p className="mt-2 text-slate-600">
+            {app.clientFiscalCode ? `CF ${app.clientFiscalCode} · ` : null}
+            <Link
+              href={`/dashboard/applications/${app.id}`}
+              className="font-medium text-primary-600 hover:underline"
+            >
+              Apri pratica
+            </Link>
+          </p>
+        </div>
+        <ZipDownloadButton
+          applicationId={app.id}
+          label="Scarica Dossier (.zip)"
+          variant="default"
+          className="bg-primary-600 font-semibold text-white hover:bg-primary-700"
+        />
       </div>
 
       {docs.some((d) => isLegacyDriveKey(d.driveFileId)) ? (
@@ -113,7 +122,12 @@ export default async function ClientFilesPage({
                     <p className="text-xs text-slate-500">{list.length} file</p>
                   </div>
                 </div>
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  <ZipDownloadButton
+                    applicationId={app.id}
+                    folderName={label}
+                    label="Scarica (.zip)"
+                  />
                   <FolderUploadButton
                     applicationId={app.id}
                     folderName={label}

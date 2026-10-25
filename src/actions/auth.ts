@@ -7,7 +7,6 @@ import {
   destroySession,
   hashPassword,
   requireAdmin,
-  requireSession,
 } from "@/lib/auth";
 import { db } from "@/db";
 import { users } from "@/db/schema";

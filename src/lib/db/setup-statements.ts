@@ -242,6 +242,11 @@ export const SETUP_STATEMENTS = [
   `ALTER TABLE applications ADD COLUMN IF NOT EXISTS is_couple boolean NOT NULL DEFAULT false`,
   `ALTER TABLE applications ADD COLUMN IF NOT EXISTS couple_subject_key text`,
   `ALTER TABLE applications ADD COLUMN IF NOT EXISTS applicant_fiscal_codes text[] NOT NULL DEFAULT '{}'`,
+  // APE e thread/deduplica
+  `ALTER TYPE document_type ADD VALUE IF NOT EXISTS 'APE'`,
+  `ALTER TABLE applications ADD COLUMN IF NOT EXISTS email_thread_ids text[] NOT NULL DEFAULT '{}'`,
+  `ALTER TABLE documents ADD COLUMN IF NOT EXISTS file_hash varchar(64)`,
+  `ALTER TABLE documents ADD COLUMN IF NOT EXISTS file_size real`,
 ];
 
 export const PACKAGE_LINK_TTL_DAYS = 7;

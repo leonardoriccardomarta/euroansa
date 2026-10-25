@@ -21,6 +21,8 @@ import { ClassifyUnknownDoc } from "@/components/dashboard/classify-unknown-doc"
 import { DeletePracticeDoc } from "@/components/dashboard/delete-practice-doc";
 import { DocumentPreviewButton } from "@/components/dashboard/document-preview";
 import { FolderUploadButton } from "@/components/dashboard/file-browser-actions";
+import { RenameDocumentDialog } from "@/components/dashboard/rename-document-dialog";
+import { ZipDownloadButton } from "@/components/dashboard/zip-download-button";
 import {
   rankDuplicateDocuments,
   type DuplicateRankInfo,
@@ -174,7 +176,11 @@ function DocRow({
           <p className="text-xs text-slate-500">
             Rinominato: {doc.renamedFileName}
           </p>
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2 mt-2">
+            <RenameDocumentDialog
+              documentId={doc.id}
+              currentName={doc.renamedFileName || doc.rawFileName}
+            />
             {showClassify ? (
               <ClassifyUnknownDoc
                 documentId={doc.id}
@@ -335,15 +341,23 @@ export function PracticeDocumentsSection({
 
   return (
     <section id="files" className="space-y-4">
-      <div>
-        <h2 className="mb-2 text-xl font-bold text-slate-900">
-          Cartella documenti
-        </h2>
-        <p className="text-sm text-slate-600">
-          Mail/AI → solo DOC e IMMOBILE (checklist). BANCA e EUROANSA = firmati
-          / operativo: li carichi tu, senza classifica checklist. Relazione ha
-          il blocco dedicato.
-        </p>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 className="mb-1 text-xl font-bold text-slate-900">
+            Cartella documenti
+          </h2>
+          <p className="text-sm text-slate-600">
+            Mail/AI → solo DOC e IMMOBILE (checklist). BANCA e EUROANSA = firmati
+            / operativo: li carichi tu, senza classifica checklist. Relazione ha
+            il blocco dedicato.
+          </p>
+        </div>
+        <ZipDownloadButton
+          applicationId={applicationId}
+          label="Scarica Dossier (.zip)"
+          variant="default"
+          className="bg-primary-600 font-semibold text-white hover:bg-primary-700"
+        />
       </div>
 
       {mainFolders.map(({ kind, label, list }) => (
@@ -364,11 +378,18 @@ export function PracticeDocumentsSection({
                 <p className="text-xs text-slate-400">{list.length} file</p>
               </div>
             </div>
-            <FolderUploadButton
-              applicationId={applicationId}
-              folderName={label}
-              label={kind === "EUROANSA" ? "Carica firmati" : "Nuovo file"}
-            />
+            <div className="flex flex-wrap items-center gap-2">
+              <ZipDownloadButton
+                applicationId={applicationId}
+                folderName={label}
+                label="Scarica Cartella (.zip)"
+              />
+              <FolderUploadButton
+                applicationId={applicationId}
+                folderName={label}
+                label={kind === "EUROANSA" ? "Carica firmati" : "Nuovo file"}
+              />
+            </div>
           </div>
           {list.length === 0 ? (
             <p className="text-sm text-slate-500">Cartella vuota.</p>
@@ -399,10 +420,17 @@ export function PracticeDocumentsSection({
               <p className="font-semibold text-slate-900">{label}</p>
               <p className="text-xs text-slate-400">{list.length} file</p>
             </div>
-            <FolderUploadButton
-              applicationId={applicationId}
-              folderName={label}
-            />
+            <div className="flex flex-wrap items-center gap-2">
+              <ZipDownloadButton
+                applicationId={applicationId}
+                folderName={label}
+                label="Scarica Cartella (.zip)"
+              />
+              <FolderUploadButton
+                applicationId={applicationId}
+                folderName={label}
+              />
+            </div>
           </div>
           <div className="space-y-3">
             {list.map((doc) => (

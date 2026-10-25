@@ -55,6 +55,7 @@ const DOCUMENT_TYPES: DocumentType[] = [
   "POLIZZE_RISPARMIO",
   "CONTRATTI_FINANZIAMENTO",
   "QUIETANZA_RATA_MUTUO",
+  "APE",
   "SCONOSCIUTO",
 ];
 
@@ -77,6 +78,10 @@ const responseSchema = {
         netSalary: { type: Type.NUMBER, nullable: true },
         loanDeductions: { type: Type.NUMBER, nullable: true },
         grossIncomeAnnual: { type: Type.NUMBER, nullable: true },
+        bankName: { type: Type.STRING, nullable: true },
+        propertyDetail: { type: Type.STRING, nullable: true },
+        euroansaDocType: { type: Type.STRING, nullable: true },
+        bancaDocType: { type: Type.STRING, nullable: true },
         alsoCovers: {
           type: Type.ARRAY,
           nullable: true,
@@ -103,8 +108,8 @@ function sanitizeNamePart(value: string | null | undefined): string {
   );
 }
 
-/** Es. ALI_ci.pdf, ALI_bp 05.pdf (stile cartella Filippo) */
-function buildStandardizedFileName(
+/** Standard naming per i documenti della pratica */
+export function buildStandardizedFileName(
   documentType: DocumentType,
   extracted: ExtractedDocumentData,
   originalFileName: string,
@@ -112,18 +117,155 @@ function buildStandardizedFileName(
   const ext = originalFileName.includes(".")
     ? originalFileName.slice(originalFileName.lastIndexOf("."))
     : ".pdf";
-  const prefix = FILE_NAME_PREFIX[documentType] ?? "doc";
+  const safeExt = ext.toLowerCase() === ".pdf" ? ".pdf" : ext;
   const surname = sanitizeNamePart(
     extracted.lastName || extracted.firstName,
   ).toUpperCase();
-  const monthRaw = extracted.referenceMonth?.trim();
-  let monthSuffix = "";
-  if (monthRaw) {
-    // "05/2026" o "05" → " 05"
-    const m = monthRaw.match(/(\d{1,2})/);
-    monthSuffix = m ? ` ${m[1]!.padStart(2, "0")}` : ` ${sanitizeNamePart(monthRaw)}`;
+  const origLower = originalFileName.toLowerCase();
+
+  // 1. EUROANSA Folder (Signed Compliance Forms - OUTSIDE Requirements Checklist)
+  if (extracted.euroansaDocType) {
+    return `${surname}_Euroansa_${extracted.euroansaDocType}${safeExt}`;
   }
-  return `${surname}_${prefix}${monthSuffix}${ext}`;
+  if (/youdomus|antiriciclaggio.*lar|lar.*antiriciclaggio|adeguata.*verifica.*youdomus/i.test(origLower)) {
+    return `${surname}_Euroansa_Youdomus_Adeguata_Verifica${safeExt}`;
+  }
+  if (/relazione.*mutuo|dati.*pratica.*mutuo|relazione.*tipo/i.test(origLower)) {
+    return `${surname}_Euroansa_Relazione_Mutuo${safeExt}`;
+  }
+  if (/priv.*rev|allegato.*1.*privacy|informativa.*privacy/i.test(origLower)) {
+    return `${surname}_Euroansa_Allegato_1_Privacy${safeExt}`;
+  }
+  if (/cmcc.*rev|contratto.*mediazione|consulenza.*mediazione/i.test(origLower)) {
+    return `${surname}_Euroansa_Contratto_Mediazione_CMCC${safeExt}`;
+  }
+  if (/avc.*r|adeguata.*verifica.*clientela|art\.?\s*22.*231/i.test(origLower)) {
+    return `${surname}_Euroansa_Adeguata_Verifica_AVC${safeExt}`;
+  }
+  if (/afi-tr|trasparenza.*banca.*d'?italia|attestazione.*trasparenza/i.test(origLower)) {
+    return `${surname}_Euroansa_Attestazione_Trasparenza_AFI-TR${safeExt}`;
+  }
+  if (/valutazione.*rischio.*riciclaggio|scheda.*rischio.*antiriciclaggio/i.test(origLower)) {
+    return `${surname}_Euroansa_Scheda_Rischio_Antiriciclaggio${safeExt}`;
+  }
+
+  // 2. BANCA Folder (Signed Bank Forms - OUTSIDE Checklist)
+  if (extracted.bancaDocType) {
+    const bank = sanitizeNamePart(extracted.bankName || "BANCA").toUpperCase();
+    return `${surname}_${bank}_${extracted.bancaDocType}${safeExt}`;
+  }
+  if (/ddm|delega.*di.*pagamento/i.test(origLower) && (origLower.includes("banca") || extracted.bankName)) {
+    const bank = sanitizeNamePart(extracted.bankName || "BANCA").toUpperCase();
+    return `${surname}_${bank}_DDM${safeExt}`;
+  }
+  if (/pies/i.test(origLower)) {
+    const bank = sanitizeNamePart(extracted.bankName || "BANCA").toUpperCase();
+    return `${surname}_${bank}_PIES${safeExt}`;
+  }
+  if (/richiesta.*mutuo.*firmata|modulo.*richiesta.*mutuo/i.test(origLower)) {
+    const bank = sanitizeNamePart(extracted.bankName || "BANCA").toUpperCase();
+    return `${surname}_${bank}_Richiesta_Mutuo_Firmata${safeExt}`;
+  }
+
+  // 3. IMMOBILE Folder
+  if (documentType === "APE" || /attestato.*prestazione.*energetica|\bape\b/i.test(origLower)) {
+    return `${surname}_APE${safeExt}`;
+  }
+  if (documentType === "SCHEDE_CATASTALI") {
+    const detail = extracted.propertyDetail
+      ? `_${sanitizeNamePart(extracted.propertyDetail).toUpperCase()}`
+      : "";
+    if (/planimetr/i.test(origLower)) {
+      return `${surname}_Planimetria${detail}${safeExt}`;
+    }
+    return `${surname}_Visura_Catastale${detail}${safeExt}`;
+  }
+  if (documentType === "ATTO_IMMOBILE") {
+    return `${surname}_Atto_Provenienza${safeExt}`;
+  }
+  if (documentType === "PRELIMINARE_COMPRAVENDITA") {
+    return `${surname}_Preliminare_Compravendita${safeExt}`;
+  }
+
+  // 4. CLIENT Folder: Base & Anagrafica
+  if (documentType === "CARTA_IDENTITA") return `${surname}_CartaIdentita${safeExt}`;
+  if (documentType === "TESSERA_SANITARIA") return `${surname}_TesseraSanitaria${safeExt}`;
+  if (documentType === "PASSAPORTO") return `${surname}_Passaporto${safeExt}`;
+  if (documentType === "PERMESSO_SOGGIORNO") return `${surname}_PermessoSoggiorno${safeExt}`;
+  if (documentType === "ATTO_MATRIMONIO") return `${surname}_Certificato_Matrimonio${safeExt}`;
+  if (documentType === "CERTIFICATO_RESIDENZA") return `${surname}_Certificato_Residenza${safeExt}`;
+  if (documentType === "STATO_FAMIGLIA") return `${surname}_Stato_Famiglia${safeExt}`;
+  if (documentType === "CERTIFICATO_STATO_LIBERO") return `${surname}_Certificato_Stato_Libero${safeExt}`;
+  if (documentType === "CERTIFICATO_VEDOVANZA") return `${surname}_Certificato_Vedovanza${safeExt}`;
+  if (documentType === "OMOLOGA_SEPARAZIONE") return `${surname}_Omologa_Separazione${safeExt}`;
+  if (documentType === "SENTENZA_DIVORZIO") return `${surname}_Sentenza_Divorzio${safeExt}`;
+
+  // Busta Paga: [COGNOME]_BustaPaga_[Mese/Anno].pdf
+  if (
+    documentType === "BUSTA_PAGA_1" ||
+    documentType === "BUSTA_PAGA_2" ||
+    documentType === "BUSTA_PAGA_3"
+  ) {
+    const monthRaw = extracted.referenceMonth?.trim();
+    let monthSuffix = "";
+    if (monthRaw) {
+      const cleanMonth = sanitizeNamePart(monthRaw.replace(/[\/\s-]+/g, "_"));
+      monthSuffix = cleanMonth && cleanMonth !== "NA" ? `_${cleanMonth}` : "";
+    }
+    return `${surname}_BustaPaga${monthSuffix}${safeExt}`;
+  }
+
+  // Certificazione Unica: Map to fiscal year 2026 -> [COGNOME]_Modello_CU_2026.pdf
+  if (documentType === "MODELLO_CUD" || documentType === "CUD_730") {
+    return `${surname}_Modello_CU_2026${safeExt}`;
+  }
+  if (documentType === "MODELLO_730") return `${surname}_Modello_730${safeExt}`;
+  if (documentType === "MODELLO_UNICO" || documentType === "MODELLO_UNICO_1") {
+    return `${surname}_Modello_Unico_1${safeExt}`;
+  }
+  if (documentType === "MODELLO_UNICO_2") {
+    return `${surname}_Modello_Unico_2${safeExt}`;
+  }
+
+  // ESTRATTO CONTO (Bank Statement) Multi-file Rule:
+  // Prefix strictly EC, extract bank and period: [COGNOME]_EC_[Banca]_[Periodo/Mese].pdf
+  if (documentType === "ESTRATTO_CONTO" || documentType === "LISTA_MOVIMENTI_3_MESI") {
+    const bank = extracted.bankName && extracted.bankName !== "NA"
+      ? sanitizeNamePart(extracted.bankName)
+      : "";
+    const monthRaw = extracted.referenceMonth?.trim();
+    const period = monthRaw ? sanitizeNamePart(monthRaw.replace(/[\/\s-]+/g, "_")) : "";
+    const cleanPeriod = period && period !== "NA" ? period : "";
+
+    if (bank && cleanPeriod) {
+      return `${surname}_EC_${bank}_${cleanPeriod}${safeExt}`;
+    } else if (bank) {
+      return `${surname}_EC_${bank}${safeExt}`;
+    } else if (cleanPeriod) {
+      return `${surname}_EC_${cleanPeriod}${safeExt}`;
+    }
+    return `${surname}_EC${safeExt}`;
+  }
+
+  // Altri tipi standard
+  if (documentType === "CONTRATTO_LAVORO") return `${surname}_Contratto_Lavoro${safeExt}`;
+  if (documentType === "ESTRATTO_CONTRIBUTIVO_INPS") return `${surname}_Estratto_INPS${safeExt}`;
+  if (documentType === "ISEE") return `${surname}_ISEE${safeExt}`;
+  if (documentType === "VISURA_CAMERALE") return `${surname}_Visura_Camerale${safeExt}`;
+  if (documentType === "CERTIFICATO_PIVA") return `${surname}_Certificato_PIVA${safeExt}`;
+  if (documentType === "BILANCINO") return `${surname}_Bilancino${safeExt}`;
+  if (documentType === "FATTURE_EMESSE") return `${surname}_Fatture_Emesse${safeExt}`;
+  if (documentType === "F24") return `${surname}_F24${safeExt}`;
+  if (documentType === "CEDOLINO_PENSIONE") return `${surname}_Cedolino_Pensione${safeExt}`;
+  if (documentType === "MODELLO_OBIS_M") return `${surname}_Modello_OBIS${safeExt}`;
+  if (documentType === "CONTRATTO_AFFITTO") return `${surname}_Contratto_Affitto${safeExt}`;
+  if (documentType === "POLIZZE_RISPARMIO") return `${surname}_Polizze${safeExt}`;
+  if (documentType === "CONTRATTI_FINANZIAMENTO") return `${surname}_Contratti_Finanziamento${safeExt}`;
+  if (documentType === "QUIETANZA_RATA_MUTUO") return `${surname}_Quietanza_Rata_Mutuo${safeExt}`;
+  if (documentType === "NUMERO_TELEFONO_COMMERCIALISTA") return `${surname}_Telefono_Commercialista${safeExt}`;
+
+  const prefix = FILE_NAME_PREFIX[documentType] ?? "Doc";
+  return `${surname}_${sanitizeNamePart(prefix)}${safeExt}`;
 }
 
 function resolveModels(): string[] {
@@ -203,12 +345,25 @@ Classificazione (contenuto reale, stile checklist Filippo / mediatore):
 - CI + tessera sanitaria → CARTA_IDENTITA + alsoCovers TESSERA_SANITARIA.
 - CI + permesso → CARTA_IDENTITA + alsoCovers PERMESSO_SOGGIORNO.
 - Solo permesso di soggiorno / titolo di soggiorno (anche foto WhatsApp) → PERMESSO_SOGGIORNO (mai SCONOSCIUTO se leggibile).
-- CUD → MODELLO_CUD; 730 → MODELLO_730; Unico → MODELLO_UNICO_1/_2.
-- Estratto conto → ESTRATTO_CONTO; lista movimenti → LISTA_MOVIMENTI_3_MESI.
-- Atto / preliminare → ATTO_IMMOBILE / PRELIMINARE_COMPRAVENDITA.
-- Fogli firmati mediatore (privacy, DDM, mandato) → SCONOSCIUTO.
+- CUD / CU → MODELLO_CUD; 730 → MODELLO_730; Unico → MODELLO_UNICO_1/_2.
+- Estratto conto → ESTRATTO_CONTO; lista movimenti → LISTA_MOVIMENTI_3_MESI. Estrai bankName (es. Unicredit, Intesa, BPER, Poste, CreditAgricole, BPM) e referenceMonth (es. Maggio, 05).
+- APE (Attestato Prestazione Energetica) → APE.
+- Schede catastali / visura / planimetria → SCHEDE_CATASTALI. Estrai in propertyDetail eventuale subalterno o destinazione (es. SUB 1, SUB 2, BOX, APPARTAMENTO).
+- Atto immobile / rogito acquisto → ATTO_IMMOBILE; preliminare compravendita / proposta → PRELIMINARE_COMPRAVENDITA.
+- Moduli interni Euroansa (fuori checklist cliente, imposta documentType = SCONOSCIUTO):
+  * "Youdomus" / "Adeguata Verifica" / "LAR" → euroansaDocType = "Youdomus_Adeguata_Verifica"
+  * "DATI PRATICA MUTUO" / "RELAZIONE TIPO" → euroansaDocType = "Relazione_Mutuo"
+  * "Informativa Privacy" / "PRIV REV" → euroansaDocType = "Allegato_1_Privacy"
+  * "CONTRATTO DI CONSULENZA E MEDIAZIONE" / "CMCC Rev" → euroansaDocType = "Contratto_Mediazione_CMCC"
+  * "ADEGUATA VERIFICA CLIENTELA" / "AVC R" / "ART. 22" → euroansaDocType = "Adeguata_Verifica_AVC"
+  * "ATTESTAZIONE TRASPARENZA" / "AFI-TR" → euroansaDocType = "Attestazione_Trasparenza_AFI-TR"
+  * "VALUTAZIONE RISCHIO RICICLAGGIO" → euroansaDocType = "Scheda_Rischio_Antiriciclaggio"
+- Moduli firmati banca (fuori checklist, documentType = SCONOSCIUTO):
+  * DDM / delega pagamento → bancaDocType = "DDM" con bankName (es. BDM, ING, Valsabbina, CA)
+  * PIES → bancaDocType = "PIES" con bankName
+  * Richiesta mutuo firmata → bancaDocType = "Richiesta_Mutuo_Firmata" con bankName
 
-isValid = true se il file è leggibile e utilizzabile in istruttoria mutua banca.
+isValid = true se il file è leggibile e utilizzabile in istruttoria mutua banca (anche moduli Euroansa e Banca compilati e firmati sono validi).
 isValid = false + validationIssues (italiano) se:
 1) Illeggibile / tipo incoerente
 2) Scaduto rispetto alla DATA DI OGGI (anno letto correttamente!)
@@ -216,7 +371,7 @@ isValid = false + validationIssues (italiano) se:
 4) Estratto incompleto / busta con CIG-cessioni rilevanti (loanDeductions; isValid può restare true se leggibile)
 Il broker può comunque accettare a mano: non inventare scadenze false.
 
-Estrai: nome, cognome, CF, expiryDate (GG/MM/AAAA), mese buste, netto, trattenute, lordo annuale.
+Estrai: nome, cognome, CF, expiryDate (GG/MM/AAAA), referenceMonth, bankName, propertyDetail, euroansaDocType, bancaDocType, netto, trattenute, lordo annuale.
 Numeri numerici. File originale (solo hint): ${params.originalFileName}`;
 
   const mimeType =

@@ -1,9 +1,13 @@
+import crypto from "crypto";
 import { and, asc, desc, eq, inArray, lt, or, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { applications, documents, systemSettings, users } from "@/db/schema";
-import type { DocumentAnalysisStatus, DocumentType } from "@/db/schema";
+import type { DocumentAnalysisStatus, DocumentType, ExtractedDocumentData } from "@/db/schema";
 import { isPlaceholderClientEmail } from "@/lib/client-email";
-import { analyzeDocument } from "@/lib/ai/analyze-document";
+import {
+  analyzeDocument,
+  buildStandardizedFileName,
+} from "@/lib/ai/analyze-document";
 import {
   checkAnagraphicCoherence,
   coupleCoherenceNotes,
@@ -15,6 +19,7 @@ import {
 } from "@/lib/checklist";
 import {
   CHECKLIST_PRESETS,
+  clientSurnameShort,
   defaultStorageFolders,
   expandMultiSlotTypes,
   FILE_NAME_PREFIX,
@@ -57,24 +62,103 @@ const PAYSLIP_SLOTS: DocumentType[] = [
   "BUSTA_PAGA_3",
 ];
 
+export function computeFileHash(buffer: Buffer): string {
+  return crypto.createHash("sha256").update(buffer).digest("hex");
+}
+
+export async function resolveUniqueFileName(
+  applicationId: string,
+  targetFileName: string,
+  excludeDocumentId?: string,
+): Promise<string> {
+  const existingDocs = await db
+    .select({ id: documents.id, renamedFileName: documents.renamedFileName })
+    .from(documents)
+    .where(eq(documents.applicationId, applicationId));
+
+  const usedNames = new Set(
+    existingDocs
+      .filter((d) => !excludeDocumentId || d.id !== excludeDocumentId)
+      .map((d) => d.renamedFileName.trim().toLowerCase()),
+  );
+
+  const candidate = targetFileName.trim();
+  if (!usedNames.has(candidate.toLowerCase())) {
+    return candidate;
+  }
+
+  const dot = candidate.lastIndexOf(".");
+  const stem = dot > 0 ? candidate.slice(0, dot) : candidate;
+  const ext = dot > 0 ? candidate.slice(dot) : ".pdf";
+
+  let counter = 1;
+  while (usedNames.has(`${stem}_${counter}${ext}`.toLowerCase())) {
+    counter++;
+  }
+  return `${stem}_${counter}${ext}`;
+}
+
+export async function isDuplicateUpload(params: {
+  applicationId: string;
+  originalFileName: string;
+  fileSize: number;
+  fileHash: string;
+}): Promise<boolean> {
+  const existing = await db
+    .select({
+      id: documents.id,
+      rawFileName: documents.rawFileName,
+      fileHash: documents.fileHash,
+      fileSize: documents.fileSize,
+    })
+    .from(documents)
+    .where(eq(documents.applicationId, params.applicationId));
+
+  const match = existing.some((d) => {
+    if (d.fileHash && d.fileHash === params.fileHash) return true;
+    if (
+      d.rawFileName.trim().toLowerCase() === params.originalFileName.trim().toLowerCase() &&
+      d.fileSize != null &&
+      Math.abs(d.fileSize - params.fileSize) < 2
+    ) {
+      return true;
+    }
+    return false;
+  });
+
+  return match;
+}
+
 function withResolvedType<
-  T extends { documentType: DocumentType; standardizedFileName: string },
+  T extends {
+    documentType: DocumentType;
+    standardizedFileName: string;
+    extractedData?: ExtractedDocumentData;
+  },
 >(analysis: T, resolved: DocumentType, originalFileName: string): T {
   if (analysis.documentType === resolved) return analysis;
+  if (analysis.extractedData) {
+    return {
+      ...analysis,
+      documentType: resolved,
+      standardizedFileName: buildStandardizedFileName(
+        resolved,
+        analysis.extractedData,
+        originalFileName,
+      ),
+    };
+  }
   const ext = originalFileName.includes(".")
     ? originalFileName.slice(originalFileName.lastIndexOf("."))
     : ".pdf";
   const prefix = FILE_NAME_PREFIX[resolved] ?? "doc";
-  // Nome stile Filippo: SURNAME_prefix… → sostituisci parte dopo _
   const match = analysis.standardizedFileName.match(/^([^_]+)_(.+?)(\.[^.]+)?$/);
   if (match) {
     const surname = match[1]!;
-    const monthMatch = match[2]!.match(/\s+(\d{1,2})$/);
-    const monthSuffix = monthMatch ? ` ${monthMatch[1]}` : "";
     return {
       ...analysis,
       documentType: resolved,
-      standardizedFileName: `${surname}_${prefix}${monthSuffix}${match[3] ?? ext}`,
+      standardizedFileName: `${surname}_${prefix}${match[3] ?? ext}`,
     };
   }
   return {
@@ -91,7 +175,6 @@ function withResolvedType<
 function resolveDocumentType(
   detected: DocumentType,
   knownTypes: Set<string>,
-  _typeCounts: Map<string, number>,
 ): DocumentType {
   if (detected === "SCONOSCIUTO") return detected;
 
@@ -154,6 +237,129 @@ export async function isStaffMailboxEmail(email: string): Promise<boolean> {
     )
     .limit(1);
   return Boolean(hit);
+}
+
+export async function registerThreadIdsToApplication(
+  applicationId: string,
+  ids: string[],
+) {
+  const clean = ids
+    .map((id) => id?.replace(/[<>]/g, "").trim())
+    .filter((id): id is string => Boolean(id && id.length > 0));
+  if (clean.length === 0) return;
+
+  const [row] = await db
+    .select({ emailThreadIds: applications.emailThreadIds })
+    .from(applications)
+    .where(eq(applications.id, applicationId))
+    .limit(1);
+  if (!row) return;
+
+  const currentSet = new Set(row.emailThreadIds ?? []);
+  let changed = false;
+  for (const id of clean) {
+    if (!currentSet.has(id)) {
+      currentSet.add(id);
+      changed = true;
+    }
+  }
+
+  if (changed) {
+    await db
+      .update(applications)
+      .set({ emailThreadIds: [...currentSet], updatedAt: new Date() })
+      .where(eq(applications.id, applicationId));
+  }
+}
+
+export async function findApplicationByThreadOrReply(options: {
+  threadId?: string;
+  inReplyTo?: string;
+  references?: string;
+  subject?: string;
+  fromEmail?: string;
+}): Promise<typeof applications.$inferSelect | null> {
+  const candidateIds: string[] = [];
+  if (options.threadId?.trim()) {
+    candidateIds.push(options.threadId.trim());
+  }
+  if (options.inReplyTo?.trim()) {
+    candidateIds.push(options.inReplyTo.replace(/[<>]/g, "").trim());
+  }
+  if (options.references?.trim()) {
+    const refs = options.references
+      .split(/\s+/)
+      .map((r) => r.replace(/[<>]/g, "").trim())
+      .filter(Boolean);
+    candidateIds.push(...refs);
+  }
+
+  for (const id of candidateIds) {
+    if (!id) continue;
+    const matches = await db
+      .select()
+      .from(applications)
+      .where(sql`${id} = ANY(${applications.emailThreadIds})`)
+      .limit(1);
+    if (matches.length > 0 && matches[0]) {
+      return matches[0];
+    }
+  }
+
+  const rawSubject = options.subject?.trim() ?? "";
+  const isReply = /^(re|rif|r|fwd|i)\s*:\s*/i.test(rawSubject);
+  if (isReply) {
+    const cleanSubject = rawSubject
+      .replace(/^(re|rif|r|fwd|i)\s*:\s*/gi, "")
+      .trim();
+    if (cleanSubject.length >= 3) {
+      const openApps = await db
+        .select()
+        .from(applications)
+        .where(
+          and(
+            inArray(applications.status, [...OPEN_STATUSES]),
+            sql`(${applications.clientEmail} NOT LIKE 'intake.%@prontopratica.local')`,
+          ),
+        );
+
+      const lowerClean = cleanSubject.toLowerCase();
+      for (const app of openApps) {
+        const clientNameLower = app.clientName.toLowerCase();
+        const surname = clientSurnameShort(app.clientName).toLowerCase();
+        if (
+          lowerClean.includes(clientNameLower) ||
+          (surname.length >= 3 && lowerClean.includes(surname))
+        ) {
+          return app;
+        }
+        if (
+          app.coupleSubjectKey &&
+          lowerClean.includes(app.coupleSubjectKey.toLowerCase())
+        ) {
+          return app;
+        }
+      }
+    }
+  }
+
+  if (options.fromEmail && !(await isStaffMailboxEmail(options.fromEmail))) {
+    const [byEmail] = await db
+      .select()
+      .from(applications)
+      .where(
+        and(
+          eq(applications.clientEmail, options.fromEmail.toLowerCase().trim()),
+          inArray(applications.status, [...OPEN_STATUSES]),
+        ),
+      )
+      .limit(1);
+    if (byEmail) {
+      return byEmail;
+    }
+  }
+
+  return null;
 }
 
 async function findOrCreateApplication(params: {
@@ -689,7 +895,23 @@ export async function processIncomingFiles(
 
   for (const file of files) {
     const rawKey = file.originalFileName.trim().toLowerCase();
-    if (knownRaw.has(rawKey)) {
+    const hash = computeFileHash(file.buffer);
+    const size = file.buffer.length;
+
+    if (options?.applicationId) {
+      const isDup = await isDuplicateUpload({
+        applicationId: options.applicationId,
+        originalFileName: file.originalFileName,
+        fileSize: size,
+        fileHash: hash,
+      });
+      if (isDup || knownRaw.has(rawKey)) {
+        errors.push(
+          `${file.originalFileName}: file già presente o identico caricato in precedenza`,
+        );
+        continue;
+      }
+    } else if (knownRaw.has(rawKey)) {
       errors.push(
         `${file.originalFileName}: già in pratica con lo stesso nome — rinomina e riprova`,
       );
@@ -721,7 +943,6 @@ export async function processIncomingFiles(
       const resolved = resolveDocumentType(
         analysis.documentType,
         knownTypes,
-        typeCounts,
       );
       analysis = withResolvedType(
         analysis,
@@ -809,7 +1030,6 @@ export async function processIncomingFiles(
       const resolved = resolveDocumentType(
         analysis.documentType,
         knownTypes,
-        typeCounts,
       );
       analysis = withResolvedType(
         analysis,
@@ -865,6 +1085,15 @@ export async function processIncomingFiles(
     const folderKind = storageFolderKindForDocument(analysis.documentType);
     const subfolder = storageSubfolderLabel(folderKind, app.clientName);
 
+    const uniqueStandardizedName = await resolveUniqueFileName(
+      app.id,
+      analysis.standardizedFileName,
+    );
+    analysis = {
+      ...analysis,
+      standardizedFileName: uniqueStandardizedName,
+    };
+
     let storageKey: string | null = null;
     try {
       const uploaded = await uploadPracticeFile({
@@ -903,6 +1132,8 @@ export async function processIncomingFiles(
         storageSubfolder: subfolder,
         isValid: analysis.isValid,
         analysisStatus: "done",
+        fileHash: hash,
+        fileSize: size,
         extractedData: analysis.extractedData,
         validationIssues: analysis.validationIssues,
       })
@@ -1249,6 +1480,7 @@ async function addApplicantFiscalCode(
 /** Pratica temporanea per mail staff (match solo dopo OCR/CF). */
 async function ensureStagingApplication(params: {
   messageId: string;
+  threadId?: string;
   clientNameHint?: string;
   isTest?: boolean;
   brokerId?: string | null;
@@ -1279,6 +1511,12 @@ async function ensureStagingApplication(params: {
     (params.isCouple
       ? "Coppia"
       : `Intake ${safeId.slice(0, 8) || "mail"}`);
+
+  const threadIds = [
+    params.messageId,
+    ...(params.threadId ? [params.threadId] : []),
+  ].filter(Boolean);
+
   const [created] = await db
     .insert(applications)
     .values({
@@ -1289,6 +1527,7 @@ async function ensureStagingApplication(params: {
       isCouple: params.isCouple ?? false,
       coupleSubjectKey: params.coupleSubjectKey ?? null,
       brokerId: params.brokerId ?? null,
+      emailThreadIds: threadIds,
       storageFolders: defaultStorageFolders(name),
     })
     .returning();
@@ -1308,6 +1547,9 @@ export async function ingestEmailAttachmentsWithoutAi(
   options: {
     fromEmail: string;
     messageId: string;
+    threadId?: string;
+    inReplyTo?: string;
+    references?: string;
     subject?: string;
     clientNameHint?: string;
     isTest?: boolean;
@@ -1323,24 +1565,48 @@ export async function ingestEmailAttachmentsWithoutAi(
     };
   }
 
-  const subject = options.subject ?? "";
-  const isCouple = isCoupleEmailSubject(subject);
-  const coupleKey = coupleSubjectKey(subject);
-  const coupleHint = coupleNameHintFromSubject(subject);
-
-  // Niente match sulla From:. Staging per messageId → merge CF in OCR.
-  // COPPIA: riusa pratica con stesso oggetto / crea pratica isCouple.
-  const app = await ensureStagingApplication({
-    messageId: options.messageId,
-    clientNameHint: coupleHint || options.clientNameHint,
-    isTest: options.isTest,
-    brokerId: options.brokerId,
-    isCouple,
-    coupleSubjectKey: coupleKey,
+  // 1. Thread & Message ID Check First, then Subject Fallback
+  let app = await findApplicationByThreadOrReply({
+    threadId: options.threadId,
+    inReplyTo: options.inReplyTo,
+    references: options.references,
+    subject: options.subject,
+    fromEmail: options.fromEmail,
   });
 
+  if (!app) {
+    const subject = options.subject ?? "";
+    const isCouple = isCoupleEmailSubject(subject);
+    const coupleKey = coupleSubjectKey(subject);
+    const coupleHint = coupleNameHintFromSubject(subject);
+
+    app = await ensureStagingApplication({
+      messageId: options.messageId,
+      threadId: options.threadId,
+      clientNameHint: coupleHint || options.clientNameHint,
+      isTest: options.isTest,
+      brokerId: options.brokerId,
+      isCouple,
+      coupleSubjectKey: coupleKey,
+    });
+  }
+
+  // Registra gli identificativi thread sull'applicazione
+  const threadIdsToRegister = [
+    options.messageId,
+    options.threadId ?? "",
+    options.inReplyTo ?? "",
+    ...(options.references ? options.references.split(/\s+/) : []),
+  ].filter(Boolean);
+
+  await registerThreadIdsToApplication(app.id, threadIdsToRegister);
+
   const existing = await db
-    .select({ rawFileName: documents.rawFileName })
+    .select({
+      rawFileName: documents.rawFileName,
+      fileHash: documents.fileHash,
+      fileSize: documents.fileSize,
+    })
     .from(documents)
     .where(eq(documents.applicationId, app.id));
   const knownRaw = new Set(
@@ -1367,7 +1633,17 @@ export async function ingestEmailAttachmentsWithoutAi(
 
   for (const file of files) {
     const rawKey = file.filename.trim().toLowerCase();
-    if (knownRaw.has(rawKey)) {
+    const hash = computeFileHash(file.buffer);
+    const size = file.buffer.length;
+
+    const isDup = await isDuplicateUpload({
+      applicationId: app.id,
+      originalFileName: file.filename,
+      fileSize: size,
+      fileHash: hash,
+    });
+
+    if (isDup || knownRaw.has(rawKey)) {
       skipped += 1;
       continue;
     }
@@ -1401,6 +1677,8 @@ export async function ingestEmailAttachmentsWithoutAi(
         storageSubfolder: subfolder,
         isValid: false,
         analysisStatus: "pending",
+        fileHash: hash,
+        fileSize: size,
         extractedData: null,
         validationIssues: [],
       })
@@ -1551,16 +1829,45 @@ export async function processPendingDocumentAnalyses(limit = 2) {
           .filter(Boolean)
           .join(" ") || currentApp.clientName;
 
-      // Pratica COPPIA: tutti i file restano insieme (niente split per CF)
+      // Se NON è staging (es. pratica già cliente o trovata per thread/reply):
+      // se l'allegato non ha CF (es. matrimonio, stato famiglia, atto...), NON creare un'altra pratica!
       let targetApp = currentApp;
       if (!currentApp.isCouple) {
-        targetApp = await findOrCreateApplication({
-          fiscalCode: analysis.extractedData.fiscalCode,
-          email: staging ? undefined : currentApp.clientEmail,
-          clientName: personName,
-          isTest: currentApp.isTest,
-          brokerId: currentApp.brokerId,
-        });
+        if (staging) {
+          targetApp = await findOrCreateApplication({
+            fiscalCode: analysis.extractedData.fiscalCode,
+            email: undefined,
+            clientName: personName,
+            isTest: currentApp.isTest,
+            brokerId: currentApp.brokerId,
+          });
+        } else if (analysis.extractedData.fiscalCode) {
+          targetApp = await findOrCreateApplication({
+            fiscalCode: analysis.extractedData.fiscalCode,
+            email: currentApp.clientEmail,
+            clientName: personName,
+            isTest: currentApp.isTest,
+            brokerId: currentApp.brokerId,
+          });
+        }
+      }
+
+      // Se manca il cognome o è generico "DOC", eredita il cognome dalla pratica genitore
+      const parentSurname = clientSurnameShort(targetApp.clientName);
+      if (
+        (!analysis.extractedData.lastName ||
+          analysis.extractedData.lastName === "DOC" ||
+          analysis.extractedData.lastName === "CLIENTE") &&
+        parentSurname &&
+        parentSurname !== "DOC" &&
+        !parentSurname.startsWith("Intake")
+      ) {
+        analysis.extractedData.lastName = parentSurname;
+        analysis.standardizedFileName = buildStandardizedFileName(
+          analysis.documentType,
+          analysis.extractedData,
+          doc.rawFileName,
+        );
       }
 
       await dedupeApplicationDocuments(targetApp.id);
@@ -1599,7 +1906,6 @@ export async function processPendingDocumentAnalyses(limit = 2) {
       const resolved = resolveDocumentType(
         analysis.documentType,
         knownTypes,
-        typeCounts,
       );
       let finalAnalysis = withResolvedType(
         analysis,
@@ -1615,6 +1921,13 @@ export async function processPendingDocumentAnalyses(limit = 2) {
           ],
         };
       }
+
+      // Anti-collision: auto-append _1.pdf, _2.pdf se esiste già un documento con lo stesso nome
+      finalAnalysis.standardizedFileName = await resolveUniqueFileName(
+        targetApp.id,
+        finalAnalysis.standardizedFileName,
+        doc.id,
+      );
 
       const appUpdates: Partial<typeof applications.$inferInsert> = {
         updatedAt: new Date(),
@@ -1682,6 +1995,9 @@ export async function processPendingDocumentAnalyses(limit = 2) {
         console.error("re-upload after OCR failed", err);
       }
 
+      const docFileHash = doc.fileHash || computeFileHash(buffer);
+      const docFileSize = doc.fileSize != null ? doc.fileSize : buffer.length;
+
       await db
         .update(documents)
         .set({
@@ -1692,6 +2008,8 @@ export async function processPendingDocumentAnalyses(limit = 2) {
           driveFileUrl: `/api/files/${doc.id}`,
           storageSubfolder: subfolder,
           isValid: finalAnalysis.isValid,
+          fileHash: docFileHash,
+          fileSize: docFileSize,
           analysisStatus: "done" satisfies DocumentAnalysisStatus,
           analysisClaimedAt: null,
           extractedData: finalAnalysis.extractedData,

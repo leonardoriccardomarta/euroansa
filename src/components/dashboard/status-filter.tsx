@@ -6,10 +6,12 @@ import { cn } from "@/lib/utils";
 
 const FILTERS = [
   { value: "", label: "Tutti" },
-  ...Object.entries(APPLICATION_STATUS_LABELS).map(([value, label]) => ({
-    value,
-    label,
-  })),
+  ...Object.entries(APPLICATION_STATUS_LABELS)
+    .filter(([value]) => value !== "ROGITATA")
+    .map(([value, label]) => ({
+      value,
+      label,
+    })),
 ];
 
 export function StatusFilter({ current }: { current?: string }) {

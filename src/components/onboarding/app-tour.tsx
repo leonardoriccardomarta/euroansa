@@ -245,6 +245,7 @@ export function AppTour({
 
   useEffect(() => {
     if (forceOpen) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setOpen(true);
       setIndex(0);
     }
@@ -252,6 +253,7 @@ export function AppTour({
 
   useEffect(() => {
     if (!open || !step.anchor) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setHighlight(null);
       return;
     }

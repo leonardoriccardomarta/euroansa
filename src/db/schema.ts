@@ -85,6 +85,7 @@ export const documentTypeEnum = pgEnum("document_type", [
   "CONTRATTI_FINANZIAMENTO",
   "QUIETANZA_RATA_MUTUO",
   "NUMERO_TELEFONO_COMMERCIALISTA",
+  "APE",
   "SCONOSCIUTO",
 ]);
 
@@ -122,6 +123,10 @@ export type ExtractedDocumentData = {
   netSalary?: number | null;
   loanDeductions?: number | null;
   grossIncomeAnnual?: number | null;
+  bankName?: string | null;
+  propertyDetail?: string | null;
+  euroansaDocType?: string | null;
+  bancaDocType?: string | null;
   /**
    * Altri tipi checklist soddisfatti dallo stesso PDF
    * (es. CI+TS insieme, 3 buste in un file, certificato contestuale).
@@ -167,6 +172,11 @@ export const applications = pgTable("applications", {
   coupleSubjectKey: text("couple_subject_key"),
   /** Tutti i CF dei cointestatari (marito/moglie…). */
   applicantFiscalCodes: text("applicant_fiscal_codes")
+    .array()
+    .notNull()
+    .default([]),
+  /** Thread ID e Message-ID email associati per matching risposte */
+  emailThreadIds: text("email_thread_ids")
     .array()
     .notNull()
     .default([]),
@@ -294,6 +304,10 @@ export const documents = pgTable("documents", {
   driveFileId: text("drive_file_id"),
   /** URL download autenticato /api/files/{id} */
   driveFileUrl: text("drive_file_url"),
+  /** Hash SHA-256 per deduplica upload */
+  fileHash: varchar("file_hash", { length: 64 }),
+  /** Dimensione file in byte per deduplica */
+  fileSize: real("file_size"),
   /** Nome cartella storage: es. "ALI DOC", "BANCA", "IMMOBILE" */
   storageSubfolder: text("storage_subfolder"),
   isValid: boolean("is_valid").notNull().default(false),

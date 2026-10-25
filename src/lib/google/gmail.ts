@@ -18,6 +18,9 @@ export type GmailAttachmentFile = {
 
 export type PendingMortgageEmail = {
   messageId: string;
+  threadId?: string;
+  inReplyTo?: string;
+  references?: string;
   fromEmail: string;
   subject: string;
   attachments: GmailAttachmentFile[];
@@ -234,6 +237,11 @@ export async function fetchPendingMortgageEmails(
       headers.find((h) => h.name?.toLowerCase() === "from")?.value ?? "";
     const subject =
       headers.find((h) => h.name?.toLowerCase() === "subject")?.value ?? "";
+    const inReplyTo =
+      headers.find((h) => h.name?.toLowerCase() === "in-reply-to")?.value ?? undefined;
+    const references =
+      headers.find((h) => h.name?.toLowerCase() === "references")?.value ?? undefined;
+    const threadId = full.data.threadId ?? undefined;
     const fromEmail = extractEmail(from);
 
     const attachments: GmailAttachmentFile[] = [];
@@ -280,6 +288,9 @@ export async function fetchPendingMortgageEmails(
 
     emails.push({
       messageId: msg.id,
+      threadId,
+      inReplyTo,
+      references,
       fromEmail,
       subject,
       attachments,

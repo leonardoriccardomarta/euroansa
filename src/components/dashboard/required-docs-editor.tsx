@@ -65,6 +65,7 @@ export function RequiredDocsEditor({
 
   useEffect(() => {
     const fromPreset = presetToIncomeSubtitle(suggestedPreset);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (fromPreset) setIncomeFocus(fromPreset);
   }, [suggestedPreset]);
 

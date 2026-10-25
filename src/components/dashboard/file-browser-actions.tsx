@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { uploadFilesDirectToR2 } from "@/lib/storage/direct-upload";
 import { DocumentPreviewButton } from "@/components/dashboard/document-preview";
+import { RenameDocumentDialog } from "@/components/dashboard/rename-document-dialog";
 import { toast } from "sonner";
 
 /** AI/checklist solo su DOC e IMMOBILE; BANCA/EUROANSA = firmati, no AI */
@@ -298,6 +299,10 @@ export function DocumentFileRow({
             });
             e.target.value = "";
           }}
+        />
+        <RenameDocumentDialog
+          documentId={documentId}
+          currentName={name}
         />
         <Button
           type="button"

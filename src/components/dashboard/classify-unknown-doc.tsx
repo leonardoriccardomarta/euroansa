@@ -67,7 +67,7 @@ export function ClassifyUnknownDoc({
                   documentId,
                   value as DocumentType,
                 );
-                if (res && "error" in res && res.error) {
+                if ("error" in res) {
                   toast.error(res.error);
                   return;
                 }

@@ -27,14 +27,47 @@ export function coupleCoherenceNotes(
 }
 
 export function checkAnagraphicCoherence(
-  docs: Pick<Document, "extractedData" | "renamedFileName" | "isValid">[],
+  docs: Array<
+    Pick<Document, "extractedData" | "renamedFileName" | "isValid"> & {
+      documentType?: Document["documentType"];
+      storageSubfolder?: string | null;
+    }
+  >,
   options?: { isCouple?: boolean },
 ): string[] {
   // Su pratica coppia i CF/cognomi diversi sono attesi → niente errori bloccanti
   if (options?.isCouple) return [];
 
   const issues: string[] = [];
-  const withData = docs.filter((d) => d.extractedData);
+  // Escludi documenti immobile (venditori, tecnici, precedenti proprietari hanno CF diversi)
+  const isPropertyDoc = (d: typeof docs[number]) => {
+    const type = d.documentType;
+    if (
+      type === "ATTO_IMMOBILE" ||
+      type === "PRELIMINARE_COMPRAVENDITA" ||
+      type === "SCHEDE_CATASTALI" ||
+      type === "CONTRATTO_AFFITTO" ||
+      type === "APE"
+    ) {
+      return true;
+    }
+    const folder = (d.storageSubfolder ?? "").toUpperCase();
+    if (folder.includes("IMMOBILE")) return true;
+    const name = (d.renamedFileName ?? "").toLowerCase();
+    if (
+      name.includes("visura") ||
+      name.includes("planimetria") ||
+      name.includes("catast") ||
+      name.includes("provenienza") ||
+      name.includes("preliminare") ||
+      name.includes("ape")
+    ) {
+      return true;
+    }
+    return false;
+  };
+
+  const withData = docs.filter((d) => d.extractedData && !isPropertyDoc(d));
 
   const fiscalCodes = withData
     .map((d) => d.extractedData?.fiscalCode?.toUpperCase().trim())

@@ -1,7 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import { asc, desc, eq } from "drizzle-orm";
 import {
-  AlertCircle,
   CheckCircle2,
   Circle,
 } from "lucide-react";
@@ -23,7 +22,6 @@ import {
 import { displayClientEmail } from "@/lib/client-email";
 import { normalizePracticeDocFolders } from "@/lib/pipeline";
 import {
-  DOCUMENT_TYPE_LABELS,
   EMPLOYMENT_TYPE_LABELS,
   sheetRowsForRequired,
 } from "@/lib/config/documents";
@@ -144,6 +142,7 @@ export default async function ApplicationDetailPage({
   );
   const packageExpired =
     Boolean(current.packageTokenExpiresAt) &&
+    // eslint-disable-next-line react-hooks/purity
     current.packageTokenExpiresAt!.getTime() < Date.now();
 
   const employmentType = inferEmploymentType(docs);

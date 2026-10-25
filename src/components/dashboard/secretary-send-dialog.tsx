@@ -59,6 +59,7 @@ export function SecretarySendDialog({
 
   useEffect(() => {
     if (!open) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setSelected(new Set(docs.map((d) => d.id)));
     setSubject(draft.subject);
     setBodyText(draft.bodyText);

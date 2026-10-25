@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray } from "drizzle-orm";
+import { and, desc, eq, inArray, ne } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import { db } from "@/db";
@@ -40,12 +40,15 @@ export default async function DashboardPage({
   const { status } = await searchParams;
 
   // Hub: mail ufficio (OAuth admin). Documenti su Cloudflare R2.
-  // ADMIN = vede tutte + assegna.
-  // BROKER = soci minori, solo pratiche assegnate a loro.
+  // Esclude sempre ROGITATA dalla dashboard principale (visibili solo in /dashboard/rogitate).
   const appWhere =
     session.role === "ADMIN"
-      ? undefined
-      : and(eq(applications.brokerId, session.id), eq(applications.isTest, false));
+      ? ne(applications.status, "ROGITATA")
+      : and(
+          eq(applications.brokerId, session.id),
+          eq(applications.isTest, false),
+          ne(applications.status, "ROGITATA"),
+        );
 
   const appsQuery = db
     .select({
@@ -102,22 +105,17 @@ export default async function DashboardPage({
     docsByApp.set(d.applicationId, list);
   }
 
-  // Aperte sempre in alto; rogitate in fondo. Dentro ogni gruppo: più recenti prima.
+  // Ordine pratiche attive: più recenti prima.
   const filtered = (status ? apps.filter((a) => a.status === status) : apps)
     .slice()
-    .sort((a, b) => {
-      const aClosed = a.status === "ROGITATA" ? 1 : 0;
-      const bClosed = b.status === "ROGITATA" ? 1 : 0;
-      if (aClosed !== bClosed) return aClosed - bClosed;
-      return b.updatedAt.getTime() - a.updatedAt.getTime();
-    });
+    .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
 
   const total = apps.length;
-  // Conteggio esatto per stato corrente (si aggiorna se torni indietro)
+  // Conteggio esatto per stato corrente pratiche attive
   const sentToSecretary = apps.filter(
     (a) => a.status === "INVIATA_A_SEGRETERIA",
   ).length;
-  const rogitate = apps.filter((a) => a.status === "ROGITATA").length;
+  const inProgress = total - sentToSecretary;
 
   const brokers = brokerRows
     .filter((b) => b.role === "BROKER")
@@ -151,8 +149,8 @@ export default async function DashboardPage({
         </h1>
         <p className="mt-2 max-w-2xl text-slate-600">
           {isAdmin
-            ? "Vedi tutte le pratiche e assegna i broker."
-            : "Le pratiche assegnate a te."}
+            ? "Vedi tutte le pratiche attive e assegna i broker."
+            : "Le tue pratiche attive assegnate."}
         </p>
       </div>
 
@@ -161,7 +159,7 @@ export default async function DashboardPage({
       <div className="grid gap-3 sm:grid-cols-3">
         <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
           <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-            Totale pratiche
+            Pratiche attive
           </p>
           <p className="mt-2 text-3xl font-bold text-slate-900">{total}</p>
         </div>
@@ -175,9 +173,11 @@ export default async function DashboardPage({
         </div>
         <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
           <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-            Rogitate
+            In lavorazione
           </p>
-          <p className="mt-2 text-3xl font-bold text-primary-600">{rogitate}</p>
+          <p className="mt-2 text-3xl font-bold text-amber-600">
+            {inProgress}
+          </p>
         </div>
       </div>
 

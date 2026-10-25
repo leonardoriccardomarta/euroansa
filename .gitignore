@@ -46,3 +46,8 @@ test-documents/*.jpg
 
 # Excel sorgente scheda banche (rigenerare seed con scripts/generate-bank-seeds-from-xlsx.js)
 scripts/*.xlsx
+
+metadata.json
+bun.lock
+.aistudio/
+public/assets/
