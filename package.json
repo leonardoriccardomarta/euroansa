@@ -12,7 +12,8 @@
     "db:push": "drizzle-kit push",
     "db:seed": "npx tsx scripts/seed.ts",
     "test:docs": "npx tsx scripts/generate-test-docs.ts",
-    "smoke:email": "npx tsx scripts/smoke-email-intake.ts"
+    "smoke:email": "npx tsx scripts/smoke-email-intake.ts",
+    "migrate:drive": "npx tsx scripts/migrate-from-drive.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1146.0",
