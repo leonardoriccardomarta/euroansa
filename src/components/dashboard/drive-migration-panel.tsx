@@ -236,16 +236,29 @@ export function DriveMigrationPanel() {
                           {item.files.map((f, idx) => (
                             <div
                               key={idx}
-                              className="flex items-center justify-between gap-2 border-b border-slate-50 py-1 text-[11px] last:border-0"
+                              className="flex items-center justify-between gap-2 border-b border-slate-50 py-1.5 text-[11px] last:border-0"
                             >
-                              <span className="truncate text-slate-800" title={f.name}>
-                                {f.name}
-                              </span>
+                              <div className="flex flex-col truncate">
+                                <span
+                                  className="font-medium text-slate-900 truncate"
+                                  title={f.standardizedName || f.name}
+                                >
+                                  {f.standardizedName || f.name}
+                                </span>
+                                {f.standardizedName && f.standardizedName !== f.name ? (
+                                  <span
+                                    className="text-[10px] text-slate-400 truncate"
+                                    title={f.name}
+                                  >
+                                    Orig: {f.name}
+                                  </span>
+                                ) : null}
+                              </div>
                               <div className="flex shrink-0 items-center gap-1.5">
                                 <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-700">
                                   {f.category}
                                 </span>
-                                <span className="rounded bg-primary-50 px-1.5 py-0.5 text-[10px] text-primary-700">
+                                <span className="rounded bg-primary-50 px-1.5 py-0.5 text-[10px] font-semibold text-primary-700">
                                   {f.type}
                                 </span>
                                 <span className="text-[10px] text-slate-400">

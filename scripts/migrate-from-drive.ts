@@ -7,6 +7,7 @@ import { drizzle } from "drizzle-orm/neon-http";
 import { neon } from "@neondatabase/serverless";
 import { eq, ilike, and, or, isNotNull } from "drizzle-orm";
 import * as schema from "../src/db/schema";
+import type { DocumentType } from "../src/db/schema";
 import {
   MARCO_ROOT_FOLDER_ID,
   FILIPPO_ROOT_FOLDER_ID,
@@ -15,6 +16,8 @@ import {
   cleanFolderNameForMatch,
   matchTargetClient,
   classifyDocumentByName,
+  resolveCollision,
+  getClientSurname,
   type FuzzyMatchResult,
 } from "../src/lib/drive-migration/engine";
 
@@ -30,6 +33,8 @@ export {
   cleanFolderNameForMatch,
   matchTargetClient,
   classifyDocumentByName,
+  resolveCollision,
+  getClientSurname,
 };
 
 // 2. Inizializzazione R2 Client
@@ -161,6 +166,7 @@ export async function main() {
 
   console.log("===============================================================================");
   console.log("   PRONTOPRATICA — ZERO-COST GOOGLE DRIVE MIGRATION (15 PRATICHE TARGET)      ");
+  console.log("   Standardized Naming (buildStandardizedFileName) & Zero SCONOSCIUTO          ");
   console.log("===============================================================================");
   console.log(`Modalità: ${isDryRun ? "🔍 DRY-RUN (Simulazione - Nessuna scrittura)" : "⚡ LIVE (Scrittura R2 e DB attiva)"}`);
   console.log(`Cartella Marco   (ID: ${MARCO_ROOT_FOLDER_ID}) -> 3 Pratiche`);
@@ -175,7 +181,7 @@ export async function main() {
     console.log("   (Configura GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REFRESH_TOKEN in .env.local per connetterti al Drive reale)");
     console.log("");
     if (isDryRun) {
-      console.log("👉 Esecuzione del test di matching fuzzy sulle 15 cartelle reali verificate in Drive:");
+      console.log("👉 Esecuzione del test di matching fuzzy e classificazione deterministica sulle 15 cartelle reali:");
       await runSimulatedDryRun();
       return;
     } else {
@@ -293,6 +299,8 @@ export async function main() {
       totalFilesDiscovered += files.length;
       console.log(`      Documenti trovati: ${files.length}`);
 
+      const practiceFileNames = new Set<string>();
+
       if (isDryRun) {
         for (const file of files) {
           const classification = classifyDocumentByName(
@@ -300,8 +308,12 @@ export async function main() {
             file.parentSubfolder,
             target.name,
           );
+          const resolvedName = resolveCollision(
+            classification.standardizedName,
+            practiceFileNames,
+          );
           console.log(
-            `      📄 [${classification.category.padEnd(8)}] Tipo: ${classification.documentType.padEnd(25)} | Sottocartella: ${classification.subfolder} | File: ${file.name} (${file.size ?? "N/D"} byte)`,
+            `      📄 [${classification.category.padEnd(8)}] Tipo: ${classification.type.padEnd(25)} | Standard: ${resolvedName.padEnd(40)} | Orig: ${file.name}`,
           );
         }
         continue;
@@ -321,6 +333,7 @@ export async function main() {
           .limit(1);
 
         let applicationId = existingApp?.id;
+        const surname = getClientSurname(target.name);
         if (!applicationId) {
           const brokerId = brokerIdMap[sec.broker] ?? null;
           const [createdApp] = await db
@@ -331,7 +344,7 @@ export async function main() {
               status: "ROGITATA",
               brokerId: brokerId,
               storageFolders: [
-                `${target.name.toUpperCase()} DOC`,
+                `${surname} DOC`,
                 "IMMOBILE",
                 "EUROANSA",
                 "BANCA",
@@ -350,6 +363,10 @@ export async function main() {
             file.parentSubfolder,
             target.name,
           );
+          const resolvedName = resolveCollision(
+            classification.standardizedName,
+            practiceFileNames,
+          );
 
           const [alreadyExists] = await db
             .select({ id: schema.documents.id })
@@ -359,6 +376,7 @@ export async function main() {
                 eq(schema.documents.applicationId, applicationId),
                 or(
                   eq(schema.documents.rawFileName, file.name),
+                  eq(schema.documents.renamedFileName, resolvedName),
                   file.size
                     ? and(
                         eq(schema.documents.fileSize, file.size),
@@ -397,7 +415,7 @@ export async function main() {
           }
 
           const fileHash = crypto.createHash("sha256").update(buffer).digest("hex");
-          const safeName = file.name.replace(/[\\/]+/g, "_");
+          const safeName = resolvedName.replace(/[\\/]+/g, "_");
           const r2Key = `practices/${applicationId}/${classification.subfolder}/${safeName}`;
 
           try {
@@ -418,7 +436,7 @@ export async function main() {
             applicationId,
             rawFileName: file.name,
             renamedFileName: safeName,
-            documentType: classification.documentType,
+            documentType: classification.dbType as DocumentType,
             driveFileId: r2Key,
             driveFileUrl: `/api/files/download`,
             fileSize: buffer.length,
@@ -429,7 +447,7 @@ export async function main() {
             validationIssues: [],
           });
 
-          console.log(`         ✅ Importato su R2: ${file.name} -> ${r2Key} (${classification.documentType})`);
+          console.log(`         ✅ Importato su R2: ${file.name} -> ${safeName} (${classification.type})`);
           totalFilesImported++;
         }
       }
@@ -479,14 +497,16 @@ async function runSimulatedDryRun() {
   ];
 
   const simulatedFilesPerFolder = [
+    { name: "CAT_cantina.pdf", size: 340100 },
+    { name: "PLN_abitazione.pdf", size: 1200400 },
+    { name: "KIRLOS_cud26.pdf", size: 540000 },
+    { name: "KIRLOS_ddm.pdf", size: 215000 },
     { name: "CARTA_IDENTITA_FRONTE_RETRO.pdf", size: 450200 },
     { name: "CF_TESSERA_SANITARIA.pdf", size: 320100 },
     { name: "BUSTA_PAGA_01.pdf", size: 180500 },
     { name: "BUSTA_PAGA_02.pdf", size: 182300 },
-    { name: "BUSTA_PAGA_03.pdf", size: 191000 },
-    { name: "CU_2026.pdf", size: 540000 },
+    { name: "BUSTA_PAGA_03_04_05.pdf", size: 291000 },
     { name: "ESTRATTO_CONTO_3_MESI.pdf", size: 890400 },
-    { name: "PLANIMETRIA_CATASTALE.pdf", size: 1200400 },
     { name: "ATTO_PROVENIENZA.pdf", size: 3400500 },
     { name: "EUROANSA_PRIVACY_FIRMATA.pdf", size: 210000 },
     { name: "BANCA_DELIBERA_MUTUO.pdf", size: 450000 },
@@ -509,6 +529,7 @@ async function runSimulatedDryRun() {
 
   let matches = 0;
   let totalFiles = 0;
+  let unknownCount = 0;
   const totalExpected = MARCO_TARGETS.length + FILIPPO_TARGETS.length;
 
   for (const sec of sections) {
@@ -532,10 +553,18 @@ async function runSimulatedDryRun() {
         console.log(`   ✅ MATCH TROVATO: "${bestMatch.folder}"`);
         console.log(`      Score: ${Math.round(bestMatch.result.score * 100)}% | Motivo: ${bestMatch.result.reason}`);
         console.log(`      Documenti classificati deterministici (ZERO AI / NO OCR):`);
+        const practiceFiles = new Set<string>();
         for (const file of simulatedFilesPerFolder) {
           const cls = classifyDocumentByName(file.name, undefined, target.name);
+          const resolvedName = resolveCollision(
+            cls.standardizedName,
+            practiceFiles,
+          );
+          if (cls.type === "SCONOSCIUTO" || resolvedName.includes("SCONOSCIUTO")) {
+            unknownCount++;
+          }
           console.log(
-            `      📄 [${cls.category.padEnd(8)}] Tipo: ${cls.documentType.padEnd(25)} | Sottocartella: ${cls.subfolder.padEnd(25)} | File: ${file.name} (${file.size} bytes)`,
+            `      📄 [${cls.category.padEnd(8)}] Tipo: ${cls.type.padEnd(25)} -> Standard: ${resolvedName.padEnd(42)} | Orig: ${file.name}`,
           );
           totalFiles++;
         }
@@ -550,6 +579,7 @@ async function runSimulatedDryRun() {
   console.log("===============================================================================");
   console.log(`Pratiche con corrispondenza fuzzy: ${matches}/${totalExpected} (100% target risolti)`);
   console.log(`Totale file classificati senza AI: ${totalFiles}`);
+  console.log(`Documenti con classificazione 'SCONOSCIUTO': ${unknownCount} (ZERO TOLERANCE: ${unknownCount === 0 ? "PASSED ✅" : "FAILED ❌"})`);
   console.log("===============================================================================\n");
 }
 

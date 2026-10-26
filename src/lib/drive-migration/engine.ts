@@ -154,6 +154,35 @@ export const FILIPPO_TARGETS: TargetClient[] = [
   },
 ];
 
+const CLIENT_SURNAME_MAP: Record<string, string> = {
+  "AMR KHATTAB": "KHATTAB",
+  "HANY ALI ABDALLA": "ABDALLA",
+  "NASIR": "NASIR",
+  "ABBADI": "ABBADI",
+  "BADAR FARAG KAMAL": "BADAR",
+  "BUTT ABDUL": "BUTT",
+  "CHELEMBEN JHURRY": "CHELEMBEN",
+  "CHERKAOUI GUENNANI": "CHERKAOUI",
+  "DALIPAJ OLGERT": "DALIPAJ",
+  "ESLAM AHMED": "ESLAM",
+  "CARLOS MAGGIONI": "MAGGIONI",
+  "MIA MUNNA": "MIA",
+  "MOHAMED ALI": "MOHAMED",
+  "SIMEONE PASQUALE": "SIMEONE",
+  "WALID BAKHIT HANNA": "WALID",
+};
+
+export function getClientSurname(clientName?: string): string {
+  if (!clientName) return "CLIENTE";
+  const norm = clientName.trim().toUpperCase();
+  if (CLIENT_SURNAME_MAP[norm]) return CLIENT_SURNAME_MAP[norm];
+  for (const [k, v] of Object.entries(CLIENT_SURNAME_MAP)) {
+    if (norm.includes(k) || k.includes(norm)) return v;
+  }
+  const tokens = norm.split(/\s+/).filter(Boolean);
+  return tokens[0] || "CLIENTE";
+}
+
 export function normalizeString(str: string): string {
   return str
     .normalize("NFD")
@@ -377,16 +406,56 @@ export type DocCategory = "CLIENT" | "IMMOBILE" | "EUROANSA" | "BANCA";
 
 export type InferredDocClassification = {
   category: DocCategory;
-  documentType: DocumentType;
+  /** Tipo descrittivo visualizzato in UI (es. VISURA_CATASTALE, PLANIMETRIA, MODELLO_CU, BANCA_DDM) */
+  type: string;
+  /** Tipo compatibile con enum PostgreSQL document_type */
+  dbType: DocumentType;
   subfolder: string;
+  standardizedName: string;
 };
 
+/**
+ * Gestione collisioni: se un file standardizzato esiste già nella pratica, appende _1, _2
+ */
+export function resolveCollision(
+  intendedName: string,
+  existingNames: Set<string>,
+): string {
+  if (!existingNames.has(intendedName)) {
+    existingNames.add(intendedName);
+    return intendedName;
+  }
+  const extIdx = intendedName.lastIndexOf(".");
+  const base = extIdx > 0 ? intendedName.slice(0, extIdx) : intendedName;
+  const ext = extIdx > 0 ? intendedName.slice(extIdx) : "";
+
+  let counter = 1;
+  let candidate = `${base}_${counter}${ext}`;
+  while (existingNames.has(candidate)) {
+    counter++;
+    candidate = `${base}_${counter}${ext}`;
+  }
+  existingNames.add(candidate);
+  return candidate;
+}
+
+/**
+ * Classificazione deterministica ed eliminazione totale di "SCONOSCIUTO".
+ * Applica le regole ufficiali del progetto buildStandardizedFileName via regex/euristiche.
+ */
 export function classifyDocumentByName(
   fileName: string,
   parentFolder?: string,
   clientName?: string,
 ): InferredDocClassification {
-  const norm = fileName
+  const ext = fileName.includes(".")
+    ? fileName.slice(fileName.lastIndexOf("."))
+    : ".pdf";
+  const safeExt = ext.toLowerCase() === ".pdf" ? ".pdf" : ext;
+  const surname = getClientSurname(clientName);
+
+  const baseName = fileName.replace(/\.[^/.]+$/, "");
+  const norm = baseName
     .toUpperCase()
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
@@ -394,94 +463,326 @@ export function classifyDocumentByName(
     .replace(/\s+/g, " ")
     .trim();
 
-  const parentNorm = (parentFolder ?? "")
+  const parentNorm = (parentFolder || "")
     .toUpperCase()
-    .replace(/[_\-.]+/g, " ");
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[_\-.]+/g, " ")
+    .trim();
 
-  // 1. CLIENT
+  // Helper per estrarre subunit catastale (CANTINA, BOX, ABITAZIONE, TERRENO, SUB...)
+  const subunitMatch = norm.match(
+    /\b(CANTINA|BOX|ABITAZIONE|TERRENO|SUB\s*\d*|APPARTAMENTO|GARAGE)\b/,
+  );
+  const subunit = subunitMatch ? subunitMatch[0].replace(/\s+/g, "_") : "";
+
+  // Helper per estrarre nome banca noto
+  const bankMatch = norm.match(
+    /\b(UNICREDIT|INTESA|BPER|POSTE|CREDIT\s*AGRICOLE|CREDITAGRICOLE|BPM|BBVA|ING|FINECO|CHEBANCA|MEDIOLANUM)\b/,
+  );
+  const bank = bankMatch ? bankMatch[0].replace(/\s+/g, "") : "";
+
+  // Helper per dettagli busta paga (date/mesi/numeri)
+  const bpMatch = norm.match(
+    /\b(\d{2}[_\s]\d{2}[_\s]\d{2}|\d{2}[_\s]\d{2}|\d{2}|\d{1}|GENNAIO|FEBBRAIO|MARZO|APRILE|MAGGIO|GIUGNO|LUGLIO|AGOSTO|SETTEMBRE|OTTOBRE|NOVEMBRE|DICEMBRE)\b/,
+  );
+  const bpDetail = bpMatch ? bpMatch[0].replace(/\s+/g, "_") : "";
+
+  // Helper per periodo estratto conto
+  const ecPeriodMatch = norm.match(/\b(\d{1,2}\s*MESI|\d{4})\b/);
+  const ecPeriod = ecPeriodMatch ? ecPeriodMatch[0].replace(/\s+/g, "_") : "";
+
+  // ==========================================
+  // A. IMMOBILE
+  // ==========================================
+  // CAT_ o CATASTALE -> VISURA_CATASTALE
   if (
-    /\b(CARTA IDENTITA|CI|TESSERA SANITARIA|TS|CF|CODICE FISCALE|BUSTA|BP|CU|CUD|730|UNICO|EC|ESTRATTO|ESTRATTO CONTO|MATRIMONIO|STATO FAMIGLIA|RESIDENZA|PDS|PERMESSO SOGGIORNO|PASSAPORTO|INPS|CONTRATTO LAVORO)\b/.test(
-      norm,
-    )
+    /\b(CAT|CATASTALE|VISURA\s*CATASTALE)\b/.test(norm) ||
+    (norm.includes("CAT") && !norm.includes("CONTRATTO"))
   ) {
-    let docType: DocumentType = "SCONOSCIUTO";
-    if (/\b(CARTA IDENTITA|CI)\b/.test(norm)) docType = "CARTA_IDENTITA";
-    else if (/\b(TESSERA SANITARIA|TS|CF|CODICE FISCALE)\b/.test(norm))
-      docType = "TESSERA_SANITARIA";
-    else if (/\b(PERMESSO SOGGIORNO|PDS)\b/.test(norm))
-      docType = "PERMESSO_SOGGIORNO";
-    else if (/\bPASSAPORTO\b/.test(norm)) docType = "PASSAPORTO";
-    else if (/\bMATRIMONIO\b/.test(norm)) docType = "ATTO_MATRIMONIO";
-    else if (/\b(STATO FAMIGLIA|FAMIGLIA)\b/.test(norm))
-      docType = "STATO_FAMIGLIA";
-    else if (/\bRESIDENZA\b/.test(norm)) docType = "CERTIFICATO_RESIDENZA";
-    else if (/\b(BUSTA|BP)\b/.test(norm)) {
-      if (/\b(3|03|MARZO)\b/.test(norm)) docType = "BUSTA_PAGA_3";
-      else if (/\b(2|02|FEBBRAIO|FEB)\b/.test(norm)) docType = "BUSTA_PAGA_2";
-      else docType = "BUSTA_PAGA_1";
-    } else if (/\b(CU|CUD)\b/.test(norm)) docType = "MODELLO_CUD";
-    else if (/\b730\b/.test(norm)) docType = "MODELLO_730";
-    else if (/\bUNICO\b/.test(norm)) docType = "MODELLO_UNICO";
-    else if (/\b(EC|ESTRATTO|ESTRATTO CONTO)\b/.test(norm))
-      docType = "ESTRATTO_CONTO";
-    else if (/\bINPS\b/.test(norm)) docType = "ESTRATTO_CONTRIBUTIVO_INPS";
-    else if (/\bCONTRATTO LAVORO\b/.test(norm))
-      docType = "CONTRATTO_LAVORO";
-
-    const subfolder = clientName ? `${clientName.trim().toUpperCase()} DOC` : "DOC";
-    return { category: "CLIENT", documentType: docType, subfolder };
+    const detailPart = subunit ? `_${subunit}` : "";
+    return {
+      category: "IMMOBILE",
+      type: "VISURA_CATASTALE",
+      dbType: "SCHEDE_CATASTALI",
+      subfolder: "IMMOBILE",
+      standardizedName: `${surname}_Visura_Catastale${detailPart}${safeExt}`,
+    };
   }
 
-  // 2. IMMOBILE
-  if (
-    /\b(VISURA|PLANIMETRIA|APE|ATTO|PRELIMINARE|PROPOSTA|CATASTO|SCHEDA CATASTALE|COMPRAVENDITA)\b/.test(
-      norm,
-    )
-  ) {
-    let docType: DocumentType = "SCONOSCIUTO";
-    if (/\b(PLANIMETRIA|VISURA|CATASTO|SCHEDA CATASTALE)\b/.test(norm))
-      docType = "SCHEDE_CATASTALI";
-    else if (/\bAPE\b/.test(norm)) docType = "APE";
-    else if (/\b(PRELIMINARE|PROPOSTA)\b/.test(norm))
-      docType = "PRELIMINARE_COMPRAVENDITA";
-    else if (/\b(ATTO|COMPRAVENDITA)\b/.test(norm)) docType = "ATTO_IMMOBILE";
-
-    return { category: "IMMOBILE", documentType: docType, subfolder: "IMMOBILE" };
+  // PLN_ o PLANIMETRIA -> PLANIMETRIA
+  if (/\b(PLN|PLANIMETRIA)\b/.test(norm) || norm.includes("PLN")) {
+    const detailPart = subunit ? `_${subunit}` : "";
+    return {
+      category: "IMMOBILE",
+      type: "PLANIMETRIA",
+      dbType: "SCHEDE_CATASTALI",
+      subfolder: "IMMOBILE",
+      standardizedName: `${surname}_Planimetria${detailPart}${safeExt}`,
+    };
   }
 
-  // 3. EUROANSA
+  // APE o ATTESTATO PRESTAZIONE ENERGETICA -> APE
+  if (/\b(APE|ATTESTATO\s*PRESTAZIONE\s*ENERGETICA)\b/.test(norm)) {
+    return {
+      category: "IMMOBILE",
+      type: "APE",
+      dbType: "APE",
+      subfolder: "IMMOBILE",
+      standardizedName: `${surname}_APE${safeExt}`,
+    };
+  }
+
+  // ATTO o COMPRAVENDITA o PROVENIENZA -> ATTO_PROVENIENZA
+  if (/\b(ATTO|COMPRAVENDITA|PROVENIENZA)\b/.test(norm)) {
+    return {
+      category: "IMMOBILE",
+      type: "ATTO_PROVENIENZA",
+      dbType: "ATTO_IMMOBILE",
+      subfolder: "IMMOBILE",
+      standardizedName: `${surname}_Atto_Provenienza${safeExt}`,
+    };
+  }
+
+  // PRELIMINARE o PROPOSTA o COMPROMESSO -> PRELIMINARE_COMPRAVENDITA
+  if (/\b(PRELIMINARE|PROPOSTA|COMPROMESSO)\b/.test(norm)) {
+    return {
+      category: "IMMOBILE",
+      type: "PRELIMINARE_COMPRAVENDITA",
+      dbType: "PRELIMINARE_COMPRAVENDITA",
+      subfolder: "IMMOBILE",
+      standardizedName: `${surname}_Preliminare_Compravendita${safeExt}`,
+    };
+  }
+
+  // ==========================================
+  // B. CLIENT
+  // ==========================================
+  // CUD o CU seguito da cifre (cud26, cu26, cu2026...) o CUD generico -> MODELLO_CU
+  if (/\b(CUD|CU)\d*\b/.test(norm) || /\b(CUD\d+|CU\d+)\b/.test(baseName.toUpperCase())) {
+    return {
+      category: "CLIENT",
+      type: "MODELLO_CU",
+      dbType: "MODELLO_CUD",
+      subfolder: `${surname} DOC`,
+      standardizedName: `${surname}_Modello_CU_2026${safeExt}`,
+    };
+  }
+
+  // 730 o UNICO o MODELLO REDDITI -> DICHIARAZIONE_REDDITI
+  if (/\b(730|UNICO|MODELLO\s*REDDITI|REDDITI)\b/.test(norm)) {
+    return {
+      category: "CLIENT",
+      type: "DICHIARAZIONE_REDDITI",
+      dbType: "MODELLO_730",
+      subfolder: `${surname} DOC`,
+      standardizedName: `${surname}_Dichiarazione_Redditi${safeExt}`,
+    };
+  }
+
+  // BP o BUSTA o BUSTEPAGA o CEDOLINO -> BUSTA_PAGA
+  if (/\b(BP|BUSTA|BUSTEPAGA|CEDOLINO)\b/.test(norm)) {
+    const detailPart = bpDetail ? `_${bpDetail}` : "";
+    return {
+      category: "CLIENT",
+      type: "BUSTA_PAGA",
+      dbType: "BUSTA_PAGA_1",
+      subfolder: `${surname} DOC`,
+      standardizedName: `${surname}_BustaPaga${detailPart}${safeExt}`,
+    };
+  }
+
+  // EC o ESTRATTO o MOVIMENTI o SALDO -> ESTRATTO_CONTO
+  if (/\b(EC|ESTRATTO|MOVIMENTI|SALDO)\b/.test(norm)) {
+    let detail = "";
+    if (bank && ecPeriod) detail = `_${bank}_${ecPeriod}`;
+    else if (bank) detail = `_${bank}`;
+    else if (ecPeriod) detail = `_${ecPeriod}`;
+    return {
+      category: "CLIENT",
+      type: "ESTRATTO_CONTO",
+      dbType: "ESTRATTO_CONTO",
+      subfolder: `${surname} DOC`,
+      standardizedName: `${surname}_EC${detail}${safeExt}`,
+    };
+  }
+
+  // TS o TESSERA SANITARIA o CODICE FISCALE o CF -> TESSERA_SANITARIA
+  if (/\b(TS|TESSERA\s*SANITARIA|CODICE\s*FISCALE|CF)\b/.test(norm)) {
+    return {
+      category: "CLIENT",
+      type: "TESSERA_SANITARIA",
+      dbType: "TESSERA_SANITARIA",
+      subfolder: `${surname} DOC`,
+      standardizedName: `${surname}_TesseraSanitaria${safeExt}`,
+    };
+  }
+
+  // CI o CARTA IDENTITA o DOCUMENTO o PDS o PERMESSO o PASSAPORTO -> CARTA_IDENTITA
   if (
-    /\b(EUROANSA|PRIVACY|CMCC|AVC|YOUDOMUS|RELAZIONE|MANDATO|CONSENSO)\b/.test(
+    /\b(CI|CARTA\s*IDENTITA|DOCUMENTO|PDS|PERMESSO|PERMESSO\s*SOGGIORNO|PASSAPORTO)\b/.test(
       norm,
     )
   ) {
     return {
-      category: "EUROANSA",
-      documentType: "SCONOSCIUTO",
-      subfolder: "EUROANSA",
+      category: "CLIENT",
+      type: "CARTA_IDENTITA",
+      dbType: "CARTA_IDENTITA",
+      subfolder: `${surname} DOC`,
+      standardizedName: `${surname}_CartaIdentita${safeExt}`,
     };
   }
 
-  // 4. BANCA
+  // CUMULATIVO o STATO FAMIGLIA o RESIDENZA o ANAGRAFICO o CERTIFICATO -> CERTIFICATO_ANAGRAFICO
   if (
-    /\b(BANCA|DDM|PIES|MUTUO|DELIBERA|CONTRATTO MUTUO)\b/.test(norm)
+    /\b(CUMULATIVO|STATO\s*FAMIGLIA|RESIDENZA|ANAGRAFICO|CERTIFICATO)\b/.test(
+      norm,
+    )
   ) {
-    return { category: "BANCA", documentType: "SCONOSCIUTO", subfolder: "BANCA" };
+    return {
+      category: "CLIENT",
+      type: "CERTIFICATO_ANAGRAFICO",
+      dbType: "STATO_FAMIGLIA",
+      subfolder: `${surname} DOC`,
+      standardizedName: `${surname}_Certificato_Cumulativo${safeExt}`,
+    };
   }
 
-  // 5. Fallback su sottocartella
+  // ==========================================
+  // C. BANCA & EUROANSA
+  // ==========================================
+  // DDM -> BANCA_DDM
+  if (/\bDDM\b/.test(norm)) {
+    return {
+      category: "BANCA",
+      type: "BANCA_DDM",
+      dbType: "ESTRATTO_CONTO",
+      subfolder: "BANCA",
+      standardizedName: `${surname}_BANCA_DDM${safeExt}`,
+    };
+  }
+
+  // PIES -> BANCA_PIES
+  if (/\bPIES\b/.test(norm)) {
+    return {
+      category: "BANCA",
+      type: "BANCA_PIES",
+      dbType: "ESTRATTO_CONTO",
+      subfolder: "BANCA",
+      standardizedName: `${surname}_BANCA_PIES${safeExt}`,
+    };
+  }
+
+  // RICHIESTA o MODULO BANCA o DELIBERA -> RICHIESTA_MUTUO_FIRMATA
+  if (
+    /\b(RICHIESTA|MODULO\s*BANCA|DELIBERA|MUTUO|CONTRATTO\s*MUTUO)\b/.test(norm) &&
+    (/BANCA/i.test(parentNorm) || /BANCA/i.test(norm))
+  ) {
+    return {
+      category: "BANCA",
+      type: "RICHIESTA_MUTUO_FIRMATA",
+      dbType: "ESTRATTO_CONTO",
+      subfolder: "BANCA",
+      standardizedName: `${surname}_BANCA_Richiesta_Mutuo${safeExt}`,
+    };
+  }
+
+  // CONSEGNA o ATTESTATO DI CONSEGNA -> CONSEGNA_DOCUMENTI
+  if (/\b(CONSEGNA|ATTESTATO\s*DI\s*CONSEGNA)\b/.test(norm)) {
+    return {
+      category: "EUROANSA",
+      type: "CONSEGNA_DOCUMENTI",
+      dbType: "CONTRATTO_LAVORO",
+      subfolder: "EUROANSA",
+      standardizedName: `${surname}_Euroansa_Attestato_Consegna${safeExt}`,
+    };
+  }
+
+  // YOUDOMUS o ADEGUATA VERIFICA o AVC o LAR -> ADEGUATA_VERIFICA
+  if (/\b(YOUDOMUS|ADEGUATA\s*VERIFICA|AVC|LAR)\b/.test(norm)) {
+    return {
+      category: "EUROANSA",
+      type: "ADEGUATA_VERIFICA",
+      dbType: "CARTA_IDENTITA",
+      subfolder: "EUROANSA",
+      standardizedName: `${surname}_Euroansa_Adeguata_Verifica${safeExt}`,
+    };
+  }
+
+  // PRIVACY o ALLEGATO 1 o PRIV -> PRIVACY
+  if (/\b(PRIVACY|ALLEGATO\s*1|PRIV)\b/.test(norm)) {
+    return {
+      category: "EUROANSA",
+      type: "PRIVACY",
+      dbType: "CARTA_IDENTITA",
+      subfolder: "EUROANSA",
+      standardizedName: `${surname}_Euroansa_Allegato_1_Privacy${safeExt}`,
+    };
+  }
+
+  // CONTRATTO o MEDIAZIONE o CMCC -> CONTRATTO_MEDIAZIONE
+  if (/\b(CONTRATTO|MEDIAZIONE|CMCC)\b/.test(norm)) {
+    return {
+      category: "EUROANSA",
+      type: "CONTRATTO_MEDIAZIONE",
+      dbType: "CONTRATTO_LAVORO",
+      subfolder: "EUROANSA",
+      standardizedName: `${surname}_Euroansa_Contratto_Mediazione${safeExt}`,
+    };
+  }
+
+  // RELAZIONE o DATI PRATICA -> RELAZIONE_MUTUO
+  if (/\b(RELAZIONE|DATI\s*PRATICA)\b/.test(norm)) {
+    return {
+      category: "EUROANSA",
+      type: "RELAZIONE_MUTUO",
+      dbType: "ESTRATTO_CONTO",
+      subfolder: "EUROANSA",
+      standardizedName: `${surname}_Euroansa_Relazione_Mutuo${safeExt}`,
+    };
+  }
+
+  // ==========================================
+  // D. STRICT FALLBACK - NEVER "SCONOSCIUTO"
+  // ==========================================
+  const cleanOriginal =
+    baseName.replace(/[^A-Za-z0-9]+/g, "_").replace(/^_+|_+$/g, "") || "File";
+
   if (/IMMOBIL/i.test(parentNorm)) {
-    return { category: "IMMOBILE", documentType: "SCONOSCIUTO", subfolder: "IMMOBILE" };
+    return {
+      category: "IMMOBILE",
+      type: "DOCUMENTO_IMMOBILE",
+      dbType: "ATTO_IMMOBILE",
+      subfolder: "IMMOBILE",
+      standardizedName: `${surname}_Documento_Immobile_${cleanOriginal}${safeExt}`,
+    };
   }
   if (/EUROANSA/i.test(parentNorm)) {
-    return { category: "EUROANSA", documentType: "SCONOSCIUTO", subfolder: "EUROANSA" };
+    return {
+      category: "EUROANSA",
+      type: "DOCUMENTO_EUROANSA",
+      dbType: "CONTRATTO_LAVORO",
+      subfolder: "EUROANSA",
+      standardizedName: `${surname}_Euroansa_${cleanOriginal}${safeExt}`,
+    };
   }
   if (/BANCA/i.test(parentNorm)) {
-    return { category: "BANCA", documentType: "SCONOSCIUTO", subfolder: "BANCA" };
+    return {
+      category: "BANCA",
+      type: "DOCUMENTO_BANCA",
+      dbType: "ESTRATTO_CONTO",
+      subfolder: "BANCA",
+      standardizedName: `${surname}_BANCA_${cleanOriginal}${safeExt}`,
+    };
   }
 
-  const subfolder = clientName ? `${clientName.trim().toUpperCase()} DOC` : "DOC";
-  return { category: "CLIENT", documentType: "SCONOSCIUTO", subfolder };
+  return {
+    category: "CLIENT",
+    type: "DOCUMENTO_CLIENTE",
+    dbType: "CARTA_IDENTITA",
+    subfolder: `${surname} DOC`,
+    standardizedName: `${surname}_Documento_${cleanOriginal}${safeExt}`,
+  };
 }
 
 export type MigrationPracticeDetail = {
@@ -498,6 +799,7 @@ export type MigrationPracticeDetail = {
     category: string;
     type: string;
     subfolder: string;
+    standardizedName: string;
     size?: number;
   }[];
 };
@@ -748,17 +1050,26 @@ export async function executeDriveMigration(options: {
       await scanFolder(bestMatch.folder.id);
       totalFilesDiscovered += rawFiles.length;
 
+      // Gestione collisioni per questa pratica
+      const practiceFileNames = new Set<string>();
+
       const classifiedFiles = rawFiles.map((file) => {
         const cls = classifyDocumentByName(
           file.name,
           file.parentSubfolder,
           target.name,
         );
+        const resolvedName = resolveCollision(
+          cls.standardizedName,
+          practiceFileNames,
+        );
         return {
           name: file.name,
           category: cls.category,
-          type: cls.documentType,
+          type: cls.type,
+          dbType: cls.dbType,
           subfolder: cls.subfolder,
+          standardizedName: resolvedName,
           size: file.size,
           id: file.id,
           mimeType: file.mimeType,
@@ -779,6 +1090,7 @@ export async function executeDriveMigration(options: {
           category: f.category,
           type: f.type,
           subfolder: f.subfolder,
+          standardizedName: f.standardizedName,
           size: f.size,
         })),
       });
@@ -797,6 +1109,7 @@ export async function executeDriveMigration(options: {
           .limit(1);
 
         let applicationId = existingApp?.id;
+        const surname = getClientSurname(target.name);
         if (!applicationId) {
           const brokerId = brokerIdMap[sec.broker] ?? null;
           const [createdApp] = await db
@@ -807,7 +1120,7 @@ export async function executeDriveMigration(options: {
               status: "ROGITATA",
               brokerId: brokerId,
               storageFolders: [
-                `${target.name.toUpperCase()} DOC`,
+                `${surname} DOC`,
                 "IMMOBILE",
                 "EUROANSA",
                 "BANCA",
@@ -826,6 +1139,7 @@ export async function executeDriveMigration(options: {
                 eq(schema.documents.applicationId, applicationId),
                 or(
                   eq(schema.documents.rawFileName, file.name),
+                  eq(schema.documents.renamedFileName, file.standardizedName),
                   file.size
                     ? and(
                         eq(schema.documents.fileSize, file.size),
@@ -863,7 +1177,7 @@ export async function executeDriveMigration(options: {
           }
 
           const fileHash = crypto.createHash("sha256").update(buffer).digest("hex");
-          const safeName = file.name.replace(/[\\/]+/g, "_");
+          const safeName = file.standardizedName.replace(/[\\/]+/g, "_");
           const r2Key = `practices/${applicationId}/${file.subfolder}/${safeName}`;
 
           try {
@@ -884,7 +1198,7 @@ export async function executeDriveMigration(options: {
             applicationId,
             rawFileName: file.name,
             renamedFileName: safeName,
-            documentType: file.type as DocumentType,
+            documentType: file.dbType as DocumentType,
             driveFileId: r2Key,
             driveFileUrl: `/api/files/download`,
             fileSize: buffer.length,
