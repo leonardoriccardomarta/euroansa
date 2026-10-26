@@ -61,12 +61,13 @@ export function DriveMigrationPanel() {
           <div className="flex items-center gap-2">
             <FolderSync className="h-5 w-5 text-primary-600" />
             <h2 className="text-lg font-bold text-slate-900">
-              Migrazione Pratiche Drive (16 Target)
+              Migrazione Pratiche Drive (15 Target)
             </h2>
           </div>
           <p className="mt-1 text-xs text-slate-600">
             Importazione diretta a costo zero (ZERO AI, nessun OCR) dalle cartelle
-            Google Drive di Marco e Filippo verso Cloudflare R2 e database Neon.
+            Google Drive di Marco Gorla (3 pratiche) e Filippo Carriero (12 pratiche)
+            verso Cloudflare R2 e database Neon.
           </p>
         </div>
 
@@ -183,7 +184,12 @@ export function DriveMigrationPanel() {
                         <span className="font-semibold text-slate-900">
                           {item.target}
                         </span>
-                        <span className="ml-2 text-slate-500">
+                        {item.driveFolderName && item.driveFolderName !== item.target ? (
+                          <span className="ml-1.5 text-[11px] text-slate-500 font-normal">
+                            [Drive: {item.driveFolderName}]
+                          </span>
+                        ) : null}
+                        <span className="ml-2 text-slate-400">
                           ({item.broker})
                         </span>
                       </div>

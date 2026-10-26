@@ -8,60 +8,149 @@ import * as schema from "@/db/schema";
 import type { DocumentType } from "@/db/schema";
 
 export type TargetClient = {
-  name: string;
+  name: string; // Nome anagrafica cliente assegnato nel database
+  driveFolderName: string; // Nome reale verificato della cartella in Google Drive
   brokerName: string;
   aliases?: string[];
 };
 
-export const MARCO_ROOT_FOLDER_ID = "1dZ_6u87UZznozfXttG7mLZg7H-HRcfFg";
-export const MARCO_TARGETS: TargetClient[] = [
-  { name: "AMR", brokerName: "Marco Gorla" },
-  {
-    name: "ALI ABDOLLA HAFY",
-    brokerName: "Marco Gorla",
-    aliases: ["HAFZ", "HAFX", "HAFY", "ALI ABDOLLA", "ABDOLLA HAFZ", "ALI HAFZ"],
-  },
-  { name: "FLAVIO RIVA", brokerName: "Marco Gorla" },
-  { name: "NASIR", brokerName: "Marco Gorla" },
+// 1. Root Folder IDs corretti (Marco: 1dw..., Filippo: 1dZ...)
+export const MARCO_ROOT_FOLDER_ID = "1dwKvAptJyET7TOhbY17TTdl4qDoYKt4C";
+export const FILIPPO_ROOT_FOLDER_ID = "1dZ_6u87UZznozfXttG7mLZg7H-HRcfFg";
+
+// Cartelle escluse esplicitamente o già presenti/elaborate
+export const EXCLUDED_FOLDER_NAMES: string[] = [
+  "XEKA",
+  "FLAVIO RIVA",
+  "AHMED SALEM",
+  "HANY HELAL",
+  "MOHAMED BUZILI",
+  "SINKA",
+  "RICCARDO GATTER",
+  "CARMELO PARETE",
 ];
 
-export const FILIPPO_ROOT_FOLDER_ID = "1dwKvAptJyET7TOhbY17TTdl4qDoYKt4C";
+// Target Marco (esattamente 3 pratiche)
+export const MARCO_TARGETS: TargetClient[] = [
+  {
+    name: "AMR KHATTAB",
+    driveFolderName: "KHATTAB AMR-2",
+    brokerName: "Marco Gorla",
+    aliases: ["AMR", "KHATTAB AMR", "KHATTAB AMR-2", "AMR KHATTAB"],
+  },
+  {
+    name: "HANY ALI ABDALLA",
+    driveFolderName: "ALI ABDALLA HANY-1",
+    brokerName: "Marco Gorla",
+    aliases: [
+      "ALI ABDALLA HANY",
+      "ALI ABDALLA",
+      "HANY",
+      "ALI ABDALLA HANY-1",
+      "HANY ALI ABDALLA",
+      "ALI ABDOLLA HAFY",
+    ],
+  },
+  {
+    name: "NASIR",
+    driveFolderName: "NASIR-3",
+    brokerName: "Marco Gorla",
+    aliases: ["NASIR-3", "NASIR"],
+  },
+];
+
+// Target Filippo (esattamente 12 pratiche)
 export const FILIPPO_TARGETS: TargetClient[] = [
-  { name: "MOHAMED ALI", brokerName: "Filippo Carriero" },
-  { name: "SIMONE PASQUALE", brokerName: "Filippo Carriero" },
   {
-    name: "OUISSEM SHUKRY",
+    name: "ABBADI",
+    driveFolderName: "ABBADI",
     brokerName: "Filippo Carriero",
-    aliases: ["OVISSEM", "OUISSEM", "SHUKRY", "CHOUKRI", "OVISSEM SHUKRY"],
-  },
-  { name: "ESLAM AHMED", brokerName: "Filippo Carriero" },
-  { name: "CARLOS MAGGIONI", brokerName: "Filippo Carriero" },
-  {
-    name: "GADAL FARAG KAMAL",
-    brokerName: "Filippo Carriero",
-    aliases: ["BADAL", "GADAL", "FARAG", "KAMAL", "BADAL FARAG", "GADAL FARAG"],
-  },
-  { name: "MIA MUTTA", brokerName: "Filippo Carriero" },
-  {
-    name: "SINKA",
-    brokerName: "Filippo Carriero",
-    aliases: ["SIRIKA", "SIKKA", "SINKA"],
+    aliases: ["ABBADI"],
   },
   {
-    name: "OLTEO ESSA",
+    name: "BADAR FARAG KAMAL",
+    driveFolderName: "BADAR FARAG KAMAL",
     brokerName: "Filippo Carriero",
-    aliases: ["OLCEO", "OLTEO", "ESSA", "OLCEO ESSA"],
+    aliases: [
+      "BADAR FARAG",
+      "GADAL FARAG KAMAL",
+      "BADAL FARAG KAMAL",
+      "BADAR",
+      "FARAG",
+      "KAMAL",
+    ],
   },
-  { name: "ABBADI", brokerName: "Filippo Carriero" },
   {
-    name: "BIST ABDUL HADI",
+    name: "BUTT ABDUL",
+    driveFolderName: "BUTT ABDUL",
     brokerName: "Filippo Carriero",
-    aliases: ["BIST ABDUL WAHI", "BIST ABDUL RAZI", "BIST ABDUL", "WAHI", "RAZI", "HADI"],
+    aliases: ["BUTT ABDUL", "BIST ABDUL HADI", "BUTT", "ABDUL"],
   },
   {
-    name: "RICCARDO GATTER",
+    name: "CHELEMBEN JHURRY",
+    driveFolderName: "CHELEMBEN - JHURRY",
     brokerName: "Filippo Carriero",
-    aliases: ["GAMER", "GATTER", "RICCARDO GAMER", "RICCARDO GATTER", "GATTER RICCARDO"],
+    aliases: [
+      "CHELEMBEN",
+      "JHURRY",
+      "CHELEMBEN - JHURRY",
+      "CHELEMBEN JHURRY",
+      "OUISSEM SHUKRY",
+    ],
+  },
+  {
+    name: "CHERKAOUI GUENNANI",
+    driveFolderName: "CHERKAOUI GUENNANI",
+    brokerName: "Filippo Carriero",
+    aliases: ["CHERKAOUI", "GUENNANI", "CHERKAOUI GUENNANI"],
+  },
+  {
+    name: "DALIPAJ OLGERT",
+    driveFolderName: "DALIPAJ OLGERT",
+    brokerName: "Filippo Carriero",
+    aliases: ["DALIPAJ", "OLGERT", "DALIPAJ OLGERT", "OLTEO ESSA"],
+  },
+  {
+    name: "ESLAM AHMED",
+    driveFolderName: "ESLAM AHMED-PRATICA KIRON",
+    brokerName: "Filippo Carriero",
+    aliases: ["ESLAM AHMED", "ESLAM AHMED-PRATICA KIRON", "ESLAM"],
+  },
+  {
+    name: "CARLOS MAGGIONI",
+    driveFolderName: "MAGGIONI/KIRLOS-PRATICA KIRON DA SPOESTARE EUROANSA",
+    brokerName: "Filippo Carriero",
+    aliases: [
+      "MAGGIONI",
+      "KIRLOS",
+      "CARLOS MAGGIONI",
+      "MAGGIONI/KIRLOS",
+      "MAGGIONI KIRLOS",
+    ],
+  },
+  {
+    name: "MIA MUNNA",
+    driveFolderName: "MIA MUNNA",
+    brokerName: "Filippo Carriero",
+    aliases: ["MIA MUNNA", "MIA MUTTA", "MUNNA"],
+  },
+  {
+    name: "MOHAMED ALI",
+    driveFolderName: "MOHAMED ALI",
+    brokerName: "Filippo Carriero",
+    aliases: ["MOHAMED ALI"],
+  },
+  {
+    name: "SIMEONE PASQUALE",
+    driveFolderName: "SIMEONE PASQUALE",
+    brokerName: "Filippo Carriero",
+    aliases: ["SIMEONE PASQUALE", "SIMONE PASQUALE", "SIMEONE", "PASQUALE"],
+  },
+  {
+    name: "WALID BAKHIT HANNA",
+    driveFolderName: "WALID BAKHIT HANNA",
+    brokerName: "Filippo Carriero",
+    aliases: ["WALID BAKHIT HANNA", "WALID", "BAKHIT", "HANNA"],
   },
 ];
 
@@ -70,6 +159,19 @@ export function normalizeString(str: string): string {
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .toUpperCase()
+    .replace(/[^A-Z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/** Pulisce etichette trailing, numerazioni (-1, -2, -3) e tag Kiron per matching fuzzy tollerante */
+export function cleanFolderNameForMatch(folderName: string): string {
+  return folderName
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toUpperCase()
+    .replace(/[-_/\\]?\s*PRATICA\s+KIRON.*$/i, "")
+    .replace(/[-_/\\]\s*\d+\s*$/, "")
     .replace(/[^A-Z0-9\s]/g, " ")
     .replace(/\s+/g, " ")
     .trim();
@@ -117,108 +219,158 @@ export function matchTargetClient(
   target: TargetClient,
 ): FuzzyMatchResult {
   const normCandidate = normalizeString(folderName);
-  const normTarget = normalizeString(target.name);
 
-  if (normCandidate === normTarget) {
-    return { matched: true, score: 1.0, reason: "Corrispondenza esatta" };
+  // Controllo esclusioni esplicite
+  for (const excl of EXCLUDED_FOLDER_NAMES) {
+    if (normCandidate === normalizeString(excl)) {
+      return {
+        matched: false,
+        score: 0,
+        reason: `Cartella esclusa esplicitamente (${excl})`,
+      };
+    }
   }
 
-  const candidateTokens = normCandidate.split(" ").filter((t) => t.length > 0);
-  const targetTokens = normTarget.split(" ").filter((t) => t.length > 0);
+  const normTargetDrive = normalizeString(target.driveFolderName);
+  const normTargetName = normalizeString(target.name);
+  const cleanCandidate = cleanFolderNameForMatch(folderName);
+  const cleanTargetDrive = cleanFolderNameForMatch(target.driveFolderName);
+  const cleanTargetName = cleanFolderNameForMatch(target.name);
 
-  const allTargetTokensFound = targetTokens.every((tt) =>
-    candidateTokens.includes(tt),
-  );
-  if (allTargetTokensFound && targetTokens.length > 0) {
+  // 1. Corrispondenza esatta con il nome reale Drive o anagrafica
+  if (normCandidate === normTargetDrive || normCandidate === normTargetName) {
     return {
       matched: true,
-      score: 0.96,
-      reason: `Tutti i token (${targetTokens.join(", ")}) presenti nella cartella`,
+      score: 1.0,
+      reason: `Corrispondenza esatta con cartella Drive (${target.driveFolderName})`,
     };
   }
 
+  // 2. Corrispondenza senza suffissi/numerazione (es. KHATTAB AMR-2 -> KHATTAB AMR)
+  if (cleanCandidate === cleanTargetDrive) {
+    return {
+      matched: true,
+      score: 0.98,
+      reason: `Corrispondenza esatta senza suffissi (${target.driveFolderName})`,
+    };
+  }
+
+  // 3. Corrispondenza con nome anagrafica assegnato
+  if (cleanCandidate === cleanTargetName) {
+    return {
+      matched: true,
+      score: 0.97,
+      reason: `Corrispondenza esatta con anagrafica cliente (${target.name})`,
+    };
+  }
+
+  const candidateTokens = cleanCandidate.split(" ").filter((t) => t.length > 0);
+  const targetDriveTokens = cleanTargetDrive
+    .split(" ")
+    .filter((t) => t.length > 0);
+  const targetNameTokens = cleanTargetName
+    .split(" ")
+    .filter((t) => t.length > 0);
+
+  // 4. Tutti i token principali del target Drive sono presenti nel candidato
+  const allDriveTokensFound =
+    targetDriveTokens.length > 0 &&
+    targetDriveTokens.every((tt) => candidateTokens.includes(tt));
+  if (allDriveTokensFound) {
+    return {
+      matched: true,
+      score: 0.96,
+      reason: `Tutti i token (${targetDriveTokens.join(", ")}) presenti nella cartella`,
+    };
+  }
+
+  // 5. Tutti i token principali del nome assegnato sono presenti nel candidato
+  const allNameTokensFound =
+    targetNameTokens.length > 0 &&
+    targetNameTokens.every((tt) => candidateTokens.includes(tt));
+  if (allNameTokensFound) {
+    return {
+      matched: true,
+      score: 0.95,
+      reason: `Tutti i token anagrafica (${targetNameTokens.join(", ")}) presenti nella cartella`,
+    };
+  }
+
+  // 6. Token invertiti o parziali corrispondenti (es. AMR KHATTAB ↔ KHATTAB AMR)
   const allCandidateInTarget =
     candidateTokens.length >= 2 &&
-    candidateTokens.every((ct) => targetTokens.includes(ct));
+    (candidateTokens.every((ct) => targetDriveTokens.includes(ct)) ||
+      candidateTokens.every((ct) => targetNameTokens.includes(ct)));
   if (allCandidateInTarget) {
     return {
       matched: true,
       score: 0.94,
-      reason: `Token invertiti o parziali corrispondenti a (${target.name})`,
+      reason: `Token invertiti corrispondenti a (${target.name})`,
     };
   }
 
-  if (
-    normCandidate.includes(normTarget) ||
-    (normTarget.length >= 4 && normCandidate.includes(normTarget))
-  ) {
-    const isSingleShortWord = normTarget.length <= 4;
-    if (!isSingleShortWord || candidateTokens.includes(normTarget)) {
-      return {
-        matched: true,
-        score: 0.92,
-        reason: `Nome target contenuto per intero nella cartella`,
-      };
-    }
-  }
-
+  // 7. Match su Alias / Variazioni storiche
   if (target.aliases && target.aliases.length > 0) {
     for (const alias of target.aliases) {
-      const normAlias = normalizeString(alias);
-      if (normCandidate === normAlias) {
+      const normAlias = cleanFolderNameForMatch(alias);
+      if (cleanCandidate === normAlias) {
         return {
           matched: true,
           score: 0.95,
-          reason: `Corrispondenza esatta con variazione/alias (${alias})`,
+          reason: `Corrispondenza con variazione nota (${alias})`,
         };
       }
       const aliasTokens = normAlias.split(" ").filter((t) => t.length > 0);
-      if (aliasTokens.every((at) => candidateTokens.includes(at))) {
+      if (
+        aliasTokens.length > 0 &&
+        aliasTokens.every((at) => candidateTokens.includes(at))
+      ) {
         return {
           matched: true,
           score: 0.92,
-          reason: `Token dell'alias (${alias}) trovati nella cartella`,
+          reason: `Token della variazione (${alias}) trovati nella cartella`,
         };
       }
-      if (normCandidate.includes(normAlias)) {
+      if (cleanCandidate.includes(normAlias)) {
         return {
           matched: true,
           score: 0.9,
-          reason: `Sottostringa dell'alias (${alias}) trovata nella cartella`,
+          reason: `Sottostringa della variazione (${alias}) trovata nella cartella`,
         };
       }
     }
   }
 
-  const fullSim = stringSimilarity(normCandidate, normTarget);
-  if (fullSim >= 0.8) {
+  // 8. Contenimento sottostringa (es. NASIR-3 contiene NASIR)
+  if (
+    cleanCandidate.includes(cleanTargetDrive) ||
+    cleanCandidate.includes(cleanTargetName)
+  ) {
     return {
       matched: true,
-      score: Number(fullSim.toFixed(2)),
-      reason: `Similarità Levenshtein ${Math.round(fullSim * 100)}% (soglia >= 80%)`,
+      score: 0.9,
+      reason: `Nome target contenuto come sottostringa nella cartella`,
     };
   }
 
-  if (targetTokens.length >= 2 && candidateTokens.length >= 2) {
-    let matchedTokensCount = 0;
-    for (const tt of targetTokens) {
-      const bestTokenSim = Math.max(
-        ...candidateTokens.map((ct) => stringSimilarity(tt, ct)),
-      );
-      if (bestTokenSim >= 0.8) {
-        matchedTokensCount++;
-      }
-    }
-    if (matchedTokensCount === targetTokens.length) {
-      return {
-        matched: true,
-        score: 0.85,
-        reason: `Tutti i token mostrano similarità fuzzy >= 80% con il target`,
-      };
-    }
+  // 9. Similarità complessiva di Levenshtein
+  const fullSimDrive = stringSimilarity(cleanCandidate, cleanTargetDrive);
+  const fullSimName = stringSimilarity(cleanCandidate, cleanTargetName);
+  const bestSim = Math.max(fullSimDrive, fullSimName);
+
+  if (bestSim >= 0.8) {
+    return {
+      matched: true,
+      score: Number(bestSim.toFixed(2)),
+      reason: `Similarità Levenshtein ${Math.round(bestSim * 100)}% (soglia >= 80%)`,
+    };
   }
 
-  return { matched: false, score: Number(fullSim.toFixed(2)), reason: "Nessuna corrispondenza valida" };
+  return {
+    matched: false,
+    score: Number(bestSim.toFixed(2)),
+    reason: "Nessuna corrispondenza valida",
+  };
 }
 
 export type DocCategory = "CLIENT" | "IMMOBILE" | "EUROANSA" | "BANCA";
@@ -334,6 +486,7 @@ export function classifyDocumentByName(
 
 export type MigrationPracticeDetail = {
   target: string;
+  driveFolderName: string;
   broker: string;
   matchedFolder?: string;
   driveFolderId?: string;
@@ -542,6 +695,7 @@ export async function executeDriveMigration(options: {
       if (!bestMatch) {
         details.push({
           target: target.name,
+          driveFolderName: target.driveFolderName,
           broker: sec.broker,
           filesCount: 0,
           files: [],
@@ -613,6 +767,7 @@ export async function executeDriveMigration(options: {
 
       details.push({
         target: target.name,
+        driveFolderName: target.driveFolderName,
         broker: sec.broker,
         matchedFolder: bestMatch.folder.name,
         driveFolderId: bestMatch.folder.id,
