@@ -13,6 +13,7 @@ import {
   DEFAULT_COLLABORATOR_SHARE,
   DEFAULT_PROVENANCE_OPTIONS,
 } from "@/lib/economics";
+import { DriveMigrationPanel } from "@/components/dashboard/drive-migration-panel";
 
 export const dynamic = "force-dynamic";
 
@@ -156,6 +157,8 @@ export default async function SettingsPage({
           </div>
         )}
       </div>
+
+      <DriveMigrationPanel />
 
       <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
         <p className="mb-4 text-xs font-semibold uppercase tracking-wide text-slate-500">
