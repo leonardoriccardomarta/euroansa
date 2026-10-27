@@ -415,8 +415,9 @@ export async function main() {
           }
 
           const fileHash = crypto.createHash("sha256").update(buffer).digest("hex");
+          const cleanSubfolder = (classification.subfolder || "DOC").trim().replace(/^\/+|\/+$/g, "");
           const safeName = resolvedName.replace(/[\\/]+/g, "_");
-          const r2Key = `practices/${applicationId}/${classification.subfolder}/${safeName}`;
+          const r2Key = `practices/${applicationId}/${cleanSubfolder}/${safeName}`.replace(/\/+/g, "/");
 
           try {
             await r2.client.send(
@@ -432,20 +433,27 @@ export async function main() {
             continue;
           }
 
-          await db.insert(schema.documents).values({
+          const [inserted] = await db.insert(schema.documents).values({
             applicationId,
             rawFileName: file.name,
             renamedFileName: safeName,
             documentType: classification.dbType as DocumentType,
             driveFileId: r2Key,
-            driveFileUrl: `/api/files/download`,
+            driveFileUrl: null,
             fileSize: buffer.length,
             fileHash,
-            storageSubfolder: classification.subfolder,
+            storageSubfolder: cleanSubfolder,
             isValid: true,
             analysisStatus: "done",
             validationIssues: [],
-          });
+          }).returning({ id: schema.documents.id });
+
+          if (inserted) {
+            await db
+              .update(schema.documents)
+              .set({ driveFileUrl: `/api/files/${inserted.id}` })
+              .where(eq(schema.documents.id, inserted.id));
+          }
 
           console.log(`         ✅ Importato su R2: ${file.name} -> ${safeName} (${classification.type})`);
           totalFilesImported++;

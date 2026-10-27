@@ -2,7 +2,7 @@ import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { applications } from "@/db/schema";
-import { getSession } from "@/lib/auth";
+import { getSession, canAccessApplication } from "@/lib/auth";
 import { downloadBlob } from "@/lib/storage/blob";
 import { isSiteStorageKey } from "@/lib/storage/paths";
 
@@ -26,7 +26,7 @@ export async function GET(
   if (!app) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
-  if (session.role !== "ADMIN" && app.brokerId !== session.id) {
+  if (!canAccessApplication(session, app)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
   if (!app.preventivoStorageKey || !isSiteStorageKey(app.preventivoStorageKey)) {

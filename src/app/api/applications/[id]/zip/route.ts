@@ -3,7 +3,7 @@ import JSZip from "jszip";
 import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { applications, documents } from "@/db/schema";
-import { getSession } from "@/lib/auth";
+import { getSession, canAccessApplication } from "@/lib/auth";
 import { loadPackageFileBuffer } from "@/lib/package-bundle";
 import {
   clientSurnameShort,
@@ -33,7 +33,7 @@ export async function GET(
     return NextResponse.json({ error: "Pratica non trovata" }, { status: 404 });
   }
 
-  if (session.role !== "ADMIN" && app.brokerId !== session.id) {
+  if (!canAccessApplication(session, app)) {
     return NextResponse.json({ error: "Accesso negato" }, { status: 403 });
   }
 

@@ -124,3 +124,14 @@ export async function authenticateUser(
   const ok = await verifyPassword(password, user.passwordHash);
   return ok ? user : null;
 }
+
+export function canAccessApplication(
+  session: SessionUser,
+  app: { brokerId?: string | null; status?: string | null },
+): boolean {
+  if (session.role === "ADMIN") return true;
+  if (session.email.toLowerCase() === "info.inzago@euroansa.it") return true;
+  if (app.status === "ROGITATA") return true;
+  if (!app.brokerId) return true;
+  return app.brokerId === session.id;
+}

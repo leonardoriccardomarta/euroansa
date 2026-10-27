@@ -1,16 +1,19 @@
 import { eq } from "drizzle-orm";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
 import { applications, documents } from "@/db/schema";
-import { getSession } from "@/lib/auth";
+import { getSession, canAccessApplication } from "@/lib/auth";
 import { createPresignedGetUrl } from "@/lib/storage/blob";
-import { isLegacyDriveKey, isSiteStorageKey } from "@/lib/storage/paths";
+import { resolveDocumentStorageKey } from "@/lib/storage/paths";
 
 export const maxDuration = 30;
 
-/** Apre il documento: auth CRM → redirect a URL firmato R2 (niente proxy byte su Vercel). */
+/**
+ * Accesso e download documento: auth CRM → redirect a URL firmato Cloudflare R2 (expiresIn: 600).
+ * Supporta pratiche storiche e completate (ROGITATA) senza blocchi di stato.
+ */
 export async function GET(
-  _req: Request,
+  req: NextRequest,
   { params }: { params: Promise<{ documentId: string }> },
 ) {
   const session = await getSession();
@@ -19,31 +22,34 @@ export async function GET(
   }
 
   const { documentId } = await params;
-  const [doc] = await db
-    .select()
-    .from(documents)
-    .where(eq(documents.id, documentId))
-    .limit(1);
+  const targetId =
+    documentId === "download"
+      ? req.nextUrl.searchParams.get("id") ||
+        req.nextUrl.searchParams.get("documentId")
+      : documentId;
 
-  if (!doc || !doc.driveFileId) {
-    return NextResponse.json(
-      {
-        error: doc?.filePurged
-          ? "File rimosso dallo storage (resta solo lo storico)"
-          : "File non trovato",
-      },
-      { status: doc?.filePurged ? 410 : 404 },
-    );
+  let doc = null;
+  if (targetId && targetId !== "download") {
+    const [found] = await db
+      .select()
+      .from(documents)
+      .where(eq(documents.id, targetId))
+      .limit(1);
+    doc = found;
+  } else if (documentId === "download") {
+    const keyParam = req.nextUrl.searchParams.get("key");
+    if (keyParam) {
+      const [found] = await db
+        .select()
+        .from(documents)
+        .where(eq(documents.driveFileId, keyParam))
+        .limit(1);
+      doc = found;
+    }
   }
 
-  if (isLegacyDriveKey(doc.driveFileId) || !isSiteStorageKey(doc.driveFileId)) {
-    return NextResponse.json(
-      {
-        error:
-          "File ancora su Drive: sostituiscilo o ricaricalo nella sezione File (storage sito)",
-      },
-      { status: 409 },
-    );
+  if (!doc) {
+    return NextResponse.json({ error: "File non trovato" }, { status: 404 });
   }
 
   const [app] = await db
@@ -56,19 +62,53 @@ export async function GET(
     return NextResponse.json({ error: "Pratica non trovata" }, { status: 404 });
   }
 
-  if (session.role !== "ADMIN" && app.brokerId !== session.id) {
+  // Verifica policy: operatori accreditati (info.inzago@euroansa.it), admin o pratiche storiche (ROGITATA)
+  if (!canAccessApplication(session, app)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
+  const storageKey = resolveDocumentStorageKey(doc);
+  if (!storageKey) {
+    return NextResponse.json(
+      {
+        error: doc.filePurged
+          ? "File rimosso dallo storage (resta solo lo storico)"
+          : "File non presente su storage R2",
+      },
+      { status: doc.filePurged ? 410 : 404 },
+    );
+  }
+
+  const searchParams = req.nextUrl.searchParams;
+  const isDownload =
+    searchParams.get("download") === "1" ||
+    searchParams.get("download") === "true";
+  const wantsJson =
+    searchParams.get("json") === "1" ||
+    searchParams.get("json") === "true" ||
+    req.headers.get("accept")?.includes("application/json");
+
   try {
-    const url = await createPresignedGetUrl(doc.driveFileId, 900, {
-      fileName: doc.renamedFileName,
+    const fileName = doc.renamedFileName || doc.rawFileName || "documento.pdf";
+    const url = await createPresignedGetUrl(storageKey, 600, {
+      fileName,
+      download: isDownload,
     });
+
+    if (wantsJson) {
+      return NextResponse.json({
+        ok: true,
+        url,
+        fileName,
+        documentId: doc.id,
+      });
+    }
+
     return NextResponse.redirect(url, 302);
   } catch (err) {
     console.error("file presign failed", documentId, err);
     return NextResponse.json(
-      { error: "Download fallito dallo storage sito" },
+      { error: "Generazione URL firmato fallita dallo storage sito" },
       { status: 500 },
     );
   }
