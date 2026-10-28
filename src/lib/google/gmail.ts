@@ -330,28 +330,6 @@ export async function markMessageProcessed(
   });
 }
 
-export async function unmarkMessageProcessed(
-  messageId: string,
-  auth?: GoogleOAuthClient,
-) {
-  const gmail = getGmailClient(auth);
-  const labels = await gmail.users.labels.list({ userId: "me" });
-  const labelId = labels.data.labels?.find((l) => l.name === "MUTUO-ELABORATA")?.id;
-  if (!labelId) return;
-
-  try {
-    await gmail.users.messages.modify({
-      userId: "me",
-      id: messageId,
-      requestBody: {
-        removeLabelIds: [labelId],
-      },
-    });
-  } catch (err) {
-    console.error("unmarkMessageProcessed failed for message", messageId, err);
-  }
-}
-
 export async function sendGmailHtml(
   params: {
     to: string;

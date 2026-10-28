@@ -4,7 +4,7 @@ import {
   CheckCircle2,
   Circle,
 } from "lucide-react";
-import { getSession, canAccessApplication } from "@/lib/auth";
+import { getSession } from "@/lib/auth";
 import { db } from "@/db";
 import {
   applications,
@@ -64,8 +64,8 @@ export default async function ApplicationDetailPage({
   if (app.isTest && session.role !== "ADMIN") {
     redirect("/dashboard");
   }
-  // Accesso consentito ad admin, email autorizzate, broker assegnato e pratiche ROGITATA
-  if (!canAccessApplication(session, app)) {
+  // Broker minori: solo pratiche assegnate
+  if (session.role !== "ADMIN" && app.brokerId !== session.id) {
     redirect("/dashboard");
   }
 

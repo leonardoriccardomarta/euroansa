@@ -1177,9 +1177,8 @@ export async function executeDriveMigration(options: {
           }
 
           const fileHash = crypto.createHash("sha256").update(buffer).digest("hex");
-          const cleanSubfolder = (file.subfolder || "DOC").trim().replace(/^\/+|\/+$/g, "");
           const safeName = file.standardizedName.replace(/[\\/]+/g, "_");
-          const r2Key = `practices/${applicationId}/${cleanSubfolder}/${safeName}`.replace(/\/+/g, "/");
+          const r2Key = `practices/${applicationId}/${file.subfolder}/${safeName}`;
 
           try {
             await r2.client.send(
@@ -1195,27 +1194,20 @@ export async function executeDriveMigration(options: {
             continue;
           }
 
-          const [inserted] = await db.insert(schema.documents).values({
+          await db.insert(schema.documents).values({
             applicationId,
             rawFileName: file.name,
             renamedFileName: safeName,
             documentType: file.dbType as DocumentType,
             driveFileId: r2Key,
-            driveFileUrl: null,
+            driveFileUrl: `/api/files/download`,
             fileSize: buffer.length,
             fileHash,
-            storageSubfolder: cleanSubfolder,
+            storageSubfolder: file.subfolder,
             isValid: true,
             analysisStatus: "done",
             validationIssues: [],
-          }).returning({ id: schema.documents.id });
-
-          if (inserted) {
-            await db
-              .update(schema.documents)
-              .set({ driveFileUrl: `/api/files/${inserted.id}` })
-              .where(eq(schema.documents.id, inserted.id));
-          }
+          });
 
           totalFilesImported++;
         }

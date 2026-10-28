@@ -2,7 +2,7 @@ import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { applications } from "@/db/schema";
-import { getSession, canAccessApplication } from "@/lib/auth";
+import { getSession } from "@/lib/auth";
 import { createPresignedGetUrl } from "@/lib/storage/blob";
 
 export const maxDuration = 30;
@@ -28,7 +28,7 @@ export async function GET(
     return NextResponse.json({ error: "Relazione non trovata" }, { status: 404 });
   }
 
-  if (!canAccessApplication(session, app)) {
+  if (session.role !== "ADMIN" && app.brokerId !== session.id) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

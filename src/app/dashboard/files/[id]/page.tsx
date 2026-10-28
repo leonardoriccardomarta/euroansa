@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { desc, eq } from "drizzle-orm";
 import { ChevronLeft, Folder } from "lucide-react";
-import { getSession, canAccessApplication } from "@/lib/auth";
+import { getSession } from "@/lib/auth";
 import { db } from "@/db";
 import { applications, documents } from "@/db/schema";
 import { DOCUMENT_TYPE_LABELS } from "@/lib/config/documents";
@@ -36,7 +36,7 @@ export default async function ClientFilesPage({
 
   if (!app) notFound();
   if (app.isTest && session.role !== "ADMIN") redirect("/dashboard/files");
-  if (!canAccessApplication(session, app)) {
+  if (session.role !== "ADMIN" && app.brokerId !== session.id) {
     redirect("/dashboard/files");
   }
 

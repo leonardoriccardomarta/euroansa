@@ -5,7 +5,6 @@ import {
   isExpiryBeforeToday,
   sanitizeAiValidationIssues,
 } from "@/lib/ai/date-sanity";
-import { withTimeout } from "@/lib/storage/blob";
 
 export type AnalyzeDocumentResult = {
   documentType: DocumentType;
@@ -387,26 +386,22 @@ Numeri numerici. File originale (solo hint): ${params.originalFileName}`;
   for (const model of models) {
     for (let attempt = 0; attempt < 2; attempt++) {
       try {
-        const response = await withTimeout(
-          ai.models.generateContent({
-            model,
-            contents: [
-              {
-                role: "user",
-                parts: [
-                  { text: prompt },
-                  { inlineData: { mimeType, data: base64 } },
-                ],
-              },
-            ],
-            config: {
-              responseMimeType: "application/json",
-              responseSchema,
+        const response = await ai.models.generateContent({
+          model,
+          contents: [
+            {
+              role: "user",
+              parts: [
+                { text: prompt },
+                { inlineData: { mimeType, data: base64 } },
+              ],
             },
-          }),
-          15_000,
-          "Gemini document analysis",
-        );
+          ],
+          config: {
+            responseMimeType: "application/json",
+            responseSchema,
+          },
+        });
 
         const text = response.text;
         if (!text) throw new Error("Risposta Gemini vuota");

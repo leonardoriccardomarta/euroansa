@@ -77,38 +77,17 @@ function getR2Client() {
 }
 
 function normalizeKey(pathnameOrUrl: string): string {
-  let raw = pathnameOrUrl.trim();
-  if (!raw) return "";
-
-  // 1. R2 URI: r2://<bucket>/<key>
-  if (raw.startsWith("r2://")) {
-    const withoutScheme = raw.slice(5);
-    const slashIdx = withoutScheme.indexOf("/");
-    raw = slashIdx !== -1 ? withoutScheme.slice(slashIdx + 1) : withoutScheme;
-  }
-  // 2. HTTP/HTTPS URL
-  else if (raw.startsWith("http://") || raw.startsWith("https://")) {
-    try {
+  const raw = pathnameOrUrl.trim();
+  if (raw.startsWith("practices/")) return raw;
+  try {
+    if (raw.startsWith("http://") || raw.startsWith("https://")) {
       const u = new URL(raw);
-      raw = decodeURIComponent(u.pathname);
-    } catch {
-      // ignore
+      return decodeURIComponent(u.pathname.replace(/^\/+/, ""));
     }
+  } catch {
+    // fall through
   }
-
-  // 3. Remove leading slashes
-  raw = raw.replace(/^\/+/, "");
-
-  // 4. Strip bucket name prefix if present (e.g. "euroansa/practices/...")
-  const bucketName = process.env.R2_BUCKET_NAME?.trim();
-  if (bucketName && raw.startsWith(`${bucketName}/`)) {
-    raw = raw.slice(bucketName.length + 1);
-  }
-
-  // 5. Collapse duplicate slashes into single slash
-  raw = raw.replace(/\/+/g, "/");
-
-  return raw;
+  return raw.replace(/^\/+/, "");
 }
 
 export function practiceStoragePrefix(applicationId: string): string {
@@ -144,14 +123,13 @@ export async function createPresignedPutUrl(params: {
 export async function createPresignedGetUrl(
   pathnameOrUrl: string,
   expiresIn = 600,
-  options?: { fileName?: string; contentType?: string; download?: boolean },
+  options?: { fileName?: string; contentType?: string },
 ): Promise<string> {
   const { bucket } = requireR2Config();
   const client = getR2Client();
   const key = normalizeKey(pathnameOrUrl);
   const safeName = options?.fileName?.replace(/["\r\n]+/g, "").slice(0, 180);
   const effectiveExpiresIn = Math.min(Math.max(expiresIn, 300), 600);
-  const dispositionType = options?.download ? "attachment" : "inline";
   return getSignedUrl(
     client,
     new GetObjectCommand({
@@ -159,7 +137,7 @@ export async function createPresignedGetUrl(
       Key: key,
       ...(safeName
         ? {
-            ResponseContentDisposition: `${dispositionType}; filename="${safeName}"`,
+            ResponseContentDisposition: `inline; filename="${safeName}"`,
           }
         : {}),
       ...(options?.contentType
@@ -392,18 +370,4 @@ export async function getSystemBlob(
 
 export async function deleteSystemBlob(pathname: string): Promise<void> {
   await deleteBlobByPathname(pathname.replace(/^\/+/, ""));
-}
-
-export async function withTimeout<T>(
-  promise: Promise<T>,
-  timeoutMs: number,
-  errorMessage = "Operazione scaduta per timeout",
-): Promise<T> {
-  let timer: NodeJS.Timeout;
-  const timeoutPromise = new Promise<never>((_, reject) => {
-    timer = setTimeout(() => reject(new Error(errorMessage)), timeoutMs);
-  });
-  return Promise.race([promise, timeoutPromise]).finally(() => {
-    clearTimeout(timer);
-  });
 }

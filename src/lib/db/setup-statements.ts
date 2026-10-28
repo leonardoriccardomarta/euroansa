@@ -247,9 +247,6 @@ export const SETUP_STATEMENTS = [
   `ALTER TABLE applications ADD COLUMN IF NOT EXISTS email_thread_ids text[] NOT NULL DEFAULT '{}'`,
   `ALTER TABLE documents ADD COLUMN IF NOT EXISTS file_hash varchar(64)`,
   `ALTER TABLE documents ADD COLUMN IF NOT EXISTS file_size real`,
-  // Auto-healing: allinea drive_file_url e rimuovi doppi slash da drive_file_id
-  `UPDATE documents SET drive_file_url = '/api/files/' || id::text WHERE (drive_file_url = '/api/files/download' OR drive_file_url IS NULL) AND drive_file_id IS NOT NULL`,
-  `UPDATE documents SET drive_file_id = regexp_replace(drive_file_id, '/+', '/', 'g') WHERE drive_file_id LIKE '%//%'`,
 ];
 
 export const PACKAGE_LINK_TTL_DAYS = 7;

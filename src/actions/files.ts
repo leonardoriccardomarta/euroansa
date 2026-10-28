@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/db";
 import { applications, documents } from "@/db/schema";
 import type { DocumentType } from "@/db/schema";
-import { requireSession, canAccessApplication, type SessionUser } from "@/lib/auth";
+import { requireSession, type SessionUser } from "@/lib/auth";
 import { getAppBaseUrl } from "@/lib/app-url";
 import {
   CHECKLIST_DOCUMENT_TYPES,
@@ -45,7 +45,7 @@ async function assertCanAccessApp(
   if (app.isTest && session.role !== "ADMIN") {
     return { error: "Accesso negato" as const };
   }
-  if (!canAccessApplication(session, app)) {
+  if (session.role !== "ADMIN" && app.brokerId !== session.id) {
     return { error: "Accesso negato" as const };
   }
   return { app };

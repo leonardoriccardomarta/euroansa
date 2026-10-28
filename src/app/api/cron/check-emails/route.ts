@@ -1,21 +1,20 @@
-import { NextRequest, NextResponse } from "next/server";
-import { eq, or, sql } from "drizzle-orm";
+import { NextRequest, NextResponse, after } from "next/server";
+import { and, eq, inArray, or } from "drizzle-orm";
 import {
   fetchPendingMortgageEmails,
   markMessageProcessed,
-  unmarkMessageProcessed,
 } from "@/lib/google/gmail";
 import {
   ensureWaitingApplication,
   ingestEmailAttachmentsWithoutAi,
   isStaffMailboxEmail,
+  mergeAllDuplicateApplications,
+  mergeDuplicateOpenApplicationsByEmail,
   processPendingDocumentAnalyses,
 } from "@/lib/pipeline";
 import {
-  getGmailClient,
   listConnectedGoogleUsers,
   oauthClientFromRefreshToken,
-  type GoogleOAuthClient,
 } from "@/lib/google/auth";
 import { db } from "@/db";
 import { applications, documents } from "@/db/schema";
@@ -30,91 +29,91 @@ import {
 
 export const maxDuration = 60;
 
-/** Quanti messaggi elaborare al massimo per ciclo (mantiene l'ingestione sotto i 5s). */
-const MAX_EMAILS_PER_ACCOUNT = 2;
-/** Quanti file analizzare al massimo per ciclo con OCR/Gemini (chunking incrementale a step). */
-const OCR_CHUNK_SIZE = 2;
-
 /**
- * Fallback di recupero: sblocca eventuali mail di info.inzago@euroansa.it
- * che potrebbero essere state etichettate "MUTUO-ELABORATA" durante un timeout
- * prima che la pratica o i documenti venissero completati a DB.
+ * Lavoro reale dopo il 200: cron-job.org free taglia a ~30s,
+ * Vercel tiene viva la function fino a maxDuration via after()/waitUntil.
  */
-async function recoverBlockedEmails(googleAuth: GoogleOAuthClient) {
-  try {
-    const gmail = getGmailClient(googleAuth);
-    const res = await gmail.users.messages.list({
-      userId: "me",
-      q: "from:info.inzago@euroansa.it label:MUTUO-ELABORATA",
-      maxResults: 5,
-    });
+const WORK_BUDGET_MS = 55_000;
+const MAX_EMAILS_PER_ACCOUNT = 2;
+const MAX_ATTACHMENTS_PER_MAIL = 12;
+/** Quanti OCR tentare per run (si ferma prima se finisce il budget). */
+const MAX_ANALYSES_PER_RUN = 4;
 
-    for (const msg of res.data.messages ?? []) {
-      if (!msg.id) continue;
+const OPEN_STATUSES = ["DOCUMENTI_INCOMPLETI", "COMPLETA_DA_INOLTRARE"] as const;
 
-      const [appMatch] = await db
-        .select({ id: applications.id })
-        .from(applications)
-        .where(
-          or(
-            sql`${msg.id} = ANY(${applications.emailThreadIds})`,
-            eq(applications.clientEmail, "info.inzago@euroansa.it"),
-          ),
-        )
-        .limit(1);
+async function alreadyProcessedFileNames(
+  fromEmail: string,
+  messageId?: string,
+): Promise<Set<string>> {
+  await mergeDuplicateOpenApplicationsByEmail(fromEmail);
 
-      let hasDocs = false;
-      if (appMatch) {
-        const [doc] = await db
-          .select({ id: documents.id })
-          .from(documents)
-          .where(eq(documents.applicationId, appMatch.id))
-          .limit(1);
-        hasDocs = Boolean(doc);
-      }
-
-      if (!appMatch || !hasDocs) {
-        console.warn(
-          `[RECOVERY] Rimuovo etichetta MUTUO-ELABORATA dalla mail bloccata ${msg.id} di info.inzago@euroansa.it`,
-        );
-        await unmarkMessageProcessed(msg.id, googleAuth);
-      }
-    }
-  } catch (err) {
-    console.error("recoverBlockedEmails error:", err);
+  const staff = await isStaffMailboxEmail(fromEmail);
+  if (staff && messageId) {
+    const safeId = messageId.replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 24);
+    const stagingEmail = `intake.${safeId || "x"}@prontopratica.local`;
+    const [staging] = await db
+      .select({ id: applications.id })
+      .from(applications)
+      .where(eq(applications.clientEmail, stagingEmail))
+      .limit(1);
+    if (!staging) return new Set();
+    const rows = await db
+      .select({ rawFileName: documents.rawFileName })
+      .from(documents)
+      .where(eq(documents.applicationId, staging.id));
+    return new Set(rows.map((r) => r.rawFileName));
   }
+
+  const openApps = await db
+    .select({ id: applications.id })
+    .from(applications)
+    .where(
+      and(
+        eq(applications.clientEmail, fromEmail.toLowerCase()),
+        inArray(applications.status, [...OPEN_STATUSES]),
+      ),
+    );
+
+  if (openApps.length === 0) return new Set();
+
+  const rows = await db
+    .select({ rawFileName: documents.rawFileName })
+    .from(documents)
+    .where(or(...openApps.map((a) => eq(documents.applicationId, a.id))));
+
+  return new Set(rows.map((r) => r.rawFileName));
 }
 
-/**
- * Flusso a due fasi (Step-by-step):
- * 1. Fase 1: Ingestione Mail rapida (< 5 secondi, ZERO AI sincrono)
- *    - Scarica allegati, carica grezzi su R2, crea pratica e documenti con stato 'pending' a DB
- *    - Applica label Gmail "MUTUO-ELABORATA" RIGOROSAMENTE DOPO che la pratica e i documenti sono a DB
- * 2. Fase 2: OCR a scaglioni (SOLO 1 o 2 file per esecuzione)
- *    - Prende in carico 1-2 documenti pendenti, esegue OCR/classificazione Gemini e aggiorna a 'done'
- *    - L'intera esecuzione richiede solo pochissimi secondi e non supererà mai il timeout di 60s
- */
 async function runEmailCronWork(force: boolean) {
   const started = Date.now();
-  const connectedUsers = await listConnectedGoogleUsers();
+  const withinBudget = () => Date.now() - started < WORK_BUDGET_MS;
 
+  try {
+    await mergeAllDuplicateApplications();
+  } catch (mergeErr) {
+    console.error("mergeAllDuplicateApplications", mergeErr);
+  }
+
+  // 1) Prima la coda OCR (file già su R2) — sblocca checklist
+  let analysis: Awaited<
+    ReturnType<typeof processPendingDocumentAnalyses>
+  > | null = null;
+  if (withinBudget()) {
+    analysis = await processPendingDocumentAnalyses(MAX_ANALYSES_PER_RUN);
+  }
+
+  const connectedUsers = await listConnectedGoogleUsers();
   if (connectedUsers.length === 0) {
-    console.warn("cron check-emails: nessun account Google collegato");
+    console.warn("cron check-emails: nessun Google collegato");
     try {
       await syncOcrPendingFlagFromDb();
     } catch {
       // ignore
     }
-    return {
-      ok: false as const,
-      reason: "no_connected_users",
-      accountResults: [],
-      analysis: null,
-      elapsedMs: Date.now() - started,
-    };
+    return { analysis, accountResults: [], ok: false as const, neon: true };
   }
 
-  // Specchia hub su R2 per evitare risvegli Neon non necessari
+  // Specchia hub su R2 così i prossimi tick Gmail non toccano Neon
   const hub = connectedUsers[0]!;
   try {
     await saveGoogleHubToR2({
@@ -126,26 +125,25 @@ async function runEmailCronWork(force: boolean) {
     console.error("saveGoogleHubToR2 from cron", hubErr);
   }
 
-  // =========================================================================
-  // FASE 1: Ingestione rapida della posta (< 5s, ZERO chiamate AI/Gemini)
-  // =========================================================================
   const accountResults = [];
 
+  // 2) Intake mail → R2 pending (niente Gemini qui)
   for (const owner of connectedUsers) {
+    if (!withinBudget()) break;
+
     const googleAuth = oauthClientFromRefreshToken(owner.googleRefreshToken);
-
-    // Controllo di fallback / sblocco mail info.inzago@euroansa.it
-    await recoverBlockedEmails(googleAuth);
-
     const emails = await fetchPendingMortgageEmails(
       MAX_EMAILS_PER_ACCOUNT,
       force,
       googleAuth,
     );
-
     const results = [];
 
     for (const email of emails) {
+      if (!withinBudget()) break;
+
+      await mergeDuplicateOpenApplicationsByEmail(email.fromEmail);
+
       if (email.attachments.length === 0) {
         const staff = await isStaffMailboxEmail(email.fromEmail);
         let appId: string | null = null;
@@ -158,8 +156,6 @@ async function runEmailCronWork(force: boolean) {
           });
           appId = app.id;
         }
-
-        // Applica etichetta RIGOROSAMENTE DOPO il salvataggio a DB
         try {
           await markMessageProcessed(email.messageId, googleAuth);
         } catch (labelError) {
@@ -169,20 +165,49 @@ async function runEmailCronWork(force: boolean) {
             labelError,
           );
         }
-
         results.push({
           messageId: email.messageId,
           noAttachments: true,
           stored: 0,
           applicationIds: appId ? [appId] : [],
           errors: [] as string[],
+          skippedStaffNoAttachments: staff || undefined,
         });
         continue;
       }
 
-      // Ingestione rapida: salvataggio file grezzi su Cloudflare R2 e record 'pending' a DB
+      const done = await alreadyProcessedFileNames(
+        email.fromEmail,
+        email.messageId,
+      );
+      const pending = email.attachments.filter((g) => !done.has(g.filename));
+      const batch = pending.slice(0, MAX_ATTACHMENTS_PER_MAIL);
+
+      if (batch.length === 0) {
+        if (pending.length === 0) {
+          try {
+            await markMessageProcessed(email.messageId, googleAuth);
+          } catch (labelError) {
+            console.error(
+              "markMessageProcessed failed",
+              email.messageId,
+              labelError,
+            );
+          }
+        }
+        results.push({
+          messageId: email.messageId,
+          skipped: email.attachments.length,
+          pending: 0,
+          stored: 0,
+          applicationIds: [] as string[],
+          errors: [] as string[],
+        });
+        continue;
+      }
+
       const ingested = await ingestEmailAttachmentsWithoutAi(
-        email.attachments.map((g) => ({
+        batch.map((g) => ({
           buffer: g.buffer,
           mimeType: g.mimeType,
           filename: g.filename,
@@ -200,9 +225,12 @@ async function runEmailCronWork(force: boolean) {
         },
       );
 
-      // Applica etichetta "MUTUO-ELABORATA" RIGOROSAMENTE DOPO che la pratica e i documenti sono salvati a DB
-      const dbSaved = Boolean(ingested.applicationId && (ingested.stored > 0 || ingested.skipped > 0));
-      if (dbSaved) {
+      const remainingAfter =
+        pending.length - ingested.stored - ingested.skipped;
+      const fullyIngested =
+        ingested.errors.length === 0 && remainingAfter <= 0;
+
+      if (fullyIngested) {
         try {
           await markMessageProcessed(email.messageId, googleAuth);
         } catch (labelError) {
@@ -216,12 +244,16 @@ async function runEmailCronWork(force: boolean) {
 
       results.push({
         messageId: email.messageId,
+        batchSize: batch.length,
+        pendingBefore: pending.length,
         totalAttachments: email.attachments.length,
         stored: ingested.stored,
         skipped: ingested.skipped,
-        applicationIds: ingested.applicationId ? [ingested.applicationId] : [],
+        applicationIds: ingested.applicationId
+          ? [ingested.applicationId]
+          : [],
         errors: ingested.errors,
-        labeled: dbSaved,
+        labeled: fullyIngested,
       });
     }
 
@@ -232,43 +264,45 @@ async function runEmailCronWork(force: boolean) {
     });
   }
 
-  // =========================================================================
-  // FASE 2: OCR a scaglioni incrementale (SOLO 1 o 2 file per esecuzione)
-  // =========================================================================
-  let analysis: Awaited<ReturnType<typeof processPendingDocumentAnalyses>> | null = null;
-  try {
-    analysis = await processPendingDocumentAnalyses(OCR_CHUNK_SIZE);
-  } catch (ocrErr) {
-    console.error("processPendingDocumentAnalyses error:", ocrErr);
+  // 3) Ancora OCR se resta budget (file appena messi in coda)
+  let analysisAfter: Awaited<
+    ReturnType<typeof processPendingDocumentAnalyses>
+  > | null = null;
+  if (withinBudget()) {
+    analysisAfter = await processPendingDocumentAnalyses(MAX_ANALYSES_PER_RUN);
   }
 
   try {
     await syncOcrPendingFlagFromDb();
   } catch (flagErr) {
-    console.error("syncOcrPendingFlagFromDb", flagErr);
+    console.error("syncOcrPendingFlagFromDb end", flagErr);
   }
 
-  const elapsedMs = Date.now() - started;
-  console.log("cron check-emails completed successfully", {
-    elapsedMs,
+  console.log("cron check-emails done", {
+    elapsedMs: Date.now() - started,
+    analysis,
+    analysisAfter,
     accounts: accountResults.length,
-    ocrAttempted: analysis?.attempted ?? 0,
-    ocrSucceeded: analysis?.succeeded ?? 0,
+    neon: true,
   });
 
   return {
     ok: true as const,
-    elapsedMs,
-    accountResults,
+    elapsedMs: Date.now() - started,
     analysis,
+    analysisAfter,
+    accountResults,
+    neon: true,
   };
 }
 
 /**
- * Gate di controllo con Neon DB: esegue l'aggiornamento schema e il lavoro a 2 fasi.
+ * Gate senza Neon: Gmail (token R2/env) + flag OCR su R2.
+ * Solo se c’è lavoro (o force / flag sconosciuto) → ensureSchema + pipeline.
  */
 async function runCronWithNeonGate(force: boolean) {
   const started = Date.now();
+
   let gmailCount = 0;
   let ocrFlag: boolean | null = null;
   let probeError: string | null = null;
@@ -278,6 +312,7 @@ async function runCronWithNeonGate(force: boolean) {
   } catch (err) {
     probeError = err instanceof Error ? err.message : String(err);
     console.error("readOcrPendingFlag", err);
+    // In dubbio: apri Neon (non perdere OCR)
     ocrFlag = null;
   }
 
@@ -291,6 +326,7 @@ async function runCronWithNeonGate(force: boolean) {
       );
       gmailCount = emails.length;
     } else {
+      // Nessun token fuori Neon → serve DB per hub, oppure idle se flag false
       if (ocrFlag !== false || force) {
         const schema = await ensureSchema();
         if (!schema.ok) {
@@ -302,6 +338,9 @@ async function runCronWithNeonGate(force: boolean) {
         }
         return await runEmailCronWork(force);
       }
+      console.log("cron check-emails idle (no google token outside neon, ocr=false)", {
+        elapsedMs: Date.now() - started,
+      });
       return {
         ok: true as const,
         skipped: "idle" as const,
@@ -312,7 +351,8 @@ async function runCronWithNeonGate(force: boolean) {
     }
   } catch (err) {
     probeError = err instanceof Error ? err.message : String(err);
-    console.error("gmail probe failed", err);
+    console.error("gmail probe without neon failed", err);
+    // Probe fallita → meglio aprire Neon che perdere mail
     ocrFlag = ocrFlag === false ? null : ocrFlag;
   }
 
@@ -323,6 +363,11 @@ async function runCronWithNeonGate(force: boolean) {
   });
 
   if (!wake) {
+    console.log("cron check-emails idle (no neon)", {
+      gmailCount,
+      ocrFlag,
+      elapsedMs: Date.now() - started,
+    });
     return {
       ok: true as const,
       skipped: "idle" as const,
@@ -359,20 +404,23 @@ export async function GET(req: NextRequest) {
     req.nextUrl.searchParams.get("force") === "1" ||
     req.nextUrl.searchParams.get("force") === "true";
 
-  try {
-    const result = await runCronWithNeonGate(force);
-    return NextResponse.json(result);
-  } catch (error) {
-    console.error("cron check-emails error:", error);
-    return NextResponse.json(
-      {
-        ok: false,
-        error: error instanceof Error ? error.message : String(error),
-      },
-      { status: 500 },
-    );
-  }
+  // Rispondi subito a cron-job.org; il lavoro continua su Vercel (maxDuration).
+  after(async () => {
+    try {
+      await runCronWithNeonGate(force);
+    } catch (error) {
+      console.error("cron check-emails background error", error);
+    }
+  });
+
+  return NextResponse.json({
+    ok: true,
+    accepted: true,
+    mode: "background",
+    force,
+    neonGate: true,
+  });
 }
 
-/** cron-job.org / curl supportano GET e POST */
+/** cron-job.org / curl possono usare GET o POST */
 export const POST = GET;
