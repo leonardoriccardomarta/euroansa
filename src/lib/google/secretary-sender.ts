@@ -249,7 +249,7 @@ export async function sendApplicationToSecretary(
   await db
     .update(applications)
     .set({
-      status: "INVIATA_A_SEGRETERIA",
+      status: "INVIATA_IN_BANCA",
       sentToSecretaryAt: sentAt,
       sentToSecretaryByUserId: options?.actorUserId ?? null,
       sentToSecretaryByName: sentByName,

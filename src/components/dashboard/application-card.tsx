@@ -11,18 +11,21 @@ import type { ApplicationStatus } from "@/db/schema";
 import { APPLICATION_STATUS_LABELS } from "@/lib/config/documents";
 import { displayClientEmail } from "@/lib/client-email";
 import { isTutorialPractice } from "@/lib/tutorial";
+import { Pause } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
 const STATUS_OPTIONS: ApplicationStatus[] = [
   "DOCUMENTI_INCOMPLETI",
   "COMPLETA_DA_INOLTRARE",
-  "INVIATA_A_SEGRETERIA",
-  "DELIBERA_REDDITUALE",
-  "PERIZIA_PRESA",
-  "PERIZIA_EFFETTUATA",
+  "INVIATA_IN_BANCA",
+  "DELIBERATA",
+  "PERIZIA_INCARICATA",
+  "PREPARAZIONE_ATTO",
   "DELIBERA_FINALE",
   "ROGITATA",
+  "IN_ATTESA_RISCONTRO_CLIENTE",
 ];
 
 export function ApplicationCard({
@@ -66,8 +69,17 @@ export function ApplicationCard({
   const [pending, startTransition] = useTransition();
   const isGuida = isTutorialPractice({ clientName, clientEmail });
 
+  const isFrozen = status === "IN_ATTESA_RISCONTRO_CLIENTE";
+
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-primary-200 hover:shadow-md sm:p-5">
+    <div
+      className={cn(
+        "rounded-xl border p-4 shadow-sm transition hover:shadow-md sm:p-5",
+        isFrozen
+          ? "border-slate-300 bg-slate-50/70 opacity-75 hover:border-slate-400"
+          : "border-slate-200 bg-white hover:border-primary-200",
+      )}
+    >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <Link
           href={`/dashboard/applications/${id}`}
@@ -111,6 +123,7 @@ export function ApplicationCard({
               </Badge>
             ) : null}
             <Badge variant="outline" className={statusClass}>
+              {isFrozen ? <Pause className="mr-1 inline-block h-3 w-3" /> : null}
               {statusLabel}
             </Badge>
           </div>

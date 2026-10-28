@@ -24,18 +24,20 @@ export const applicationStatusEnum = pgEnum("application_status", [
   "IN_ATTESA_DOCUMENTI",
   "DOCUMENTI_INCOMPLETI",
   "COMPLETA_DA_INOLTRARE",
-  "INVIATA_A_SEGRETERIA",
+  "INVIATA_IN_BANCA",
+  "DELIBERATA",
+  "PERIZIA_INCARICATA",
+  "PREPARAZIONE_ATTO",
+  "DELIBERA_FINALE",
+  "ROGITATA",
+  "IN_ATTESA_RISCONTRO_CLIENTE",
   "ANOMALIA",
-  // Post segreteria (Filip)
+  // Legacy values kept for database backward compatibility
+  "INVIATA_A_SEGRETERIA",
   "DELIBERA_REDDITUALE",
   "PERIZIA_PRESA",
   "PERIZIA_EFFETTUATA",
-  "DELIBERA_FINALE",
-  "ROGITATA",
-  // Legacy (migrati via ensureSchema)
-  "INVIATA_IN_BANCA",
   "PERITO_NOMINATO",
-  "DELIBERATA",
 ]);
 
 export const documentTypeEnum = pgEnum("document_type", [
@@ -168,6 +170,9 @@ export const applications = pgTable("applications", {
   clientFiscalCode: varchar("client_fiscal_code", { length: 16 }),
   /** Mutuo cointestatari (oggetto COPPIA EUROANSA MUTUO). */
   isCouple: boolean("is_couple").notNull().default(false),
+  /** Richiedente 2 (co-applicant) nome e CF per pratiche Coppia */
+  coApplicantName: varchar("co_applicant_name", { length: 255 }),
+  coApplicantFiscalCode: varchar("co_applicant_fiscal_code", { length: 16 }),
   /** Oggetto normalizzato per riagganciare mail successive della stessa coppia. */
   coupleSubjectKey: text("couple_subject_key"),
   /** Tutti i CF dei cointestatari (marito/moglie…). */
@@ -245,6 +250,8 @@ export const applications = pgTable("applications", {
   commissionCqs: real("commission_cqs"),
   commissionLoans: real("commission_loans"),
   commissionNotary: real("commission_notary"),
+  /** Quota broker specifica pratica (es. 1.0 per 100%, 0.35 standard; se null usa broker/global) */
+  brokerSharePercent: real("broker_share_percent"),
   /** Data rogito (per resoconto mese) */
   rogitoAt: timestamp("rogito_at", { withTimezone: true }),
   /** Audit conformità Euroansa / Kiron */

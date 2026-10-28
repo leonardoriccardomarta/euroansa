@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import {
   createPracticeFromAppointmentAction,
   deleteAppointmentAction,
@@ -11,6 +11,15 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { User, Users2 } from "lucide-react";
 import { OPERATION_TYPES } from "@/lib/economics";
 import { toast } from "sonner";
 
@@ -43,6 +52,22 @@ export function AppointmentsClient({
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
+
+  const [createPracticeRow, setCreatePracticeRow] = useState<Row | null>(null);
+  const [isCouple, setIsCouple] = useState(false);
+  const [clientName, setClientName] = useState("");
+  const [clientFiscalCode, setClientFiscalCode] = useState("");
+  const [coApplicantName, setCoApplicantName] = useState("");
+  const [coApplicantFiscalCode, setCoApplicantFiscalCode] = useState("");
+
+  const openCreateModal = (r: Row) => {
+    setCreatePracticeRow(r);
+    setClientName(r.clientName);
+    setClientFiscalCode("");
+    setIsCouple(false);
+    setCoApplicantName("");
+    setCoApplicantFiscalCode("");
+  };
 
   return (
     <div className="space-y-6">
@@ -189,32 +214,16 @@ export function AppointmentsClient({
                     ) : (
                       <button
                         type="button"
-                        className="text-xs font-semibold text-primary-700"
+                        className="text-xs font-semibold text-primary-700 hover:underline"
                         disabled={pending}
-                        onClick={() => {
-                          startTransition(async () => {
-                            const res =
-                              await createPracticeFromAppointmentAction(r.id);
-                            if (res && "error" in res && res.error) {
-                              toast.error(res.error);
-                              return;
-                            }
-                            toast.success("Pratica creata");
-                            if ("applicationId" in res && res.applicationId) {
-                              router.push(
-                                `/dashboard/applications/${res.applicationId}`,
-                              );
-                            }
-                            router.refresh();
-                          });
-                        }}
+                        onClick={() => openCreateModal(r)}
                       >
                         Crea pratica
                       </button>
                     )}
                     <button
                       type="button"
-                      className="text-xs font-medium text-red-600"
+                      className="text-xs font-medium text-red-600 hover:underline"
                       disabled={pending}
                       onClick={() => {
                         startTransition(async () => {
@@ -232,6 +241,154 @@ export function AppointmentsClient({
           </tbody>
         </table>
       </div>
+
+      {/* Modal Crea Pratica da Appuntamento */}
+      <Dialog
+        open={Boolean(createPracticeRow)}
+        onOpenChange={(open) => !open && setCreatePracticeRow(null)}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Crea Pratica da Appuntamento</DialogTitle>
+            <DialogDescription>
+              Genera la cartella storage e il fascicolo di istruttoria per
+              questo contatto.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            {/* Tipo Pratica Selector */}
+            <div className="flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50 p-2">
+              <span className="text-xs font-medium text-slate-700">
+                Tipo Pratica:
+              </span>
+              <div className="inline-flex rounded-lg border border-slate-200 bg-white p-0.5 text-xs font-medium shadow-xs">
+                <button
+                  type="button"
+                  onClick={() => setIsCouple(false)}
+                  className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 transition-all ${
+                    !isCouple
+                      ? "bg-primary-600 font-semibold text-white shadow-xs"
+                      : "text-slate-600 hover:text-slate-900"
+                  }`}
+                >
+                  <User className="h-3.5 w-3.5" />
+                  Singola
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsCouple(true)}
+                  className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 transition-all ${
+                    isCouple
+                      ? "bg-sky-600 font-semibold text-white shadow-xs"
+                      : "text-slate-600 hover:text-slate-900"
+                  }`}
+                >
+                  <Users2 className="h-3.5 w-3.5" />
+                  Coppia
+                </button>
+              </div>
+            </div>
+
+            {/* Richiedente 1 */}
+            <div className="space-y-2 rounded-lg border border-slate-100 bg-slate-50/50 p-3">
+              <Label className="text-xs font-bold text-slate-700">
+                {isCouple ? "Richiedente 1 (Principale)" : "Richiedente"}
+              </Label>
+              <Input
+                value={clientName}
+                onChange={(e) => setClientName(e.target.value)}
+                placeholder="Nome e cognome"
+                className="h-9"
+              />
+              <Input
+                value={clientFiscalCode}
+                onChange={(e) =>
+                  setClientFiscalCode(e.target.value.toUpperCase())
+                }
+                placeholder="Codice Fiscale (opzionale)"
+                maxLength={16}
+                className="h-9 text-xs uppercase"
+              />
+            </div>
+
+            {/* Richiedente 2 */}
+            {isCouple && (
+              <div className="space-y-2 rounded-lg border border-sky-100 bg-sky-50/40 p-3">
+                <Label className="text-xs font-bold text-sky-900">
+                  Richiedente 2 (Co-intestatario)
+                </Label>
+                <Input
+                  value={coApplicantName}
+                  onChange={(e) => setCoApplicantName(e.target.value)}
+                  placeholder="Nome e cognome 2° richiedente"
+                  className="h-9"
+                />
+                <Input
+                  value={coApplicantFiscalCode}
+                  onChange={(e) =>
+                    setCoApplicantFiscalCode(e.target.value.toUpperCase())
+                  }
+                  placeholder="Codice Fiscale 2° richiedente"
+                  maxLength={16}
+                  className="h-9 text-xs uppercase"
+                />
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={pending}
+              onClick={() => setCreatePracticeRow(null)}
+            >
+              Annulla
+            </Button>
+            <Button
+              type="button"
+              disabled={
+                pending ||
+                !clientName.trim() ||
+                (isCouple && !coApplicantName.trim())
+              }
+              className="bg-primary-600 font-semibold text-white hover:bg-primary-700"
+              onClick={() => {
+                if (!createPracticeRow) return;
+                startTransition(async () => {
+                  const res = await createPracticeFromAppointmentAction(
+                    createPracticeRow.id,
+                    {
+                      clientName,
+                      clientFiscalCode,
+                      isCouple,
+                      coApplicantName: isCouple ? coApplicantName : null,
+                      coApplicantFiscalCode: isCouple
+                        ? coApplicantFiscalCode
+                        : null,
+                    },
+                  );
+                  if (res && "error" in res && res.error) {
+                    toast.error(res.error);
+                    return;
+                  }
+                  toast.success("Pratica creata");
+                  setCreatePracticeRow(null);
+                  if ("applicationId" in res && res.applicationId) {
+                    router.push(
+                      `/dashboard/applications/${res.applicationId}`,
+                    );
+                  }
+                  router.refresh();
+                });
+              }}
+            >
+              {pending ? "Creazione..." : "Crea Pratica"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

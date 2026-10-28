@@ -141,15 +141,19 @@ export function deriveApplicationStatus(
 ): "DOCUMENTI_INCOMPLETI" | "COMPLETA_DA_INOLTRARE" | null {
   if (
     [
+      "INVIATA_IN_BANCA",
+      "DELIBERATA",
+      "PERIZIA_INCARICATA",
+      "PREPARAZIONE_ATTO",
+      "DELIBERA_FINALE",
+      "ROGITATA",
+      "IN_ATTESA_RISCONTRO_CLIENTE",
+      // Legacy
       "INVIATA_A_SEGRETERIA",
       "DELIBERA_REDDITUALE",
       "PERIZIA_PRESA",
       "PERIZIA_EFFETTUATA",
-      "DELIBERA_FINALE",
-      "ROGITATA",
-      "INVIATA_IN_BANCA",
       "PERITO_NOMINATO",
-      "DELIBERATA",
     ].includes(currentStatus)
   ) {
     return null;

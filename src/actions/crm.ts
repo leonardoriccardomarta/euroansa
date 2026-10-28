@@ -156,7 +156,18 @@ export async function deleteAppointmentAction(id: string) {
   return { ok: true };
 }
 
-export async function createPracticeFromAppointmentAction(appointmentId: string) {
+export type CreatePracticeOptions = {
+  clientName?: string;
+  clientFiscalCode?: string | null;
+  isCouple?: boolean;
+  coApplicantName?: string | null;
+  coApplicantFiscalCode?: string | null;
+};
+
+export async function createPracticeFromAppointmentAction(
+  appointmentId: string,
+  options?: CreatePracticeOptions,
+) {
   const session = await requireBroker();
   if ("error" in session) return session;
   const [row] = await db
@@ -171,7 +182,13 @@ export async function createPracticeFromAppointmentAction(appointmentId: string)
     return { ok: true as const, applicationId: row.applicationId };
   }
 
-  const created = await createClientFolderAction(row.clientName);
+  const created = await createClientFolderAction({
+    clientName: options?.clientName?.trim() || row.clientName,
+    clientFiscalCode: options?.clientFiscalCode?.trim() || null,
+    isCouple: options?.isCouple ?? false,
+    coApplicantName: options?.coApplicantName?.trim() || null,
+    coApplicantFiscalCode: options?.coApplicantFiscalCode?.trim() || null,
+  });
   if (created && "error" in created && created.error) {
     return { error: created.error };
   }

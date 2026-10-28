@@ -74,23 +74,21 @@ async function ensureFoldersPersisted(
   clientName: string,
   current: string[] | null | undefined,
   discovered: string[],
+  isCouple?: boolean,
 ) {
-  const defaults = defaultStorageFolders(clientName);
-  const base = (current?.length ? current : defaults).map(
-    normalizeStorageFolderName,
-  );
-  const merged = [
-    ...new Set([
-      ...base,
-      ...discovered.map(normalizeStorageFolderName),
-    ]),
-  ].filter(Boolean);
+  const defaults = defaultStorageFolders(clientName, isCouple);
+  // Preserva l'ordine esatto definito dall'utente e non cancellare mai cartelle custom/vuote
+  const base = current && current.length > 0 ? current : defaults;
+  const existingSet = new Set(base.map((f) => f.trim().toUpperCase()));
+  const newDiscovered = discovered
+    .map((f) => f.trim())
+    .filter((f) => Boolean(f) && !existingSet.has(f.toUpperCase()));
+  const merged = [...base, ...newDiscovered].filter(Boolean);
 
-  const normalizedCurrent = (current ?? []).map(normalizeStorageFolderName);
   const same =
-    normalizedCurrent.length === merged.length &&
-    normalizedCurrent.every((f) => merged.includes(f)) &&
-    merged.every((f) => normalizedCurrent.includes(f));
+    current &&
+    current.length === merged.length &&
+    current.every((f, i) => f === merged[i]);
 
   if (!same) {
     await db
@@ -225,14 +223,15 @@ export async function createStorageFolderAction(
   const name = sanitizeFolderName(folderName);
   if (!name) return { error: "Nome cartella non valido" };
 
-  const folders = [
-    ...new Set([
-      ...(app.storageFolders?.length
-        ? app.storageFolders
-        : defaultStorageFolders(app.clientName)),
-      name,
-    ]),
-  ];
+  const existing = app.storageFolders?.length
+    ? app.storageFolders
+    : defaultStorageFolders(app.clientName, app.isCouple);
+
+  if (existing.some((f) => f.toLowerCase() === name.toLowerCase())) {
+    return { ok: true, folderName: name };
+  }
+
+  const folders = [...existing, name];
 
   await db
     .update(applications)
@@ -241,6 +240,151 @@ export async function createStorageFolderAction(
 
   revalidateFiles(applicationId);
   return { ok: true, folderName: name };
+}
+
+/** Rinomina inline cartella (e aggiorna i documenti corrispondenti) */
+export async function renameStorageFolderAction(
+  applicationId: string,
+  oldName: string,
+  newName: string,
+) {
+  const session = await requireSession();
+  const access = await assertCanAccessApp(session, applicationId);
+  if ("error" in access) return access;
+  const { app } = access;
+
+  const sanitizedOld = oldName.trim();
+  const sanitizedNew = sanitizeFolderName(newName);
+  if (!sanitizedNew) return { error: "Nome cartella non valido" };
+
+  const currentFolders = app.storageFolders?.length
+    ? app.storageFolders
+    : defaultStorageFolders(app.clientName, app.isCouple);
+
+  let updatedFolders = currentFolders.map((f) =>
+    f.toLowerCase() === sanitizedOld.toLowerCase() ? sanitizedNew : f,
+  );
+
+  if (!updatedFolders.includes(sanitizedNew)) {
+    updatedFolders.push(sanitizedNew);
+  }
+
+  await db
+    .update(applications)
+    .set({ storageFolders: updatedFolders, updatedAt: new Date() })
+    .where(eq(applications.id, applicationId));
+
+  // Aggiorna mapping logico dei file nella cartella (il path fisico R2 non viene modificato)
+  await db
+    .update(documents)
+    .set({ storageSubfolder: sanitizedNew })
+    .where(
+      and(
+        eq(documents.applicationId, applicationId),
+        eq(documents.storageSubfolder, sanitizedOld),
+      ),
+    );
+
+  revalidateFiles(applicationId);
+  return { ok: true, newName: sanitizedNew };
+}
+
+/** Sposta l'ordine di visualizzazione di una cartella in alto o in basso */
+export async function reorderStorageFolderAction(
+  applicationId: string,
+  folderName: string,
+  direction: "up" | "down",
+) {
+  const session = await requireSession();
+  const access = await assertCanAccessApp(session, applicationId);
+  if ("error" in access) return access;
+  const { app } = access;
+
+  const currentFolders = [
+    ...(app.storageFolders?.length
+      ? app.storageFolders
+      : defaultStorageFolders(app.clientName, app.isCouple)),
+  ];
+
+  const index = currentFolders.findIndex(
+    (f) => f.toLowerCase() === folderName.trim().toLowerCase(),
+  );
+  if (index === -1) return { error: "Cartella non trovata" };
+
+  const targetIndex = direction === "up" ? index - 1 : index + 1;
+  if (targetIndex < 0 || targetIndex >= currentFolders.length) {
+    return { ok: true, folders: currentFolders };
+  }
+
+  const temp = currentFolders[index];
+  currentFolders[index] = currentFolders[targetIndex];
+  currentFolders[targetIndex] = temp;
+
+  await db
+    .update(applications)
+    .set({ storageFolders: currentFolders, updatedAt: new Date() })
+    .where(eq(applications.id, applicationId));
+
+  revalidateFiles(applicationId);
+  return { ok: true, folders: currentFolders };
+}
+
+/** Sposta un file tra cartelle (modifica solo mapping logico DB, non la storageKey fisica R2) */
+export async function moveDocumentFolderAction(
+  documentId: string,
+  targetFolder: string,
+) {
+  const session = await requireSession();
+  const [doc] = await db
+    .select()
+    .from(documents)
+    .where(eq(documents.id, documentId))
+    .limit(1);
+  if (!doc) return { error: "Documento non trovato" };
+
+  const access = await assertCanAccessApp(session, doc.applicationId);
+  if ("error" in access) return access;
+
+  const sanitizedTarget = sanitizeFolderName(targetFolder);
+  if (!sanitizedTarget) return { error: "Cartella di destinazione non valida" };
+
+  // Aggiorna SOLO il mapping logico storageSubfolder nel database
+  // NON modifica né rompe la storageKey fisica Cloudflare R2 (driveFileId)
+  await db
+    .update(documents)
+    .set({ storageSubfolder: sanitizedTarget })
+    .where(eq(documents.id, documentId));
+
+  // Assicura che la cartella sia salvata anche nell'elenco storageFolders della pratica
+  const [app] = await db
+    .select({
+      storageFolders: applications.storageFolders,
+      clientName: applications.clientName,
+      isCouple: applications.isCouple,
+    })
+    .from(applications)
+    .where(eq(applications.id, doc.applicationId))
+    .limit(1);
+
+  if (app) {
+    const existing = app.storageFolders?.length
+      ? app.storageFolders
+      : defaultStorageFolders(app.clientName, app.isCouple);
+    if (
+      !existing.some((f) => f.toLowerCase() === sanitizedTarget.toLowerCase())
+    ) {
+      await db
+        .update(applications)
+        .set({
+          storageFolders: [...existing, sanitizedTarget],
+          updatedAt: new Date(),
+        })
+        .where(eq(applications.id, doc.applicationId));
+    }
+  }
+
+  revalidateFiles(doc.applicationId);
+  return { ok: true, targetFolder: sanitizedTarget };
 }
 
 export async function deleteStorageFolderAction(
@@ -289,7 +433,7 @@ export async function deleteStorageFolderAction(
   const base =
     app.storageFolders?.length > 0
       ? app.storageFolders
-      : defaultStorageFolders(app.clientName);
+      : defaultStorageFolders(app.clientName, app.isCouple);
   const folders = base.filter((f) => f !== name);
 
   await db
@@ -302,19 +446,78 @@ export async function deleteStorageFolderAction(
   return { ok: true, deletedFiles: docs.length };
 }
 
-export async function createClientFolderAction(clientName: string) {
-  const session = await requireSession();
-  const name = sanitizeFolderName(clientName);
-  if (!name) return { error: "Inserisci il nome cliente / cartella" };
+export type CreatePracticeFolderInput =
+  | string
+  | {
+      practiceType?: "Singola" | "Coppia";
+      isCouple?: boolean;
+      clientName?: string;
+      clientFiscalCode?: string | null;
+      applicant1Name?: string;
+      applicant1FiscalCode?: string | null;
+      coApplicantName?: string | null;
+      coApplicantFiscalCode?: string | null;
+      applicant2Name?: string | null;
+      applicant2FiscalCode?: string | null;
+    };
 
-  const folders = defaultStorageFolders(name);
+export async function createClientFolderAction(
+  input: CreatePracticeFolderInput,
+) {
+  const session = await requireSession();
+  const isCoppia =
+    typeof input === "object" &&
+    (input.practiceType === "Coppia" || Boolean(input.isCouple));
+
+  let clientName = "";
+  let clientFiscalCode: string | null = null;
+  let coApplicantName: string | null = null;
+  let coApplicantFiscalCode: string | null = null;
+  let applicantFiscalCodes: string[] = [];
+
+  if (typeof input === "string") {
+    clientName = sanitizeFolderName(input);
+  } else {
+    const rawA1 = input.clientName || input.applicant1Name || "";
+    const a1 = sanitizeFolderName(rawA1);
+    const cf1 =
+      input.clientFiscalCode?.trim().toUpperCase() ||
+      input.applicant1FiscalCode?.trim().toUpperCase() ||
+      null;
+    clientFiscalCode = cf1;
+
+    if (isCoppia) {
+      const rawA2 = input.coApplicantName || input.applicant2Name || "";
+      const a2 = sanitizeFolderName(rawA2);
+      const cf2 =
+        input.coApplicantFiscalCode?.trim().toUpperCase() ||
+        input.applicant2FiscalCode?.trim().toUpperCase() ||
+        null;
+      coApplicantName = a2 || null;
+      coApplicantFiscalCode = cf2;
+      clientName = a2 ? `${a1} & ${a2}` : a1;
+      applicantFiscalCodes = [cf1, cf2].filter((x): x is string => Boolean(x));
+    } else {
+      clientName = a1;
+      applicantFiscalCodes = cf1 ? [cf1] : [];
+    }
+  }
+
+  if (!clientName) return { error: "Inserisci il nome cliente / richiedente" };
+
+  const folders = defaultStorageFolders(clientName, isCoppia);
   const email = `cartella.${Date.now()}@prontopratica.local`;
 
   const [created] = await db
     .insert(applications)
     .values({
-      clientName: name,
+      clientName,
       clientEmail: email,
+      clientFiscalCode,
+      isCouple: isCoppia,
+      coApplicantName,
+      coApplicantFiscalCode,
+      applicantFiscalCodes,
       employmentType: "ALTRO",
       status: "DOCUMENTI_INCOMPLETI",
       requiredDocumentTypes: [],
@@ -722,5 +925,6 @@ export async function syncStorageFoldersForApp(applicationId: string) {
     app.clientName,
     app.storageFolders,
     discovered,
+    app.isCouple,
   );
 }

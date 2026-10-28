@@ -12,7 +12,9 @@ import {
   CreateFolderForm,
   DeleteFolderButton,
   DocumentFileRow,
+  FolderReorderButtons,
   FolderUploadButton,
+  RenameFolderDialog,
 } from "@/components/dashboard/file-browser-actions";
 import { RelazioneFileActions } from "@/components/dashboard/relazione-file-actions";
 import { ZipDownloadButton } from "@/components/dashboard/zip-download-button";
@@ -103,7 +105,7 @@ export default async function ClientFilesPage({
       </div>
 
       <div className="space-y-4">
-        {folders.map((label) => {
+        {folders.map((label, idx) => {
           const list = docs.filter((d) => {
             const key = d.storageSubfolder?.trim() || fallbackFolder;
             return key === label;
@@ -123,6 +125,16 @@ export default async function ClientFilesPage({
                   </div>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
+                  <FolderReorderButtons
+                    applicationId={app.id}
+                    folderName={label}
+                    isFirst={idx === 0}
+                    isLast={idx === folders.length - 1}
+                  />
+                  <RenameFolderDialog
+                    applicationId={app.id}
+                    currentName={label}
+                  />
                   <ZipDownloadButton
                     applicationId={app.id}
                     folderName={label}
@@ -153,6 +165,8 @@ export default async function ClientFilesPage({
                       meta={`${DOCUMENT_TYPE_LABELS[doc.documentType] ?? doc.documentType}${
                         doc.isValid ? "" : ", da verificare"
                       }`}
+                      availableFolders={folders}
+                      currentFolder={label}
                     />
                   ))}
                 </div>

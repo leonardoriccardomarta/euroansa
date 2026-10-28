@@ -62,6 +62,7 @@ export function PracticeEconomicsForm({
   values,
   provenanceOptions,
   collaboratorSharePercent,
+  brokerSharePercent,
   showOverride,
   overrideSharePercent,
 }: {
@@ -69,12 +70,43 @@ export function PracticeEconomicsForm({
   values: EconomicsValues;
   provenanceOptions: string[];
   collaboratorSharePercent: number;
+  brokerSharePercent?: number | null;
   /** Override nascosta: solo se il viewer ha diritto e non è il titolare. */
   showOverride?: boolean;
   overrideSharePercent?: number;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
+
+  const [shareMode, setShareMode] = useState<"standard" | "100" | "custom">(() => {
+    if (brokerSharePercent != null) {
+      if (Math.abs(brokerSharePercent - 1) < 0.001) return "100";
+      if (Math.abs(brokerSharePercent - collaboratorSharePercent) < 0.001)
+        return "standard";
+      return "custom";
+    }
+    return "standard";
+  });
+
+  const [customShare, setCustomShare] = useState<string>(() => {
+    if (brokerSharePercent != null && Math.abs(brokerSharePercent - 1) >= 0.001) {
+      return String(Math.round(brokerSharePercent * 100));
+    }
+    return String(Math.round(collaboratorSharePercent * 100));
+  });
+
+  const activeBrokerSharePercent = useMemo(() => {
+    if (shareMode === "100") return 1.0;
+    if (shareMode === "custom") {
+      const val = parseFloat(customShare);
+      if (!isNaN(val) && val >= 0) {
+        return Math.min(100, val) / 100;
+      }
+      return collaboratorSharePercent;
+    }
+    return collaboratorSharePercent;
+  }, [shareMode, customShare, collaboratorSharePercent]);
+
   const [live, setLive] = useState({
     commissionClient: values.commissionClient,
     commissionBank: values.commissionBank,
@@ -86,8 +118,8 @@ export function PracticeEconomicsForm({
 
   const revenue = useMemo(() => practiceRevenue(live), [live]);
   const payout = useMemo(
-    () => collaboratorPayout(revenue, collaboratorSharePercent),
-    [revenue, collaboratorSharePercent],
+    () => collaboratorPayout(revenue, activeBrokerSharePercent),
+    [revenue, activeBrokerSharePercent],
   );
   const overridePayout = useMemo(
     () =>
@@ -288,15 +320,78 @@ export function PracticeEconomicsForm({
       </div>
 
       <div>
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-          Provvigioni (€)   a mano
-        </p>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+            Provvigioni (€) — a mano
+          </p>
+          {/* Quota broker selector with 100% option */}
+          <div className="flex flex-wrap items-center gap-1.5 text-xs">
+            <span className="font-medium text-slate-600">Quota broker:</span>
+            <button
+              type="button"
+              onClick={() => setShareMode("standard")}
+              className={`rounded-md px-2.5 py-1 font-medium transition-all ${
+                shareMode === "standard"
+                  ? "bg-primary-600 text-white shadow-xs"
+                  : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+              }`}
+            >
+              Standard ({(collaboratorSharePercent * 100).toFixed(0)}%)
+            </button>
+            <button
+              type="button"
+              onClick={() => setShareMode("100")}
+              className={`rounded-md px-2.5 py-1 font-semibold transition-all ${
+                shareMode === "100"
+                  ? "bg-emerald-600 text-white shadow-xs"
+                  : "border border-emerald-200 bg-emerald-50 text-emerald-800 hover:bg-emerald-100"
+              }`}
+              title="100% senza split terzi / nessuna fattura terzi"
+            >
+              100% Broker (No split)
+            </button>
+            <button
+              type="button"
+              onClick={() => setShareMode("custom")}
+              className={`rounded-md px-2.5 py-1 font-medium transition-all ${
+                shareMode === "custom"
+                  ? "bg-primary-600 text-white shadow-xs"
+                  : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+              }`}
+            >
+              Custom %
+            </button>
+            {shareMode === "custom" && (
+              <div className="flex items-center gap-1">
+                <Input
+                  value={customShare}
+                  onChange={(e) => setCustomShare(e.target.value)}
+                  className="h-7 w-14 text-center text-xs"
+                  type="number"
+                  min="0"
+                  max="100"
+                />
+                <span className="text-xs font-medium text-slate-600">%</span>
+              </div>
+            )}
+            <input
+              type="hidden"
+              name="brokerSharePercent"
+              value={activeBrokerSharePercent.toString()}
+            />
+          </div>
+        </div>
+
         <p className="mt-1 text-xs text-slate-500">
           Fatturato = (Polizza ÷ 2) + CQS + Banca + Cliente + Prestiti. Quota
-          collaboratore: {(collaboratorSharePercent * 100).toFixed(0)}%. Puoi
-          scrivere anche <code className="rounded bg-slate-100 px-1">1000+500</code>{" "}
-          (come sul foglio).
+          broker effettiva: {(activeBrokerSharePercent * 100).toFixed(0)}%.
+          {shareMode === "100" ? (
+            <span className="ml-1 font-medium text-emerald-700">
+              Pratica eseguita al 100% per intero (senza fattura né ripartizione terzi).
+            </span>
+          ) : null}
         </p>
+
         <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {(
             [
@@ -341,7 +436,8 @@ export function PracticeEconomicsForm({
           </div>
           <div>
             <p className="text-xs font-medium text-emerald-800">
-              Quota broker ({(collaboratorSharePercent * 100).toFixed(0)}%)
+              Quota broker ({(activeBrokerSharePercent * 100).toFixed(0)}%)
+              {shareMode === "100" ? " · 100% intero" : ""}
             </p>
             <p className="text-lg font-bold text-emerald-950">
               {formatEuro(payout)}

@@ -335,8 +335,21 @@ export function normalizeStorageFolderName(name: string): string {
   return t;
 }
 
+/** Cartelle radice separate per pratiche Coppia */
+export const COPPIA_DEFAULT_FOLDERS = [
+  "Richiedente 1",
+  "Richiedente 2",
+  "Immobile / Pratica",
+] as const;
+
 /** Cartelle iniziali di una pratica */
-export function defaultStorageFolders(clientName: string): string[] {
+export function defaultStorageFolders(
+  clientName: string,
+  isCouple?: boolean,
+): string[] {
+  if (isCouple) {
+    return [...COPPIA_DEFAULT_FOLDERS];
+  }
   return STORAGE_FOLDER_KINDS.map((k) => storageSubfolderLabel(k, clientName));
 }
 
@@ -431,12 +444,19 @@ export const MAX_INSTALLMENT_RATIO = 0.35;
 export const APPLICATION_STATUS_LABELS: Record<string, string> = {
   DOCUMENTI_INCOMPLETI: "Documenti incompleti",
   COMPLETA_DA_INOLTRARE: "Completa da inoltrare",
-  INVIATA_A_SEGRETERIA: "Inviata a segreteria",
-  DELIBERA_REDDITUALE: "Delibera reddituale",
-  PERIZIA_PRESA: "Perizia presa",
-  PERIZIA_EFFETTUATA: "Perizia effettuata",
+  INVIATA_IN_BANCA: "Inviata in banca",
+  DELIBERATA: "Deliberata",
+  PERIZIA_INCARICATA: "Perizia incaricata",
+  PREPARAZIONE_ATTO: "Preparazione atto",
   DELIBERA_FINALE: "Delibera finale",
   ROGITATA: "Rogitata",
+  IN_ATTESA_RISCONTRO_CLIENTE: "In attesa di riscontro cliente",
+  // Backward compatibility mappings
+  INVIATA_A_SEGRETERIA: "Inviata in banca",
+  DELIBERA_REDDITUALE: "Deliberata",
+  PERIZIA_PRESA: "Perizia incaricata",
+  PERIZIA_EFFETTUATA: "Preparazione atto",
+  PERITO_NOMINATO: "Perizia incaricata",
 };
 
 /** Nomi sezioni foglio (preset) */
@@ -447,13 +467,20 @@ export const EMPLOYMENT_TYPE_LABELS: Record<EmploymentType, string> = {
   ALTRO: "DOCUMENTAZIONE ANAGRAFICA",
 };
 
-/** Stati manuali dopo invio a segreteria */
+/** Stati manuali dopo invio in banca */
 export const BANK_MANUAL_STATUSES = [
+  "INVIATA_IN_BANCA",
+  "DELIBERATA",
+  "PERIZIA_INCARICATA",
+  "PREPARAZIONE_ATTO",
+  "DELIBERA_FINALE",
+  "ROGITATA",
+  "IN_ATTESA_RISCONTRO_CLIENTE",
+  // Legacy
+  "INVIATA_A_SEGRETERIA",
   "DELIBERA_REDDITUALE",
   "PERIZIA_PRESA",
   "PERIZIA_EFFETTUATA",
-  "DELIBERA_FINALE",
-  "ROGITATA",
 ] as const;
 
 /** Pratica chiusa (nuove mail → nuova pratica) */

@@ -13,30 +13,47 @@ import { PracticeAlertsPanel } from "@/components/dashboard/practice-alerts-pane
 export const dynamic = "force-dynamic";
 
 function statusBadgeClass(status: string) {
-  if (status === "INVIATA_A_SEGRETERIA" || status === "ROGITATA")
+  // Swapped: DELIBERATA takes emerald, INVIATA_IN_BANCA takes amber
+  if (
+    status === "DELIBERATA" ||
+    status === "DELIBERA_REDDITUALE" ||
+    status === "ROGITATA"
+  )
     return "bg-emerald-100 text-emerald-800 border-emerald-200";
   if (status === "DOCUMENTI_INCOMPLETI")
     return "bg-red-100 text-red-800 border-red-200";
   if (status === "COMPLETA_DA_INOLTRARE")
     return "bg-primary-50 text-primary-700 border-primary-200";
   if (
-    status === "DELIBERA_REDDITUALE" ||
+    status === "INVIATA_IN_BANCA" ||
+    status === "INVIATA_A_SEGRETERIA" ||
+    status === "PERIZIA_INCARICATA" ||
     status === "PERIZIA_PRESA" ||
+    status === "PREPARAZIONE_ATTO" ||
     status === "PERIZIA_EFFETTUATA" ||
     status === "DELIBERA_FINALE"
   )
     return "bg-amber-100 text-amber-800 border-amber-200";
+  if (status === "IN_ATTESA_RISCONTRO_CLIENTE")
+    return "bg-slate-100 text-slate-500 border-slate-300 dark:bg-slate-800 dark:text-slate-400 opacity-80";
   return "bg-slate-100 text-slate-700 border-slate-200";
 }
 
 const PIPELINE_PRIORITY: Record<string, number> = {
   DOCUMENTI_INCOMPLETI: 1,
   COMPLETA_DA_INOLTRARE: 2,
+  INVIATA_IN_BANCA: 3,
   INVIATA_A_SEGRETERIA: 3,
+  DELIBERATA: 4,
   DELIBERA_REDDITUALE: 4,
+  PERIZIA_INCARICATA: 5,
   PERIZIA_PRESA: 5,
+  PREPARAZIONE_ATTO: 6,
   PERIZIA_EFFETTUATA: 6,
   DELIBERA_FINALE: 7,
+  ROGITATA: 8,
+  // In attesa di riscontro cliente sorts automatically to the very bottom below all active practice stages
+  IN_ATTESA_RISCONTRO_CLIENTE: 99,
 };
 
 export default async function DashboardPage({
@@ -129,13 +146,36 @@ export default async function DashboardPage({
       });
   } else if (status) {
     filtered = apps
-      .filter((a) => a.status === status)
+      .filter((a) => {
+        if (status === "INVIATA_IN_BANCA") {
+          return (
+            a.status === "INVIATA_IN_BANCA" || a.status === "INVIATA_A_SEGRETERIA"
+          );
+        }
+        if (status === "DELIBERATA") {
+          return (
+            a.status === "DELIBERATA" || a.status === "DELIBERA_REDDITUALE"
+          );
+        }
+        if (status === "PERIZIA_INCARICATA") {
+          return (
+            a.status === "PERIZIA_INCARICATA" || a.status === "PERIZIA_PRESA"
+          );
+        }
+        if (status === "PREPARAZIONE_ATTO") {
+          return (
+            a.status === "PREPARAZIONE_ATTO" || a.status === "PERIZIA_EFFETTUATA"
+          );
+        }
+        return a.status === status;
+      })
       .slice()
       .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
   } else {
     // "Tutti" tab: esclude categoricamente le pratiche ROGITATA
-    // Ordine di pipeline: 1. Doc incompleti, 2. Completa da inoltrare, 3. Inviata segreteria,
-    // 4. Delibera reddituale, 5. Perizia presa, 6. Perizia effettuata, 7. Delibera finale
+    // Ordine di pipeline: 1. Doc incompleti, 2. Completa da inoltrare, 3. Inviata banca,
+    // 4. Deliberata, 5. Perizia incaricata, 6. Preparazione atto, 7. Delibera finale
+    // In attesa di riscontro cliente va automaticamente in fondo.
     // Ordinamento secondario: updatedAt decrescente
     filtered = apps
       .filter((a) => a.status !== "ROGITATA")
@@ -153,9 +193,10 @@ export default async function DashboardPage({
   // KPI Counters:
   // PRATICHE ATTIVE: conteggio totale pratiche non rogitate
   const totalActive = apps.filter((a) => a.status !== "ROGITATA").length;
-  // INVIATE A SEGRETERIA: conteggio pratiche attualmente in stato INVIATA_A_SEGRETERIA
-  const sentToSecretary = apps.filter(
-    (a) => a.status === "INVIATA_A_SEGRETERIA",
+  // INVIATE IN BANCA: conteggio pratiche attualmente in stato INVIATA_IN_BANCA / INVIATA_A_SEGRETERIA
+  const sentToBank = apps.filter(
+    (a) =>
+      a.status === "INVIATA_IN_BANCA" || a.status === "INVIATA_A_SEGRETERIA",
   ).length;
   // IN LAVORAZIONE: conteggio strettamente delle pratiche preliminari prima dell'invio (DOCUMENTI_INCOMPLETI e COMPLETA_DA_INOLTRARE)
   const inProgress = apps.filter(
@@ -212,10 +253,10 @@ export default async function DashboardPage({
         </div>
         <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
           <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-            Inviate a segreteria
+            Inviate in banca
           </p>
-          <p className="mt-2 text-3xl font-bold text-emerald-600">
-            {sentToSecretary}
+          <p className="mt-2 text-3xl font-bold text-amber-600">
+            {sentToBank}
           </p>
         </div>
         <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">

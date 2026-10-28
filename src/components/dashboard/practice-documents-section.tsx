@@ -8,6 +8,7 @@ import type { DocumentType } from "@/db/schema";
 import {
   CHECKLIST_DOCUMENT_TYPES,
   DOCUMENT_TYPE_LABELS,
+  defaultStorageFolders,
   isEuroansaFolder,
   multiSlotGroupFor,
   STORAGE_FOLDER_KINDS,
@@ -20,7 +21,14 @@ import { AcceptDocumentAnyway } from "@/components/dashboard/accept-document-any
 import { ClassifyUnknownDoc } from "@/components/dashboard/classify-unknown-doc";
 import { DeletePracticeDoc } from "@/components/dashboard/delete-practice-doc";
 import { DocumentPreviewButton } from "@/components/dashboard/document-preview";
-import { FolderUploadButton } from "@/components/dashboard/file-browser-actions";
+import {
+  CreateFolderForm,
+  DeleteFolderButton,
+  FolderReorderButtons,
+  FolderUploadButton,
+  MoveDocumentSelect,
+  RenameFolderDialog,
+} from "@/components/dashboard/file-browser-actions";
 import { RenameDocumentDialog } from "@/components/dashboard/rename-document-dialog";
 import { ZipDownloadButton } from "@/components/dashboard/zip-download-button";
 import {
@@ -43,6 +51,8 @@ function DocRow({
   allowClassify,
   dupRank,
   presentTypes,
+  allFolders,
+  currentFolder,
 }: {
   doc: Document;
   classifyOptions: DocumentType[];
@@ -50,6 +60,8 @@ function DocRow({
   dupRank?: DuplicateRankInfo;
   /** Tipi presenti in pratica (anche non validi) per badge multi-slot */
   presentTypes: Set<DocumentType>;
+  allFolders?: string[];
+  currentFolder?: string;
 }) {
   const also =
     doc.extractedData?.alsoCovers?.filter((t) => t && t !== "SCONOSCIUTO") ??
@@ -181,6 +193,13 @@ function DocRow({
               documentId={doc.id}
               currentName={doc.renamedFileName || doc.rawFileName}
             />
+            {allFolders && currentFolder ? (
+              <MoveDocumentSelect
+                documentId={doc.id}
+                currentFolder={currentFolder}
+                availableFolders={allFolders}
+              />
+            ) : null}
             {showClassify ? (
               <ClassifyUnknownDoc
                 documentId={doc.id}
@@ -250,11 +269,15 @@ export function PracticeDocumentsSection({
   clientName,
   docs,
   requiredDocumentTypes,
+  folders,
+  isCouple,
 }: {
   applicationId: string;
   clientName: string;
   docs: Document[];
   requiredDocumentTypes: DocumentType[];
+  folders?: string[];
+  isCouple?: boolean;
 }) {
   const defaultDocLabel = storageSubfolderLabel("DOC", clientName);
 
@@ -289,67 +312,44 @@ export function PracticeDocumentsSection({
 
   const dupRanks = rankDuplicateDocuments(docs);
 
+  const allFolders =
+    folders && folders.length > 0
+      ? folders
+      : defaultStorageFolders(clientName, isCouple);
+
+  const fallbackFolder = allFolders[0] ?? defaultDocLabel;
+
   const byFolder = new Map<string, Document[]>();
   for (const doc of docs) {
-    const key = doc.storageSubfolder?.trim() || defaultDocLabel;
+    let key = doc.storageSubfolder?.trim() || fallbackFolder;
+    if (!allFolders.includes(key)) {
+      if (/ DOC$/i.test(key) && allFolders.includes(defaultDocLabel)) {
+        key = defaultDocLabel;
+      } else if (isEuroansaFolder(key) && allFolders.includes("EUROANSA")) {
+        key = "EUROANSA";
+      }
+    }
     const list = byFolder.get(key) ?? [];
     list.push(doc);
     byFolder.set(key, list);
   }
 
-  const mainFolders = STORAGE_FOLDER_KINDS.map((kind) => {
-    const label = storageSubfolderLabel(kind, clientName);
-    let list = byFolder.get(label) ?? [];
-    if (kind === "DOC") {
-      // Mostra anche vecchie cartelle "* DOC" sotto il DOC ufficiale
-      const stray = [...byFolder.entries()]
-        .filter(
-          ([k]) =>
-            / DOC$/i.test(k) &&
-            k.toUpperCase() !== label.toUpperCase(),
-        )
-        .flatMap(([, rows]) => rows);
-      list = [...list, ...stray];
-    }
-    if (kind === "EUROANSA") {
-      const legacy = [...byFolder.entries()]
-        .filter(
-          ([k]) => isEuroansaFolder(k) && k !== label,
-        )
-        .flatMap(([, rows]) => rows);
-      list = [...list, ...legacy];
-    }
-    return { kind, label, list };
-  });
-
-  const mainLabels = new Set(
-    mainFolders.flatMap((f) =>
-      f.kind === "EUROANSA"
-        ? [f.label, "EUROANSA", "UFFICIO"]
-        : f.kind === "DOC"
-          ? [f.label]
-          : [f.label],
-    ),
-  );
-  // Nascondi le cartelle "* DOC" stray (già fuse nella vista DOC)
-  const otherFolders = [...byFolder.entries()].filter(
-    ([k]) =>
-      !mainLabels.has(k) &&
-      !isEuroansaFolder(k) &&
-      !/ DOC$/i.test(k),
-  );
+  // Preserve folder order from allFolders, plus any orphan folders that contain documents
+  const combinedFolders = [
+    ...allFolders,
+    ...[...byFolder.keys()].filter((k) => !allFolders.includes(k)),
+  ];
 
   return (
     <section id="files" className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="mb-1 text-xl font-bold text-slate-900">
-            Cartella documenti
+            Cartelle e documenti
           </h2>
           <p className="text-sm text-slate-600">
             Mail/AI → solo DOC e IMMOBILE (checklist). BANCA e EUROANSA = firmati
-            / operativo: li carichi tu, senza classifica checklist. Relazione ha
-            il blocco dedicato.
+            / operativo. Sposta i file, riordina o rinomina le cartelle in tempo reale.
           </p>
         </div>
         <ZipDownloadButton
@@ -360,92 +360,84 @@ export function PracticeDocumentsSection({
         />
       </div>
 
-      {mainFolders.map(({ kind, label, list }) => (
-        <div
-          key={label}
-          className={`rounded-xl border p-5 shadow-sm ${
-            kind === "EUROANSA"
-              ? "border-primary-200 bg-primary-50/40"
-              : "border-slate-200 bg-white"
-          }`}
-        >
-          <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
-            <div className="flex items-start gap-2">
-              <Folder className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
-              <div>
-                <p className="font-semibold text-slate-900">{label}</p>
-                <p className="text-xs text-slate-500">{folderHint(kind)}</p>
-                <p className="text-xs text-slate-400">{list.length} file</p>
+      <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+        <CreateFolderForm applicationId={applicationId} />
+      </div>
+
+      {combinedFolders.map((label, idx) => {
+        const list = byFolder.get(label) ?? [];
+        const isEuro = label === "EUROANSA" || label === "UFFICIO";
+
+        return (
+          <div
+            key={label}
+            className={`rounded-xl border p-5 shadow-sm ${
+              isEuro
+                ? "border-primary-200 bg-primary-50/40"
+                : "border-slate-200 bg-white"
+            }`}
+          >
+            <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
+              <div className="flex items-start gap-2">
+                <Folder className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
+                <div>
+                  <p className="font-semibold text-slate-900">{label}</p>
+                  <p className="text-xs text-slate-400">{list.length} file</p>
+                </div>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <FolderReorderButtons
+                  applicationId={applicationId}
+                  folderName={label}
+                  isFirst={idx === 0}
+                  isLast={idx === combinedFolders.length - 1}
+                />
+                <RenameFolderDialog
+                  applicationId={applicationId}
+                  currentName={label}
+                />
+                <ZipDownloadButton
+                  applicationId={applicationId}
+                  folderName={label}
+                  label="Scarica Cartella (.zip)"
+                />
+                <FolderUploadButton
+                  applicationId={applicationId}
+                  folderName={label}
+                  label={isEuro ? "Carica firmati" : "Nuovo file"}
+                />
+                <DeleteFolderButton
+                  applicationId={applicationId}
+                  folderName={label}
+                />
               </div>
             </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <ZipDownloadButton
-                applicationId={applicationId}
-                folderName={label}
-                label="Scarica Cartella (.zip)"
-              />
-              <FolderUploadButton
-                applicationId={applicationId}
-                folderName={label}
-                label={kind === "EUROANSA" ? "Carica firmati" : "Nuovo file"}
-              />
-            </div>
+            {list.length === 0 ? (
+              <p className="text-sm text-slate-500">Cartella vuota.</p>
+            ) : (
+              <div className="space-y-3">
+                {list.map((doc) => (
+                  <DocRow
+                    key={doc.id}
+                    doc={doc}
+                    classifyOptions={classifyOptions}
+                    allowClassify={
+                      /DOC/i.test(label) ||
+                      label === "IMMOBILE" ||
+                      label.startsWith("Richiedente") ||
+                      label.startsWith("Immobile")
+                    }
+                    dupRank={dupRanks.get(doc.id)}
+                    presentTypes={presentTypesAny}
+                    allFolders={combinedFolders}
+                    currentFolder={label}
+                  />
+                ))}
+              </div>
+            )}
           </div>
-          {list.length === 0 ? (
-            <p className="text-sm text-slate-500">Cartella vuota.</p>
-          ) : (
-            <div className="space-y-3">
-              {list.map((doc) => (
-                <DocRow
-                  key={doc.id}
-                  doc={doc}
-                  classifyOptions={classifyOptions}
-                  allowClassify={kind === "DOC" || kind === "IMMOBILE"}
-                  dupRank={dupRanks.get(doc.id)}
-                  presentTypes={presentTypesAny}
-                />
-              ))}
-            </div>
-          )}
-        </div>
-      ))}
-
-      {otherFolders.map(([label, list]) => (
-        <div
-          key={label}
-          className="rounded-xl border border-slate-200 bg-slate-50/80 p-5 shadow-sm"
-        >
-          <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <p className="font-semibold text-slate-900">{label}</p>
-              <p className="text-xs text-slate-400">{list.length} file</p>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <ZipDownloadButton
-                applicationId={applicationId}
-                folderName={label}
-                label="Scarica Cartella (.zip)"
-              />
-              <FolderUploadButton
-                applicationId={applicationId}
-                folderName={label}
-              />
-            </div>
-          </div>
-          <div className="space-y-3">
-            {list.map((doc) => (
-              <DocRow
-                key={doc.id}
-                doc={doc}
-                classifyOptions={classifyOptions}
-                allowClassify={/ DOC$/i.test(label) || label === "IMMOBILE"}
-                dupRank={dupRanks.get(doc.id)}
-                presentTypes={presentTypesAny}
-              />
-            ))}
-          </div>
-        </div>
-      ))}
+        );
+      })}
     </section>
   );
 }

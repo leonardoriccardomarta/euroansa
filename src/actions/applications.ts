@@ -18,6 +18,7 @@ import {
   sendApplicationToSecretary,
 } from "@/lib/google/secretary-sender";
 import { evaluateChecklist } from "@/lib/checklist";
+import { COPPIA_DEFAULT_FOLDERS } from "@/lib/config/documents";
 import { buildSollecitoMessage } from "@/lib/sollecito";
 import { setApplicationPipelineError } from "@/lib/applications/errors";
 import {
@@ -82,12 +83,19 @@ export async function updateApplicationStatusAction(
   const allowed: ApplicationStatus[] = [
     "DOCUMENTI_INCOMPLETI",
     "COMPLETA_DA_INOLTRARE",
+    "INVIATA_IN_BANCA",
+    "DELIBERATA",
+    "PERIZIA_INCARICATA",
+    "PREPARAZIONE_ATTO",
+    "DELIBERA_FINALE",
+    "ROGITATA",
+    "IN_ATTESA_RISCONTRO_CLIENTE",
+    // Legacy
     "INVIATA_A_SEGRETERIA",
     "DELIBERA_REDDITUALE",
     "PERIZIA_PRESA",
     "PERIZIA_EFFETTUATA",
-    "DELIBERA_FINALE",
-    "ROGITATA",
+    "PERITO_NOMINATO",
   ];
   if (!allowed.includes(status)) {
     return { error: "Stato non consentito" };
@@ -454,6 +462,15 @@ function parseOptionalEuro(raw: FormDataEntryValue | null): number | null {
   return parseEuroExpression(raw);
 }
 
+function parseOptionalBrokerShare(raw: FormDataEntryValue | null): number | null {
+  if (!raw) return null;
+  const s = String(raw).trim().replace("%", "").replace(",", ".");
+  if (!s) return null;
+  const n = Number(s);
+  if (!Number.isFinite(n) || n < 0) return null;
+  return n > 1 ? Math.min(1, n / 100) : Math.min(1, n);
+}
+
 export async function updatePracticeEconomicsAction(
   applicationId: string,
   formData: FormData,
@@ -521,6 +538,9 @@ export async function updatePracticeEconomicsAction(
       commissionCqs: parseOptionalEuro(formData.get("commissionCqs")),
       commissionLoans: parseOptionalEuro(formData.get("commissionLoans")),
       commissionNotary: parseOptionalEuro(formData.get("commissionNotary")),
+      brokerSharePercent: parseOptionalBrokerShare(
+        formData.get("brokerSharePercent"),
+      ),
       rogitoAt,
       auditPrivacy: formData.get("auditPrivacy") === "on",
       auditContractSigned: formData.get("auditContractSigned") === "on",
@@ -659,4 +679,85 @@ export async function cleanupClosedPracticeAction(params: {
   revalidatePath(`/dashboard/files/${params.applicationId}`);
   revalidatePath("/dashboard");
   return { ok: true as const, purged, kept };
+}
+
+/** Modifica in-place del tipo pratica Singola <-> Coppia con aggiunta/rimozione richiedente 2 */
+export async function updatePracticeTypeAction(
+  applicationId: string,
+  params: {
+    isCouple: boolean;
+    clientName?: string | null;
+    clientFiscalCode?: string | null;
+    coApplicantName?: string | null;
+    coApplicantFiscalCode?: string | null;
+  },
+) {
+  const session = await requireSession();
+  const [app] = await db
+    .select()
+    .from(applications)
+    .where(eq(applications.id, applicationId))
+    .limit(1);
+
+  if (!app) return { error: "Pratica non trovata" };
+  if (app.isTest && session.role !== "ADMIN") return { error: "Forbidden" };
+  if (session.role !== "ADMIN" && app.brokerId !== session.id) {
+    return { error: "Forbidden" };
+  }
+
+  const patch: Record<string, unknown> = {
+    isCouple: params.isCouple,
+    updatedAt: new Date(),
+  };
+
+  if (params.clientName != null) {
+    patch.clientName = params.clientName.trim();
+  }
+  if (params.clientFiscalCode !== undefined) {
+    patch.clientFiscalCode =
+      params.clientFiscalCode?.trim().toUpperCase() || null;
+  }
+
+  if (params.isCouple) {
+    patch.coApplicantName = params.coApplicantName?.trim() || null;
+    patch.coApplicantFiscalCode =
+      params.coApplicantFiscalCode?.trim().toUpperCase() || null;
+
+    const cf1 =
+      (patch.clientFiscalCode as string | null | undefined) ??
+      app.clientFiscalCode;
+    const cf2 = patch.coApplicantFiscalCode as string | null;
+    patch.applicantFiscalCodes = [cf1, cf2].filter(
+      (x): x is string => Boolean(x),
+    );
+
+    // Inizializza o include le cartelle radice Coppia se mancanti
+    const currentFolders = app.storageFolders || [];
+    const missingCoppia = COPPIA_DEFAULT_FOLDERS.filter(
+      (req) => !currentFolders.some((f) => f.toLowerCase() === req.toLowerCase()),
+    );
+    if (missingCoppia.length > 0) {
+      patch.storageFolders = [...currentFolders, ...missingCoppia];
+    }
+  } else {
+    // Ritorno a Singola: azzera i dati del secondo richiedente
+    patch.coApplicantName = null;
+    patch.coApplicantFiscalCode = null;
+    const cf1 =
+      (patch.clientFiscalCode as string | null | undefined) ??
+      app.clientFiscalCode;
+    patch.applicantFiscalCodes = cf1 ? [cf1] : [];
+  }
+
+  await db
+    .update(applications)
+    .set(patch)
+    .where(eq(applications.id, applicationId));
+
+  revalidatePath(`/dashboard/applications/${applicationId}`);
+  revalidatePath(`/dashboard/files/${applicationId}`);
+  revalidatePath("/dashboard/files");
+  revalidatePath("/dashboard");
+
+  return { ok: true as const, isCouple: params.isCouple };
 }

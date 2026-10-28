@@ -7,12 +7,13 @@ const FILTERS = [
   { value: "", label: "Tutti" },
   { value: "DOCUMENTI_INCOMPLETI", label: "Documenti incompleti" },
   { value: "COMPLETA_DA_INOLTRARE", label: "Completa da inoltrare" },
-  { value: "INVIATA_A_SEGRETERIA", label: "Inviata a segreteria" },
-  { value: "DELIBERA_REDDITUALE", label: "Delibera reddituale" },
-  { value: "PERIZIA_PRESA", label: "Perizia presa" },
-  { value: "PERIZIA_EFFETTUATA", label: "Perizia effettuata" },
+  { value: "INVIATA_IN_BANCA", label: "Inviata in banca" },
+  { value: "DELIBERATA", label: "Deliberata" },
+  { value: "PERIZIA_INCARICATA", label: "Perizia incaricata" },
+  { value: "PREPARAZIONE_ATTO", label: "Preparazione atto" },
   { value: "DELIBERA_FINALE", label: "Delibera finale" },
   { value: "ROGITATA", label: "Rogitate" },
+  { value: "IN_ATTESA_RISCONTRO_CLIENTE", label: "In attesa riscontro" },
 ];
 
 export function StatusFilter({ current }: { current?: string }) {

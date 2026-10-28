@@ -42,12 +42,17 @@ export function buildPracticeAlerts(
 ): PracticeAlert[] {
   const criticalApps = apps.filter((app) => {
     if (
+      app.status === "INVIATA_IN_BANCA" ||
+      app.status === "DELIBERATA" ||
+      app.status === "PERIZIA_INCARICATA" ||
+      app.status === "PREPARAZIONE_ATTO" ||
+      app.status === "DELIBERA_FINALE" ||
+      app.status === "ROGITATA" ||
+      app.status === "IN_ATTESA_RISCONTRO_CLIENTE" ||
       app.status === "INVIATA_A_SEGRETERIA" ||
       app.status === "DELIBERA_REDDITUALE" ||
       app.status === "PERIZIA_PRESA" ||
-      app.status === "PERIZIA_EFFETTUATA" ||
-      app.status === "DELIBERA_FINALE" ||
-      app.status === "ROGITATA"
+      app.status === "PERIZIA_EFFETTUATA"
     ) {
       return false;
     }

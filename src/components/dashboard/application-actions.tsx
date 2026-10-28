@@ -45,9 +45,11 @@ export function ApplicationActions({
   const canSendToSecretary =
     status === "DOCUMENTI_INCOMPLETI" ||
     status === "COMPLETA_DA_INOLTRARE" ||
+    status === "INVIATA_IN_BANCA" ||
     status === "INVIATA_A_SEGRETERIA";
 
-  const isResend = status === "INVIATA_A_SEGRETERIA";
+  const isResend =
+    status === "INVIATA_IN_BANCA" || status === "INVIATA_A_SEGRETERIA";
 
   return (
     <div
@@ -69,7 +71,9 @@ export function ApplicationActions({
             {isResend ? "Reinvia a segreteria" : "Invia ora a segreteria"}
           </Button>
         ) : null}
-        {hasPackageLink || status === "INVIATA_A_SEGRETERIA" ? (
+        {hasPackageLink ||
+        status === "INVIATA_IN_BANCA" ||
+        status === "INVIATA_A_SEGRETERIA" ? (
           <Button
             variant="outline"
             disabled={pending}

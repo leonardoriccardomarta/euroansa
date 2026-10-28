@@ -35,7 +35,9 @@ import { PracticeDocumentsSection } from "@/components/dashboard/practice-docume
 import { RelazioneUpload } from "@/components/dashboard/relazione-upload";
 import { RequiredDocsEditor } from "@/components/dashboard/required-docs-editor";
 import { PracticeEconomicsForm } from "@/components/dashboard/practice-economics-form";
+import { PracticeTypeSwitcher } from "@/components/dashboard/practice-type-switcher";
 import { TutorialPracticeBanner } from "@/components/onboarding/tutorial-practice-banner";
+import { syncStorageFoldersForApp } from "@/actions/files";
 import {
   DEFAULT_COLLABORATOR_SHARE,
   DEFAULT_PROVENANCE_OPTIONS,
@@ -73,6 +75,7 @@ export default async function ApplicationDetailPage({
 
   // Una sola cartella DOC ufficiale (fonde INFOINZAGO/SHEHATA DOC sparsi)
   await normalizePracticeDocFolders(id);
+  const folders = await syncStorageFoldersForApp(id);
 
   const [docs, sendLogs, settingsRow, allUsers] = await Promise.all([
     db
@@ -164,7 +167,15 @@ export default async function ApplicationDetailPage({
               : ""}
             {brokerName ? ` · ${brokerName}` : ""}
           </p>
-          <div className="mt-3 flex flex-wrap gap-2">
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <PracticeTypeSwitcher
+              applicationId={current.id}
+              clientName={current.clientName}
+              clientFiscalCode={current.clientFiscalCode}
+              isCouple={Boolean(current.isCouple)}
+              coApplicantName={current.coApplicantName}
+              coApplicantFiscalCode={current.coApplicantFiscalCode}
+            />
             {isTutorialPractice(current) ? (
               <Badge
                 variant="outline"
@@ -179,14 +190,6 @@ export default async function ApplicationDetailPage({
                 className="border-violet-200 bg-violet-50 text-violet-700"
               >
                 Test
-              </Badge>
-            ) : null}
-            {current.isCouple ? (
-              <Badge
-                variant="outline"
-                className="border-sky-200 bg-sky-50 text-sky-800"
-              >
-                Coppia / cointestatari
               </Badge>
             ) : null}
             <Badge
@@ -453,6 +456,8 @@ export default async function ApplicationDetailPage({
         clientName={current.clientName}
         docs={docs}
         requiredDocumentTypes={current.requiredDocumentTypes ?? []}
+        folders={folders}
+        isCouple={Boolean(current.isCouple)}
       />
 
       <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -460,13 +465,14 @@ export default async function ApplicationDetailPage({
           Economia e audit
         </h2>
         <p className="mt-1 text-sm text-slate-600">
-          Provvigioni e spunte conformità   da compilare a mano (il sistema non
+          Provvigioni e spunte conformità — da compilare a mano (il sistema non
           le conosce). Totale e quota si calcolano in automatico.
         </p>
         <div className="mt-5">
           <PracticeEconomicsForm
             applicationId={current.id}
             collaboratorSharePercent={practiceBrokerShare}
+            brokerSharePercent={current.brokerSharePercent}
             showOverride={showHiddenOverride}
             overrideSharePercent={viewerOverride}
             provenanceOptions={

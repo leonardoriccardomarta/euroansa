@@ -194,13 +194,17 @@ function resolveDocumentType(
  */
 
 const POST_SECRETARY_ACTIVE = [
+  "INVIATA_IN_BANCA",
+  "DELIBERATA",
+  "PERIZIA_INCARICATA",
+  "PREPARAZIONE_ATTO",
+  "DELIBERA_FINALE",
+  "IN_ATTESA_RISCONTRO_CLIENTE",
+  // legacy
   "INVIATA_A_SEGRETERIA",
   "DELIBERA_REDDITUALE",
   "PERIZIA_PRESA",
   "PERIZIA_EFFETTUATA",
-  "DELIBERA_FINALE",
-  // legacy
-  "INVIATA_IN_BANCA",
   "PERITO_NOMINATO",
 ] as const;
 async function ensureBrokerOnApp(
@@ -841,6 +845,117 @@ export async function dedupeApplicationDocuments(applicationId: string) {
   return toDelete.length;
 }
 
+/**
+ * Assegna il file alla cartella logica corretta.
+ * Nelle pratiche "Coppia", assegna anagrafica/reddito a Richiedente 1 o 2
+ * verificando CF ed estratti anagrafici/nomi, e l'immobile a "Immobile / Pratica".
+ */
+export function resolveFolderForDocument(params: {
+  documentType: DocumentType;
+  clientName: string;
+  isCouple?: boolean;
+  clientFiscalCode?: string | null;
+  coApplicantName?: string | null;
+  coApplicantFiscalCode?: string | null;
+  applicantFiscalCodes?: string[] | null;
+  storageFolders?: string[] | null;
+  extractedFiscalCode?: string | null;
+  extractedFullName?: string | null;
+  extractedFirstName?: string | null;
+  extractedLastName?: string | null;
+}): string {
+  const {
+    documentType,
+    clientName,
+    isCouple,
+    clientFiscalCode,
+    coApplicantName,
+    coApplicantFiscalCode,
+    applicantFiscalCodes,
+    storageFolders,
+    extractedFiscalCode,
+    extractedFullName,
+    extractedFirstName,
+    extractedLastName,
+  } = params;
+
+  const folderKind = storageFolderKindForDocument(documentType);
+
+  if (isCouple) {
+    const folders =
+      storageFolders && storageFolders.length > 0
+        ? storageFolders
+        : ["Richiedente 1", "Richiedente 2", "Immobile / Pratica"];
+
+    const f1 =
+      folders.find((f) => /richiedente\s*1/i.test(f)) ??
+      folders[0] ??
+      "Richiedente 1";
+    const f2 =
+      folders.find((f) => /richiedente\s*2/i.test(f)) ??
+      folders[1] ??
+      "Richiedente 2";
+    const fImm =
+      folders.find((f) => /immobile/i.test(f)) ??
+      folders[2] ??
+      "Immobile / Pratica";
+
+    // 1. Immobile / Pratica
+    if (folderKind === "IMMOBILE") {
+      return fImm;
+    }
+
+    // 2. Matching OCR per Codice Fiscale
+    const extractedCf = extractedFiscalCode?.trim().toUpperCase();
+    const cf1 =
+      clientFiscalCode?.trim().toUpperCase() ||
+      applicantFiscalCodes?.[0]?.trim().toUpperCase();
+    const cf2 =
+      coApplicantFiscalCode?.trim().toUpperCase() ||
+      applicantFiscalCodes?.[1]?.trim().toUpperCase();
+
+    if (extractedCf) {
+      if (cf2 && extractedCf === cf2) return f2;
+      if (cf1 && extractedCf === cf1) return f1;
+    }
+
+    // 3. Matching OCR per Nome / Cognome
+    const extractedNames = [
+      extractedFullName,
+      extractedFirstName,
+      extractedLastName,
+    ]
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase();
+
+    if (extractedNames) {
+      if (coApplicantName) {
+        const parts2 = coApplicantName
+          .toLowerCase()
+          .split(/\s+/)
+          .filter((p) => p.length > 2);
+        if (parts2.some((part) => extractedNames.includes(part))) {
+          return f2;
+        }
+      }
+      if (clientName) {
+        const parts1 = clientName
+          .toLowerCase()
+          .split(/\s+/)
+          .filter((p) => p.length > 2);
+        if (parts1.some((part) => extractedNames.includes(part))) {
+          return f1;
+        }
+      }
+    }
+
+    return f1;
+  }
+
+  return storageSubfolderLabel(folderKind, clientName);
+}
+
 export async function processIncomingFiles(
   files: IncomingFile[],
   options?: {
@@ -1082,8 +1197,24 @@ export async function processIncomingFiles(
       } as typeof app;
     }
 
-    const folderKind = storageFolderKindForDocument(analysis.documentType);
-    const subfolder = storageSubfolderLabel(folderKind, app.clientName);
+    const subfolder = resolveFolderForDocument({
+      documentType: analysis.documentType,
+      clientName: app.clientName,
+      isCouple: app.isCouple,
+      clientFiscalCode: app.clientFiscalCode,
+      coApplicantName: (app as { coApplicantName?: string | null }).coApplicantName,
+      coApplicantFiscalCode: (app as { coApplicantFiscalCode?: string | null })
+        .coApplicantFiscalCode,
+      applicantFiscalCodes: app.applicantFiscalCodes,
+      storageFolders: app.storageFolders,
+      extractedFiscalCode: analysis.extractedData?.fiscalCode,
+      extractedFullName:
+        [analysis.extractedData?.firstName, analysis.extractedData?.lastName]
+          .filter(Boolean)
+          .join(" ") || undefined,
+      extractedFirstName: analysis.extractedData?.firstName,
+      extractedLastName: analysis.extractedData?.lastName,
+    });
 
     const uniqueStandardizedName = await resolveUniqueFileName(
       app.id,
@@ -1966,13 +2097,29 @@ export async function processPendingDocumentAnalyses(limit = 2) {
         );
       }
 
-      const folderKind = storageFolderKindForDocument(
-        finalAnalysis.documentType,
-      );
-      const subfolder = storageSubfolderLabel(
-        folderKind,
-        appUpdates.clientName ?? targetApp.clientName,
-      );
+      const subfolder = resolveFolderForDocument({
+        documentType: finalAnalysis.documentType,
+        clientName: appUpdates.clientName ?? targetApp.clientName,
+        isCouple: targetApp.isCouple,
+        clientFiscalCode: targetApp.clientFiscalCode,
+        coApplicantName: (targetApp as { coApplicantName?: string | null })
+          .coApplicantName,
+        coApplicantFiscalCode: (
+          targetApp as { coApplicantFiscalCode?: string | null }
+        ).coApplicantFiscalCode,
+        applicantFiscalCodes: targetApp.applicantFiscalCodes,
+        storageFolders: targetApp.storageFolders,
+        extractedFiscalCode: finalAnalysis.extractedData?.fiscalCode,
+        extractedFullName:
+          [
+            finalAnalysis.extractedData?.firstName,
+            finalAnalysis.extractedData?.lastName,
+          ]
+            .filter(Boolean)
+            .join(" ") || undefined,
+        extractedFirstName: finalAnalysis.extractedData?.firstName,
+        extractedLastName: finalAnalysis.extractedData?.lastName,
+      });
 
       let storageKey = doc.driveFileId;
       try {

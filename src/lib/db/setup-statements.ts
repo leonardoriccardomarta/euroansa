@@ -247,6 +247,20 @@ export const SETUP_STATEMENTS = [
   `ALTER TABLE applications ADD COLUMN IF NOT EXISTS email_thread_ids text[] NOT NULL DEFAULT '{}'`,
   `ALTER TABLE documents ADD COLUMN IF NOT EXISTS file_hash varchar(64)`,
   `ALTER TABLE documents ADD COLUMN IF NOT EXISTS file_size real`,
+  // Refactor status pratiche & backward compatibility
+  `ALTER TYPE application_status ADD VALUE IF NOT EXISTS 'INVIATA_IN_BANCA'`,
+  `ALTER TYPE application_status ADD VALUE IF NOT EXISTS 'DELIBERATA'`,
+  `ALTER TYPE application_status ADD VALUE IF NOT EXISTS 'PERIZIA_INCARICATA'`,
+  `ALTER TYPE application_status ADD VALUE IF NOT EXISTS 'PREPARAZIONE_ATTO'`,
+  `ALTER TYPE application_status ADD VALUE IF NOT EXISTS 'IN_ATTESA_RISCONTRO_CLIENTE'`,
+  `UPDATE applications SET status = 'INVIATA_IN_BANCA' WHERE status = 'INVIATA_A_SEGRETERIA'`,
+  `UPDATE applications SET status = 'DELIBERATA' WHERE status = 'DELIBERA_REDDITUALE'`,
+  `UPDATE applications SET status = 'PERIZIA_INCARICATA' WHERE status = 'PERIZIA_PRESA'`,
+  `UPDATE applications SET status = 'PREPARAZIONE_ATTO' WHERE status = 'PERIZIA_EFFETTUATA'`,
+  // Dettagli richiedente 2 (coppia) e quota broker specifica
+  `ALTER TABLE applications ADD COLUMN IF NOT EXISTS co_applicant_name varchar(255)`,
+  `ALTER TABLE applications ADD COLUMN IF NOT EXISTS co_applicant_fiscal_code varchar(16)`,
+  `ALTER TABLE applications ADD COLUMN IF NOT EXISTS broker_share_percent real`,
 ];
 
 export const PACKAGE_LINK_TTL_DAYS = 7;
