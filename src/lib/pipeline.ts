@@ -23,6 +23,7 @@ import {
   defaultStorageFolders,
   expandMultiSlotTypes,
   FILE_NAME_PREFIX,
+  resolveApplicantFolders,
   SHEET_SECTIONS,
   storageFolderKindForDocument,
   storageSubfolderLabel,
@@ -885,20 +886,13 @@ export function resolveFolderForDocument(params: {
     const folders =
       storageFolders && storageFolders.length > 0
         ? storageFolders
-        : ["Richiedente 1", "Richiedente 2", "Immobile / Pratica"];
+        : defaultStorageFolders(clientName, true, coApplicantName);
 
-    const f1 =
-      folders.find((f) => /richiedente\s*1/i.test(f)) ??
-      folders[0] ??
-      "Richiedente 1";
-    const f2 =
-      folders.find((f) => /richiedente\s*2/i.test(f)) ??
-      folders[1] ??
-      "Richiedente 2";
-    const fImm =
-      folders.find((f) => /immobile/i.test(f)) ??
-      folders[2] ??
-      "Immobile / Pratica";
+    const {
+      applicant1Folder: f1,
+      applicant2Folder: f2,
+      immobileFolder: fImm,
+    } = resolveApplicantFolders(folders, clientName, coApplicantName);
 
     // 1. Immobile / Pratica
     if (folderKind === "IMMOBILE") {
@@ -1364,14 +1358,81 @@ export async function processDirectUploads(
   };
 }
 
-/** Una sola cartella "{COGNOME} DOC" per pratica (niente INFOINZAGO/SHEHATA DOC sparsi). */
+/** Una sola cartella "{COGNOME} DOC" per pratica singola, due cartelle distinte per Coppia. */
 export async function normalizePracticeDocFolders(applicationId: string) {
   const [app] = await db
-    .select({ id: applications.id, clientName: applications.clientName })
+    .select({
+      id: applications.id,
+      clientName: applications.clientName,
+      isCouple: applications.isCouple,
+      coApplicantName: applications.coApplicantName,
+      storageFolders: applications.storageFolders,
+    })
     .from(applications)
     .where(eq(applications.id, applicationId))
     .limit(1);
   if (!app) return;
+
+  if (app.isCouple) {
+    const defaults = defaultStorageFolders(
+      app.clientName,
+      true,
+      app.coApplicantName,
+    );
+    const currentFolders = app.storageFolders?.length
+      ? [...app.storageFolders]
+      : [...defaults];
+    const { applicant1Folder, applicant2Folder } = resolveApplicantFolders(
+      currentFolders,
+      app.clientName,
+      app.coApplicantName,
+    );
+
+    // Assicura che la cartella del richiedente 2 sia presente in storageFolders
+    const hasF2 = currentFolders.some(
+      (f) =>
+        f.trim().toUpperCase() === applicant2Folder.trim().toUpperCase() ||
+        /richiedente\s*2/i.test(f),
+    );
+    if (!hasF2) {
+      const idx1 = currentFolders.findIndex(
+        (f) =>
+          f.trim().toUpperCase() === applicant1Folder.trim().toUpperCase() ||
+          /DOC$/i.test(f) ||
+          /richiedente\s*1/i.test(f),
+      );
+      if (idx1 >= 0) {
+        currentFolders.splice(idx1 + 1, 0, applicant2Folder);
+      } else {
+        currentFolders.unshift(applicant2Folder);
+      }
+      await db
+        .update(applications)
+        .set({ storageFolders: currentFolders, updatedAt: new Date() })
+        .where(eq(applications.id, applicationId));
+    }
+
+    const docs = await db
+      .select({
+        id: documents.id,
+        storageSubfolder: documents.storageSubfolder,
+        documentType: documents.documentType,
+      })
+      .from(documents)
+      .where(eq(documents.applicationId, applicationId));
+
+    for (const doc of docs) {
+      const folder = (doc.storageSubfolder ?? "").trim();
+      const kind = storageFolderKindForDocument(doc.documentType);
+      if (kind === "DOC" && !folder) {
+        await db
+          .update(documents)
+          .set({ storageSubfolder: applicant1Folder })
+          .where(eq(documents.id, doc.id));
+      }
+    }
+    return;
+  }
 
   const canonicalDoc = storageSubfolderLabel("DOC", app.clientName);
   const docs = await db

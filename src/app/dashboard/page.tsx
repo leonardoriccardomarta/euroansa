@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import { db } from "@/db";
 import { applications, documents, users } from "@/db/schema";
-import { evaluateChecklist } from "@/lib/checklist";
+import { evaluateChecklist, evaluateCoupleChecklist } from "@/lib/checklist";
 import { APPLICATION_STATUS_LABELS } from "@/lib/config/documents";
 import { buildPracticeAlerts } from "@/lib/practice-alerts";
 import { StatusFilter } from "@/components/dashboard/status-filter";
@@ -81,8 +81,12 @@ export default async function DashboardPage({
       clientEmail: applications.clientEmail,
       clientFiscalCode: applications.clientFiscalCode,
       isCouple: applications.isCouple,
+      coApplicantName: applications.coApplicantName,
+      coApplicantFiscalCode: applications.coApplicantFiscalCode,
       applicantFiscalCodes: applications.applicantFiscalCodes,
       employmentType: applications.employmentType,
+      provenance: applications.provenance,
+      storageFolders: applications.storageFolders,
       status: applications.status,
       sentToSecretaryAt: applications.sentToSecretaryAt,
       isTest: applications.isTest,
@@ -118,6 +122,9 @@ export default async function DashboardPage({
             applicationId: documents.applicationId,
             documentType: documents.documentType,
             isValid: documents.isValid,
+            storageSubfolder: documents.storageSubfolder,
+            rawFileName: documents.rawFileName,
+            renamedFileName: documents.renamedFileName,
             extractedData: documents.extractedData,
           })
           .from(documents)
@@ -288,10 +295,17 @@ export default async function DashboardPage({
         ) : (
           filtered.map((app) => {
             const docs = docsByApp.get(app.id) ?? [];
-            const checklist = evaluateChecklist(
-              app.requiredDocumentTypes,
-              docs,
-            );
+            const checklist = app.isCouple
+              ? evaluateCoupleChecklist({
+                  requiredTypes: app.requiredDocumentTypes,
+                  docs,
+                  clientName: app.clientName,
+                  coApplicantName: app.coApplicantName,
+                  clientFiscalCode: app.clientFiscalCode,
+                  coApplicantFiscalCode: app.coApplicantFiscalCode,
+                  folders: app.storageFolders ?? [],
+                }).overall
+              : evaluateChecklist(app.requiredDocumentTypes, docs);
             const pct =
               checklist.totalRequired > 0
                 ? (checklist.completedCount / checklist.totalRequired) * 100
@@ -306,6 +320,7 @@ export default async function DashboardPage({
                 clientFiscalCode={app.clientFiscalCode}
                 isCouple={app.isCouple}
                 applicantFiscalCodes={app.applicantFiscalCodes}
+                provenance={app.provenance}
                 status={app.status}
                 statusLabel={
                   APPLICATION_STATUS_LABELS[app.status] ?? app.status
