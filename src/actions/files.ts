@@ -75,36 +75,10 @@ async function ensureFoldersPersisted(
   current: string[] | null | undefined,
   discovered: string[],
   isCouple?: boolean,
-  coApplicantName?: string | null,
 ) {
-  const defaults = defaultStorageFolders(clientName, isCouple, coApplicantName);
+  const defaults = defaultStorageFolders(clientName, isCouple);
   // Preserva l'ordine esatto definito dall'utente e non cancellare mai cartelle custom/vuote
-  let base = current && current.length > 0 ? [...current] : [...defaults];
-
-  // Se la pratica e' di coppia, assicuriamoci che entrambe le cartelle personali esistano in base
-  if (isCouple) {
-    const f1 = defaults[0];
-    const f2 = defaults[1];
-    const hasF2 = base.some(
-      (f) =>
-        f.trim().toUpperCase() === f2.trim().toUpperCase() ||
-        /richiedente\s*2/i.test(f),
-    );
-    if (!hasF2) {
-      const idx1 = base.findIndex(
-        (f) =>
-          f.trim().toUpperCase() === f1.trim().toUpperCase() ||
-          /DOC$/i.test(f) ||
-          /richiedente\s*1/i.test(f),
-      );
-      if (idx1 >= 0) {
-        base.splice(idx1 + 1, 0, f2);
-      } else {
-        base.unshift(f2);
-      }
-    }
-  }
-
+  const base = current && current.length > 0 ? current : defaults;
   const existingSet = new Set(base.map((f) => f.trim().toUpperCase()));
   const newDiscovered = discovered
     .map((f) => f.trim())
@@ -251,7 +225,7 @@ export async function createStorageFolderAction(
 
   const existing = app.storageFolders?.length
     ? app.storageFolders
-    : defaultStorageFolders(app.clientName, app.isCouple, app.coApplicantName);
+    : defaultStorageFolders(app.clientName, app.isCouple);
 
   if (existing.some((f) => f.toLowerCase() === name.toLowerCase())) {
     return { ok: true, folderName: name };
@@ -285,7 +259,7 @@ export async function renameStorageFolderAction(
 
   const currentFolders = app.storageFolders?.length
     ? app.storageFolders
-    : defaultStorageFolders(app.clientName, app.isCouple, app.coApplicantName);
+    : defaultStorageFolders(app.clientName, app.isCouple);
 
   let updatedFolders = currentFolders.map((f) =>
     f.toLowerCase() === sanitizedOld.toLowerCase() ? sanitizedNew : f,
@@ -329,7 +303,7 @@ export async function reorderStorageFolderAction(
   const currentFolders = [
     ...(app.storageFolders?.length
       ? app.storageFolders
-      : defaultStorageFolders(app.clientName, app.isCouple, app.coApplicantName)),
+      : defaultStorageFolders(app.clientName, app.isCouple)),
   ];
 
   const index = currentFolders.findIndex(
@@ -387,7 +361,6 @@ export async function moveDocumentFolderAction(
       storageFolders: applications.storageFolders,
       clientName: applications.clientName,
       isCouple: applications.isCouple,
-      coApplicantName: applications.coApplicantName,
     })
     .from(applications)
     .where(eq(applications.id, doc.applicationId))
@@ -396,7 +369,7 @@ export async function moveDocumentFolderAction(
   if (app) {
     const existing = app.storageFolders?.length
       ? app.storageFolders
-      : defaultStorageFolders(app.clientName, app.isCouple, app.coApplicantName);
+      : defaultStorageFolders(app.clientName, app.isCouple);
     if (
       !existing.some((f) => f.toLowerCase() === sanitizedTarget.toLowerCase())
     ) {
@@ -460,7 +433,7 @@ export async function deleteStorageFolderAction(
   const base =
     app.storageFolders?.length > 0
       ? app.storageFolders
-      : defaultStorageFolders(app.clientName, app.isCouple, app.coApplicantName);
+      : defaultStorageFolders(app.clientName, app.isCouple);
   const folders = base.filter((f) => f !== name);
 
   await db
@@ -532,7 +505,7 @@ export async function createClientFolderAction(
 
   if (!clientName) return { error: "Inserisci il nome cliente / richiedente" };
 
-  const folders = defaultStorageFolders(clientName, isCoppia, coApplicantName);
+  const folders = defaultStorageFolders(clientName, isCoppia);
   const email = `cartella.${Date.now()}@prontopratica.local`;
 
   const [created] = await db
@@ -953,6 +926,5 @@ export async function syncStorageFoldersForApp(applicationId: string) {
     app.storageFolders,
     discovered,
     app.isCouple,
-    app.coApplicantName,
   );
 }

@@ -335,131 +335,23 @@ export function normalizeStorageFolderName(name: string): string {
   return t;
 }
 
-/** Estrae i nominativi distinti dei due richiedenti per pratiche Coppia */
-export function getCoupleApplicantNames(
-  clientName: string,
-  coApplicantName?: string | null,
-): {
-  applicant1: string;
-  applicant2: string;
-} {
-  let app1 = "";
-  let app2 = coApplicantName?.trim() || "";
-
-  if (clientName.includes(" & ")) {
-    const parts = clientName.split(" & ");
-    app1 = parts[0]?.trim() || "";
-    if (!app2 && parts[1]?.trim()) {
-      app2 = parts[1].trim();
-    }
-  } else if (clientName.includes(" E ") || clientName.includes(" e ")) {
-    const parts = clientName.split(/\s+[eE]\s+/);
-    app1 = parts[0]?.trim() || "";
-    if (!app2 && parts[1]?.trim()) {
-      app2 = parts[1].trim();
-    }
-  } else {
-    app1 = clientName.trim();
-  }
-
-  if (!app1) app1 = "RICHIEDENTE 1";
-  if (!app2) app2 = "RICHIEDENTE 2";
-
-  return { applicant1: app1, applicant2: app2 };
-}
-
-/** Cartelle iniziali di una pratica (Singola o Coppia) */
-export function defaultStorageFolders(
-  clientName: string,
-  isCouple?: boolean,
-  coApplicantName?: string | null,
-): string[] {
-  if (isCouple) {
-    const { applicant1, applicant2 } = getCoupleApplicantNames(
-      clientName,
-      coApplicantName,
-    );
-    const sur1 = clientSurnameShort(applicant1);
-    const sur2 = clientSurnameShort(applicant2);
-    let f1 = `${sur1} DOC`;
-    let f2 = `${sur2} DOC`;
-    if (f1 === f2) {
-      const first1 =
-        applicant1.trim().split(/\s+/)[0]?.toUpperCase() || "RICHIEDENTE 1";
-      const first2 =
-        applicant2.trim().split(/\s+/)[0]?.toUpperCase() || "RICHIEDENTE 2";
-      f1 = `${first1} DOC`;
-      f2 = `${first2} DOC`;
-      if (f1 === f2) {
-        f1 = `${first1} 1 DOC`;
-        f2 = `${first2} 2 DOC`;
-      }
-    }
-    // Cartelle personali distinte per Richiedente 1 e 2, più cartelle condivise
-    return [f1, f2, "BANCA", "IMMOBILE", "EUROANSA"];
-  }
-  return STORAGE_FOLDER_KINDS.map((k) => storageSubfolderLabel(k, clientName));
-}
-
-/** Risolve le cartelle assegnate a Richiedente 1, Richiedente 2 e Immobile */
-export function resolveApplicantFolders(
-  folders: string[],
-  clientName: string,
-  coApplicantName?: string | null,
-): {
-  applicant1Folder: string;
-  applicant2Folder: string;
-  immobileFolder: string;
-} {
-  const defaults = defaultStorageFolders(clientName, true, coApplicantName);
-  const def1 = defaults[0];
-  const def2 = defaults[1];
-
-  const { applicant1, applicant2 } = getCoupleApplicantNames(
-    clientName,
-    coApplicantName,
-  );
-  const sur1 = clientSurnameShort(applicant1).toUpperCase();
-  const sur2 = clientSurnameShort(applicant2).toUpperCase();
-  const first1 = applicant1.trim().split(/\s+/)[0]?.toUpperCase() || "";
-  const first2 = applicant2.trim().split(/\s+/)[0]?.toUpperCase() || "";
-
-  const docFolders = folders.filter(
-    (f) => /DOC$/i.test(f) || /richiedente/i.test(f),
-  );
-
-  let f1 = docFolders.find(
-    (f) =>
-      (sur1 && f.toUpperCase().includes(sur1)) ||
-      (first1 && f.toUpperCase().includes(first1)) ||
-      /richiedente\s*1/i.test(f) ||
-      f.toUpperCase() === def1.toUpperCase(),
-  );
-
-  let f2 = docFolders.find(
-    (f) =>
-      f !== f1 &&
-      ((sur2 && f.toUpperCase().includes(sur2)) ||
-        (first2 && f.toUpperCase().includes(first2)) ||
-        /richiedente\s*2/i.test(f) ||
-        f.toUpperCase() === def2.toUpperCase()),
-  );
-
-  if (!f1) f1 = docFolders[0] || def1;
-  if (!f2) f2 = docFolders.find((f) => f !== f1) || def2;
-
-  const immobileFolder =
-    folders.find((f) => /immobile/i.test(f)) || "IMMOBILE";
-
-  return { applicant1Folder: f1, applicant2Folder: f2, immobileFolder };
-}
-
-/** Cartelle radice separate per pratiche Coppia (retrocompatibilità) */
+/** Cartelle radice separate per pratiche Coppia */
 export const COPPIA_DEFAULT_FOLDERS = [
   "Richiedente 1",
   "Richiedente 2",
   "Immobile / Pratica",
 ] as const;
+
+/** Cartelle iniziali di una pratica */
+export function defaultStorageFolders(
+  clientName: string,
+  isCouple?: boolean,
+): string[] {
+  if (isCouple) {
+    return [...COPPIA_DEFAULT_FOLDERS];
+  }
+  return STORAGE_FOLDER_KINDS.map((k) => storageSubfolderLabel(k, clientName));
+}
 
 export function sanitizeFolderName(name: string): string {
   return name

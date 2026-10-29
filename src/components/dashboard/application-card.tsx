@@ -11,7 +11,7 @@ import type { ApplicationStatus } from "@/db/schema";
 import { APPLICATION_STATUS_LABELS } from "@/lib/config/documents";
 import { displayClientEmail } from "@/lib/client-email";
 import { isTutorialPractice } from "@/lib/tutorial";
-import { Compass, Pause } from "lucide-react";
+import { Pause } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -35,7 +35,6 @@ export function ApplicationCard({
   clientFiscalCode,
   isCouple,
   applicantFiscalCodes,
-  provenance,
   status,
   statusLabel,
   statusClass,
@@ -54,7 +53,6 @@ export function ApplicationCard({
   clientFiscalCode: string | null;
   isCouple?: boolean;
   applicantFiscalCodes?: string[];
-  provenance?: string | null;
   status: ApplicationStatus;
   statusLabel: string;
   statusClass: string;
@@ -128,16 +126,6 @@ export function ApplicationCard({
               {isFrozen ? <Pause className="mr-1 inline-block h-3 w-3" /> : null}
               {statusLabel}
             </Badge>
-            {provenance && provenance.trim() ? (
-              <Badge
-                variant="outline"
-                className="border-slate-200/90 bg-slate-100/70 text-slate-700 inline-flex items-center gap-1 font-medium text-xs shadow-none backdrop-blur-xs"
-                title={`Provenienza: ${provenance.trim()}`}
-              >
-                <Compass className="h-3 w-3 text-slate-500" />
-                <span>{provenance.trim()}</span>
-              </Badge>
-            ) : null}
           </div>
           <p className="mt-1 truncate text-sm text-slate-500">
             {isCouple && (applicantFiscalCodes?.length ?? 0) > 0

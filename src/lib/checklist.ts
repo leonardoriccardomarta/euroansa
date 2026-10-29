@@ -2,9 +2,6 @@ import type { Document, DocumentType, EmploymentType } from "@/db/schema";
 import {
   CHECKLIST_PRESETS,
   expandMultiSlotTypes,
-  getCoupleApplicantNames,
-  resolveApplicantFolders,
-  storageFolderKindForDocument,
 } from "@/lib/config/documents";
 
 export type ChecklistResult = {
@@ -54,18 +51,10 @@ export function inferEmploymentType(
   return "DIPENDENTE_INDETERMINATO";
 }
 
-export type ChecklistDoc = {
+type ChecklistDoc = {
   documentType: DocumentType;
   isValid: boolean;
-  storageSubfolder?: string | null;
-  rawFileName?: string | null;
-  renamedFileName?: string | null;
-  extractedData?: {
-    fiscalCode?: string | null;
-    firstName?: string | null;
-    lastName?: string | null;
-    alsoCovers?: DocumentType[] | null;
-  } | null;
+  extractedData?: { alsoCovers?: DocumentType[] | null } | null;
 };
 
 function coveredTypes(
@@ -137,178 +126,6 @@ export function evaluateChecklist(
   };
 }
 
-export type CoupleChecklistEvaluation = {
-  applicant1: ChecklistResult & { name: string; folder: string };
-  applicant2: ChecklistResult & { name: string; folder: string };
-  immobile: ChecklistResult & { folder: string };
-  overall: ChecklistResult;
-};
-
-/**
- * Checklist sdoppiata per pratiche Coppia / Cointestatari.
- * Separa la verifica anagrafica e reddituale tra Richiedente 1 e 2,
- * e mantiene condivisi i requisiti relativi all'immobile/pratica.
- */
-export function evaluateCoupleChecklist(params: {
-  requiredTypes: DocumentType[] | null | undefined;
-  docs: ChecklistDoc[];
-  clientName: string;
-  coApplicantName?: string | null;
-  clientFiscalCode?: string | null;
-  coApplicantFiscalCode?: string | null;
-  folders?: string[];
-}): CoupleChecklistEvaluation {
-  const {
-    requiredTypes,
-    docs,
-    clientName,
-    coApplicantName,
-    clientFiscalCode,
-    coApplicantFiscalCode,
-    folders = [],
-  } = params;
-
-  const { applicant1: name1, applicant2: name2 } = getCoupleApplicantNames(
-    clientName,
-    coApplicantName,
-  );
-  const { applicant1Folder, applicant2Folder, immobileFolder } =
-    resolveApplicantFolders(folders, clientName, coApplicantName);
-
-  const cf1 = clientFiscalCode?.trim().toUpperCase();
-  const cf2 = coApplicantFiscalCode?.trim().toUpperCase();
-
-  const allRequired = expandMultiSlotTypes(
-    (requiredTypes ?? []).filter((t) => t && t !== "SCONOSCIUTO"),
-  );
-
-  const personalRequired = allRequired.filter(
-    (t) => storageFolderKindForDocument(t) === "DOC",
-  );
-  const immobileRequired = allRequired.filter(
-    (t) => storageFolderKindForDocument(t) === "IMMOBILE",
-  );
-
-  const app1Docs: ChecklistDoc[] = [];
-  const app2Docs: ChecklistDoc[] = [];
-  const immobileDocs: ChecklistDoc[] = [];
-
-  for (const doc of docs) {
-    const kind = storageFolderKindForDocument(doc.documentType);
-    const subfolder = (doc.storageSubfolder ?? "").trim().toUpperCase();
-    const docCf = doc.extractedData?.fiscalCode?.trim().toUpperCase();
-
-    if (
-      kind === "IMMOBILE" ||
-      subfolder === immobileFolder.toUpperCase() ||
-      /immobile/i.test(subfolder)
-    ) {
-      immobileDocs.push(doc);
-      continue;
-    }
-
-    if (
-      (cf2 && docCf === cf2) ||
-      subfolder === applicant2Folder.toUpperCase() ||
-      /richiedente\s*2/i.test(subfolder)
-    ) {
-      app2Docs.push(doc);
-      continue;
-    }
-
-    if (
-      (cf1 && docCf === cf1) ||
-      subfolder === applicant1Folder.toUpperCase() ||
-      /richiedente\s*1/i.test(subfolder)
-    ) {
-      app1Docs.push(doc);
-      continue;
-    }
-
-    // Fallback: cerca occorrenza di cognome/nome nei nomi file
-    const docName = (doc.renamedFileName || doc.rawFileName || "").toLowerCase();
-    const name2Parts = name2
-      .toLowerCase()
-      .split(/\s+/)
-      .filter((p) => p.length > 2);
-    if (name2Parts.length > 0 && name2Parts.some((p) => docName.includes(p))) {
-      app2Docs.push(doc);
-    } else {
-      app1Docs.push(doc);
-    }
-  }
-
-  const app1Result = evaluateChecklist(personalRequired, app1Docs);
-  const app2Result = evaluateChecklist(personalRequired, app2Docs);
-  const immResult = evaluateChecklist(immobileRequired, immobileDocs);
-
-  const totalReq =
-    app1Result.totalRequired +
-    app2Result.totalRequired +
-    immResult.totalRequired;
-  const completed =
-    app1Result.completedCount +
-    app2Result.completedCount +
-    immResult.completedCount;
-  const totalInvalid =
-    app1Result.invalid.length +
-    app2Result.invalid.length +
-    immResult.invalid.length;
-
-  const isUnset = totalReq === 0;
-  const isComplete =
-    !isUnset &&
-    app1Result.isComplete &&
-    app2Result.isComplete &&
-    (immobileRequired.length === 0 || immResult.isComplete);
-
-  const progressLabel = isUnset
-    ? "Seleziona i documenti richiesti"
-    : totalInvalid > 0
-      ? `${completed}/${totalReq} (da rivedere: ${totalInvalid})`
-      : `${completed}/${totalReq}${isComplete ? " Completa" : ""}`;
-
-  const overall: ChecklistResult = {
-    required: [
-      ...app1Result.required,
-      ...app2Result.required,
-      ...immResult.required,
-    ],
-    presentValid: [
-      ...app1Result.presentValid,
-      ...app2Result.presentValid,
-      ...immResult.presentValid,
-    ],
-    present: [
-      ...app1Result.present,
-      ...app2Result.present,
-      ...immResult.present,
-    ],
-    missing: [
-      ...app1Result.missing,
-      ...app2Result.missing,
-      ...immResult.missing,
-    ],
-    invalid: [
-      ...app1Result.invalid,
-      ...app2Result.invalid,
-      ...immResult.invalid,
-    ],
-    completedCount: completed,
-    totalRequired: totalReq,
-    isComplete,
-    isUnset,
-    progressLabel,
-  };
-
-  return {
-    applicant1: { ...app1Result, name: name1, folder: applicant1Folder },
-    applicant2: { ...app2Result, name: name2, folder: applicant2Folder },
-    immobile: { ...immResult, folder: immobileFolder },
-    overall,
-  };
-}
-
 /** @deprecated usa evaluateChecklist(requiredTypes, docs) */
 export function evaluateChecklistByEmployment(
   employmentType: EmploymentType,
@@ -321,14 +138,6 @@ export function deriveApplicationStatus(
   requiredTypes: DocumentType[] | null | undefined,
   docs: ChecklistDoc[],
   currentStatus: string,
-  coupleOptions?: {
-    isCouple?: boolean;
-    clientName?: string;
-    coApplicantName?: string | null;
-    clientFiscalCode?: string | null;
-    coApplicantFiscalCode?: string | null;
-    folders?: string[];
-  },
 ): "DOCUMENTI_INCOMPLETI" | "COMPLETA_DA_INOLTRARE" | null {
   if (
     [
@@ -348,20 +157,6 @@ export function deriveApplicationStatus(
     ].includes(currentStatus)
   ) {
     return null;
-  }
-
-  if (coupleOptions?.isCouple && coupleOptions.clientName) {
-    const coupleRes = evaluateCoupleChecklist({
-      requiredTypes,
-      docs,
-      clientName: coupleOptions.clientName,
-      coApplicantName: coupleOptions.coApplicantName,
-      clientFiscalCode: coupleOptions.clientFiscalCode,
-      coApplicantFiscalCode: coupleOptions.coApplicantFiscalCode,
-      folders: coupleOptions.folders,
-    });
-    if (coupleRes.overall.isComplete) return "COMPLETA_DA_INOLTRARE";
-    return "DOCUMENTI_INCOMPLETI";
   }
 
   const checklist = evaluateChecklist(requiredTypes, docs);

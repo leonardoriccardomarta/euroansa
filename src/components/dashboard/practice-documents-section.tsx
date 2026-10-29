@@ -271,7 +271,6 @@ export function PracticeDocumentsSection({
   requiredDocumentTypes,
   folders,
   isCouple,
-  coApplicantName,
 }: {
   applicationId: string;
   clientName: string;
@@ -279,7 +278,6 @@ export function PracticeDocumentsSection({
   requiredDocumentTypes: DocumentType[];
   folders?: string[];
   isCouple?: boolean;
-  coApplicantName?: string | null;
 }) {
   const defaultDocLabel = storageSubfolderLabel("DOC", clientName);
 
@@ -317,7 +315,7 @@ export function PracticeDocumentsSection({
   const allFolders =
     folders && folders.length > 0
       ? folders
-      : defaultStorageFolders(clientName, isCouple, coApplicantName);
+      : defaultStorageFolders(clientName, isCouple);
 
   const fallbackFolder = allFolders[0] ?? defaultDocLabel;
 

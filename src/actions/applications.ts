@@ -18,10 +18,7 @@ import {
   sendApplicationToSecretary,
 } from "@/lib/google/secretary-sender";
 import { evaluateChecklist } from "@/lib/checklist";
-import {
-  COPPIA_DEFAULT_FOLDERS,
-  defaultStorageFolders,
-} from "@/lib/config/documents";
+import { COPPIA_DEFAULT_FOLDERS } from "@/lib/config/documents";
 import { buildSollecitoMessage } from "@/lib/sollecito";
 import { setApplicationPipelineError } from "@/lib/applications/errors";
 import {
@@ -734,57 +731,14 @@ export async function updatePracticeTypeAction(
       (x): x is string => Boolean(x),
     );
 
-    const effectiveClientName =
-      (patch.clientName as string | undefined) ?? app.clientName;
-    const effectiveCoApplicantName =
-      (patch.coApplicantName as string | null | undefined) ??
-      app.coApplicantName;
-
-    // Genera cartelle personali distinte per Richiedente 1 e 2
-    const coupleDefaults = defaultStorageFolders(
-      effectiveClientName,
-      true,
-      effectiveCoApplicantName,
+    // Inizializza o include le cartelle radice Coppia se mancanti
+    const currentFolders = app.storageFolders || [];
+    const missingCoppia = COPPIA_DEFAULT_FOLDERS.filter(
+      (req) => !currentFolders.some((f) => f.toLowerCase() === req.toLowerCase()),
     );
-    const f1 = coupleDefaults[0];
-    const f2 = coupleDefaults[1];
-
-    const currentFolders = app.storageFolders?.length
-      ? [...app.storageFolders]
-      : [...coupleDefaults];
-
-    // Verifica se la cartella per il secondo richiedente è presente
-    const hasF2 = currentFolders.some(
-      (f) =>
-        f.trim().toUpperCase() === f2.trim().toUpperCase() ||
-        /richiedente\s*2/i.test(f),
-    );
-
-    if (!hasF2) {
-      // Inserisce f2 subito dopo la cartella del richiedente 1 senza cancellare o alterare i documenti esistenti
-      const idx1 = currentFolders.findIndex(
-        (f) =>
-          f.trim().toUpperCase() === f1.trim().toUpperCase() ||
-          /DOC$/i.test(f) ||
-          /richiedente\s*1/i.test(f),
-      );
-      if (idx1 >= 0) {
-        currentFolders.splice(idx1 + 1, 0, f2);
-      } else {
-        currentFolders.unshift(f2);
-      }
+    if (missingCoppia.length > 0) {
+      patch.storageFolders = [...currentFolders, ...missingCoppia];
     }
-
-    // Assicura anche la presenza di IMMOBILE se mancante
-    if (
-      !currentFolders.some(
-        (f) => f.toUpperCase() === "IMMOBILE" || /immobile/i.test(f),
-      )
-    ) {
-      currentFolders.push("IMMOBILE");
-    }
-
-    patch.storageFolders = currentFolders;
   } else {
     // Ritorno a Singola: azzera i dati del secondo richiedente
     patch.coApplicantName = null;
