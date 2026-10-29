@@ -81,20 +81,20 @@ export async function updateApplicationStatusAction(
 ) {
   await requireSession();
   const allowed: ApplicationStatus[] = [
+    "IN_ATTESA_RISCONTRO_CLIENTE",
     "DOCUMENTI_INCOMPLETI",
     "COMPLETA_DA_INOLTRARE",
     "INVIATA_IN_BANCA",
     "DELIBERATA",
     "PERIZIA_INCARICATA",
-    "PREPARAZIONE_ATTO",
+    "PERIZIA_EFFETTUATA",
     "DELIBERA_FINALE",
+    "PREPARAZIONE_ATTO",
     "ROGITATA",
-    "IN_ATTESA_RISCONTRO_CLIENTE",
     // Legacy
     "INVIATA_A_SEGRETERIA",
     "DELIBERA_REDDITUALE",
     "PERIZIA_PRESA",
-    "PERIZIA_EFFETTUATA",
     "PERITO_NOMINATO",
   ];
   if (!allowed.includes(status)) {

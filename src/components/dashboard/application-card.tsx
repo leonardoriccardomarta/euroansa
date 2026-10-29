@@ -17,15 +17,16 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
 const STATUS_OPTIONS: ApplicationStatus[] = [
+  "IN_ATTESA_RISCONTRO_CLIENTE",
   "DOCUMENTI_INCOMPLETI",
   "COMPLETA_DA_INOLTRARE",
   "INVIATA_IN_BANCA",
   "DELIBERATA",
   "PERIZIA_INCARICATA",
-  "PREPARAZIONE_ATTO",
+  "PERIZIA_EFFETTUATA",
   "DELIBERA_FINALE",
+  "PREPARAZIONE_ATTO",
   "ROGITATA",
-  "IN_ATTESA_RISCONTRO_CLIENTE",
 ];
 
 export function ApplicationCard({

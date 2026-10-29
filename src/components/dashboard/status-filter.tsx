@@ -5,15 +5,16 @@ import { cn } from "@/lib/utils";
 
 const FILTERS = [
   { value: "", label: "Tutti" },
+  { value: "IN_ATTESA_RISCONTRO_CLIENTE", label: "In attesa di riscontro cliente" },
   { value: "DOCUMENTI_INCOMPLETI", label: "Documenti incompleti" },
   { value: "COMPLETA_DA_INOLTRARE", label: "Completa da inoltrare" },
   { value: "INVIATA_IN_BANCA", label: "Inviata in banca" },
   { value: "DELIBERATA", label: "Deliberata" },
   { value: "PERIZIA_INCARICATA", label: "Perizia incaricata" },
-  { value: "PREPARAZIONE_ATTO", label: "Preparazione atto" },
+  { value: "PERIZIA_EFFETTUATA", label: "Perizia effettuata" },
   { value: "DELIBERA_FINALE", label: "Delibera finale" },
-  { value: "ROGITATA", label: "Rogitate" },
-  { value: "IN_ATTESA_RISCONTRO_CLIENTE", label: "In attesa riscontro" },
+  { value: "PREPARAZIONE_ATTO", label: "Preparazione atto" },
+  { value: "ROGITATA", label: "Rogitata" },
 ];
 
 export function StatusFilter({ current }: { current?: string }) {

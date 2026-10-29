@@ -40,20 +40,19 @@ function statusBadgeClass(status: string) {
 }
 
 const PIPELINE_PRIORITY: Record<string, number> = {
-  DOCUMENTI_INCOMPLETI: 1,
-  COMPLETA_DA_INOLTRARE: 2,
-  INVIATA_IN_BANCA: 3,
-  INVIATA_A_SEGRETERIA: 3,
-  DELIBERATA: 4,
-  DELIBERA_REDDITUALE: 4,
-  PERIZIA_INCARICATA: 5,
-  PERIZIA_PRESA: 5,
-  PREPARAZIONE_ATTO: 6,
-  PERIZIA_EFFETTUATA: 6,
-  DELIBERA_FINALE: 7,
-  ROGITATA: 8,
-  // In attesa di riscontro cliente sorts automatically to the very bottom below all active practice stages
-  IN_ATTESA_RISCONTRO_CLIENTE: 99,
+  IN_ATTESA_RISCONTRO_CLIENTE: 1,
+  DOCUMENTI_INCOMPLETI: 2,
+  COMPLETA_DA_INOLTRARE: 3,
+  INVIATA_IN_BANCA: 4,
+  INVIATA_A_SEGRETERIA: 4,
+  DELIBERATA: 5,
+  DELIBERA_REDDITUALE: 5,
+  PERIZIA_INCARICATA: 6,
+  PERIZIA_PRESA: 6,
+  PERIZIA_EFFETTUATA: 7,
+  DELIBERA_FINALE: 8,
+  PREPARAZIONE_ATTO: 9,
+  ROGITATA: 10,
 };
 
 export default async function DashboardPage({
@@ -162,10 +161,11 @@ export default async function DashboardPage({
             a.status === "PERIZIA_INCARICATA" || a.status === "PERIZIA_PRESA"
           );
         }
+        if (status === "PERIZIA_EFFETTUATA") {
+          return a.status === "PERIZIA_EFFETTUATA";
+        }
         if (status === "PREPARAZIONE_ATTO") {
-          return (
-            a.status === "PREPARAZIONE_ATTO" || a.status === "PERIZIA_EFFETTUATA"
-          );
+          return a.status === "PREPARAZIONE_ATTO";
         }
         return a.status === status;
       })

@@ -441,21 +441,34 @@ export const FILE_NAME_PREFIX: Record<DocumentType, string> = {
 
 export const MAX_INSTALLMENT_RATIO = 0.35;
 
+export const STATUS_DISPLAY_ORDER = [
+  "IN_ATTESA_RISCONTRO_CLIENTE",
+  "DOCUMENTI_INCOMPLETI",
+  "COMPLETA_DA_INOLTRARE",
+  "INVIATA_IN_BANCA",
+  "DELIBERATA",
+  "PERIZIA_INCARICATA",
+  "PERIZIA_EFFETTUATA",
+  "DELIBERA_FINALE",
+  "PREPARAZIONE_ATTO",
+  "ROGITATA",
+] as const;
+
 export const APPLICATION_STATUS_LABELS: Record<string, string> = {
+  IN_ATTESA_RISCONTRO_CLIENTE: "In attesa di riscontro cliente",
   DOCUMENTI_INCOMPLETI: "Documenti incompleti",
   COMPLETA_DA_INOLTRARE: "Completa da inoltrare",
   INVIATA_IN_BANCA: "Inviata in banca",
   DELIBERATA: "Deliberata",
   PERIZIA_INCARICATA: "Perizia incaricata",
-  PREPARAZIONE_ATTO: "Preparazione atto",
+  PERIZIA_EFFETTUATA: "Perizia effettuata",
   DELIBERA_FINALE: "Delibera finale",
+  PREPARAZIONE_ATTO: "Preparazione atto",
   ROGITATA: "Rogitata",
-  IN_ATTESA_RISCONTRO_CLIENTE: "In attesa di riscontro cliente",
   // Backward compatibility mappings
   INVIATA_A_SEGRETERIA: "Inviata in banca",
   DELIBERA_REDDITUALE: "Deliberata",
   PERIZIA_PRESA: "Perizia incaricata",
-  PERIZIA_EFFETTUATA: "Preparazione atto",
   PERITO_NOMINATO: "Perizia incaricata",
 };
 
@@ -469,18 +482,19 @@ export const EMPLOYMENT_TYPE_LABELS: Record<EmploymentType, string> = {
 
 /** Stati manuali dopo invio in banca */
 export const BANK_MANUAL_STATUSES = [
+  "IN_ATTESA_RISCONTRO_CLIENTE",
   "INVIATA_IN_BANCA",
   "DELIBERATA",
   "PERIZIA_INCARICATA",
-  "PREPARAZIONE_ATTO",
+  "PERIZIA_EFFETTUATA",
   "DELIBERA_FINALE",
+  "PREPARAZIONE_ATTO",
   "ROGITATA",
-  "IN_ATTESA_RISCONTRO_CLIENTE",
   // Legacy
   "INVIATA_A_SEGRETERIA",
   "DELIBERA_REDDITUALE",
   "PERIZIA_PRESA",
-  "PERIZIA_EFFETTUATA",
+  "PERITO_NOMINATO",
 ] as const;
 
 /** Pratica chiusa (nuove mail → nuova pratica) */
