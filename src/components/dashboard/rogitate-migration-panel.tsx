@@ -76,11 +76,11 @@ export function RogitateMigrationPanel() {
               </Badge>
             </div>
             <p className="mt-1 text-xs text-slate-600">
-              Importa e sincronizza le 25 pratiche concluse nel 2026 dal Google
-              Sheet ufficiale. Assegna lo stato <strong>ROGITATA</strong>, data
-              rogito effettiva, parametri economici completi (mutuo erogato,
-              provvigioni banca/polizza/cliente, quota broker) e contrassegna
-              l&apos;audit economico come verificato.
+              Importa e sincronizza esattamente i <strong>21 Rogiti di Mutuo 2026</strong> dal Google
+              Sheet ufficiale di Filippo Carriero (Totale erogato: <strong>€ 2.335.450</strong>,
+              come da tabella &quot;ANALISI MENSILE&quot;). Assegna lo stato <strong>ROGITATA</strong>,
+              data rogito effettiva, parametri economici completi (mutuo erogato, provvigioni, quota broker)
+              e contrassegna l&apos;audit economico come verificato.
             </p>
             <div className="mt-2 flex items-center gap-3 text-xs text-slate-500">
               <a
@@ -94,9 +94,9 @@ export function RogitateMigrationPanel() {
                 <ExternalLink className="h-3 w-3" />
               </a>
               <span>·</span>
-              <span>Zero file R2 richiesti</span>
+              <span>21 Rogiti Mutuo (€ 2.335.450)</span>
               <span>·</span>
-              <span>Skippate da OCR/cron email</span>
+              <span>Zero file R2 richiesti</span>
             </div>
           </div>
         </div>
@@ -127,7 +127,7 @@ export function RogitateMigrationPanel() {
         open={confirmOpen}
         onOpenChange={setConfirmOpen}
         title="Conferma migrazione Rogitate 2026"
-        description="Sei sicuro di voler avviare la migrazione delle 25 pratiche concluse nel 2026 per il broker Filippo Carriero? I record verranno creati o aggiornati nello stato ROGITATA con audit economico convalidato."
+        description="Sei sicuro di voler avviare la migrazione dei 21 Rogiti di mutuo conclusi nel 2026 per il broker Filippo Carriero (€ 2.335.450 di erogato)? I record verranno creati o aggiornati nello stato ROGITATA con audit economico convalidato."
         confirmLabel="Avvia Migrazione"
         cancelLabel="Annulla"
         onConfirm={handleConfirm}

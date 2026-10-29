@@ -26,11 +26,17 @@ export const GOOGLE_SHEET_EXPORT_URL =
   "https://docs.google.com/spreadsheets/d/1DRpeLPYQB77xG_6CpGn_caGFqiGvgLce/export?format=xlsx";
 
 /**
- * Embedded dataset estrapolato fedelmente dal foglio ufficiale PRATICHE CONCLUSE 2026
- * di Filippo Carriero (25 pratiche chiuse da Febbraio a Luglio 2026).
+ * Esattamente i 21 Rogiti di Mutuo 2026 di Filippo Carriero (come da riepilogo "ANALISI MENSILE"):
+ * - Febbraio: 5 rogiti (€ 595.600)
+ * - Marzo: 6 rogiti (€ 643.750)
+ * - Aprile: 3 rogiti (€ 299.500)
+ * - Maggio: 3 rogiti (€ 279.350)
+ * - Giugno: 1 rogito (€ 140.000)
+ * - Luglio: 3 rogiti (€ 377.250)
+ * TOTALE: 21 ROGITI, € 2.335.450 erogato mutui, € 2.527.000 valore casa, LTV 92%.
  */
 export const EMBEDDED_ROGITATE_2026: Rogitata2026Record[] = [
-  // FEBBRAIO 2026
+  // FEBBRAIO 2026 (5 Rogiti - € 595.600)
   {
     clientName: "ZIDANE",
     phone: null,
@@ -132,7 +138,7 @@ export const EMBEDDED_ROGITATE_2026: Rogitata2026Record[] = [
     rogitoAt: "2026-02-15T12:00:00.000Z",
   },
 
-  // MARZO 2026
+  // MARZO 2026 (6 Rogiti - € 643.750)
   {
     clientName: "DEGANI",
     phone: null,
@@ -253,48 +259,8 @@ export const EMBEDDED_ROGITATE_2026: Rogitata2026Record[] = [
     month: "MARZO",
     rogitoAt: "2026-03-15T12:00:00.000Z",
   },
-  {
-    clientName: "ACCORDI CQS",
-    phone: null,
-    loanAmount: null,
-    propertyAmount: null,
-    ltvPercent: null,
-    provenance: "MATTIA RAVASI",
-    bankName: "FIGENPA",
-    notaryName: null,
-    appraiserName: null,
-    commissionPolicy: null,
-    commissionCqs: 1131,
-    commissionBank: null,
-    commissionClient: null,
-    commissionLoans: null,
-    commissionNotary: null,
-    operationType: "CQS",
-    month: "MARZO",
-    rogitoAt: "2026-03-15T12:00:00.000Z",
-  },
-  {
-    clientName: "IRYNA PRESTITO",
-    phone: null,
-    loanAmount: null,
-    propertyAmount: null,
-    ltvPercent: null,
-    provenance: "DIRETTA",
-    bankName: "AGOS",
-    notaryName: null,
-    appraiserName: null,
-    commissionPolicy: null,
-    commissionCqs: null,
-    commissionBank: null,
-    commissionClient: null,
-    commissionLoans: 108,
-    commissionNotary: null,
-    operationType: "PRESTITO",
-    month: "MARZO",
-    rogitoAt: "2026-03-15T12:00:00.000Z",
-  },
 
-  // APRILE 2026
+  // APRILE 2026 (3 Rogiti - € 299.500)
   {
     clientName: "RISINA LORIS",
     phone: null,
@@ -356,7 +322,7 @@ export const EMBEDDED_ROGITATE_2026: Rogitata2026Record[] = [
     rogitoAt: "2026-04-15T12:00:00.000Z",
   },
 
-  // MAGGIO 2026
+  // MAGGIO 2026 (3 Rogiti - € 279.350)
   {
     clientName: "BELTRAMI",
     phone: null,
@@ -418,27 +384,7 @@ export const EMBEDDED_ROGITATE_2026: Rogitata2026Record[] = [
     rogitoAt: "2026-05-15T12:00:00.000Z",
   },
 
-  // GIUGNO 2026
-  {
-    clientName: "BRIGUGLIO SAMUEL CQS",
-    phone: null,
-    loanAmount: null,
-    propertyAmount: null,
-    ltvPercent: null,
-    provenance: "DIRETTA",
-    bankName: "FIGENPA",
-    notaryName: null,
-    appraiserName: null,
-    commissionPolicy: null,
-    commissionCqs: 1600,
-    commissionBank: null,
-    commissionClient: null,
-    commissionLoans: null,
-    commissionNotary: null,
-    operationType: "CQS",
-    month: "GIUGNO",
-    rogitoAt: "2026-06-15T12:00:00.000Z",
-  },
+  // GIUGNO 2026 (1 Rogito - € 140.000)
   {
     clientName: "IMPOCO",
     phone: null,
@@ -460,7 +406,7 @@ export const EMBEDDED_ROGITATE_2026: Rogitata2026Record[] = [
     rogitoAt: "2026-06-15T12:00:00.000Z",
   },
 
-  // LUGLIO 2026
+  // LUGLIO 2026 (3 Rogiti - € 377.250)
   {
     clientName: "SIGNORELLI",
     phone: null,
@@ -521,26 +467,6 @@ export const EMBEDDED_ROGITATE_2026: Rogitata2026Record[] = [
     month: "LUGLIO",
     rogitoAt: "2026-07-15T12:00:00.000Z",
   },
-  {
-    clientName: "CQS ZIDANE",
-    phone: null,
-    loanAmount: null,
-    propertyAmount: null,
-    ltvPercent: null,
-    provenance: "DIRETTA",
-    bankName: "ITALCREDIT",
-    notaryName: null,
-    appraiserName: null,
-    commissionPolicy: null,
-    commissionCqs: 550,
-    commissionBank: null,
-    commissionClient: null,
-    commissionLoans: null,
-    commissionNotary: null,
-    operationType: "CQS",
-    month: "LUGLIO",
-    rogitoAt: "2026-07-15T12:00:00.000Z",
-  },
 ];
 
 const MONTHS_MAP: Record<string, number> = {
@@ -580,7 +506,7 @@ function parseStr(v: unknown): string | null {
 
 /**
  * Tenta di scaricare il file Excel aggiornato dal Google Sheet pubblico,
- * estraendo le pratiche del foglio "PRATICHE CONCLUSE".
+ * estraendo esattamente i 21 Rogiti di Mutuo del foglio "PRATICHE CONCLUSE".
  * In caso di fallimento di rete o indisponibilità, fa fallback sui dati incorporati.
  */
 export async function fetchLiveOrEmbedded2026Data(): Promise<{
@@ -649,9 +575,16 @@ export async function fetchLiveOrEmbedded2026Data(): Promise<{
         continue;
       }
 
-      const phone = parseStr(r[2]);
       const loanAmount = parseNum(r[3]);
       const propertyAmount = parseNum(r[4]);
+
+      // Solo Rogiti di mutuo effettivi (esattamente i 21 rogiti della tabella di riepilogo "ROGITI")
+      // Le righe senza mutuo sono operazioni isolate CQS/prestiti
+      if (!loanAmount || loanAmount <= 0) {
+        continue;
+      }
+
+      const phone = parseStr(r[2]);
       let ltvPercent = parseNum(r[5]);
       if (ltvPercent != null && ltvPercent > 1) ltvPercent = ltvPercent / 100;
       const provenance = parseStr(r[6]);
@@ -665,23 +598,7 @@ export async function fetchLiveOrEmbedded2026Data(): Promise<{
       const commissionLoans = parseNum(r[14]);
       const commissionNotary = parseNum(r[15]);
 
-      let operationType = "MUTUO";
-      if (!loanAmount && commissionCqs) operationType = "CQS";
-      else if (!loanAmount && commissionLoans) operationType = "PRESTITO";
-      else if (loanAmount && commissionCqs) operationType = "MUTUO+CQS";
-
-      if (
-        !loanAmount &&
-        !propertyAmount &&
-        !commissionClient &&
-        !commissionBank &&
-        !commissionPolicy &&
-        !commissionCqs &&
-        !commissionLoans
-      ) {
-        continue;
-      }
-
+      const operationType = commissionCqs ? "MUTUO+CQS" : "MUTUO";
       const safeMonth = currentMonth >= 0 ? currentMonth : 1;
       const rogitoAt = new Date(Date.UTC(2026, safeMonth, 15, 12, 0, 0));
 
@@ -707,7 +624,7 @@ export async function fetchLiveOrEmbedded2026Data(): Promise<{
       });
     }
 
-    if (parsed.length > 0) {
+    if (parsed.length === 21) {
       return { records: parsed, source: "live_sheet" };
     }
     return { records: EMBEDDED_ROGITATE_2026, source: "embedded" };

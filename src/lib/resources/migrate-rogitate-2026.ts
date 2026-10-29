@@ -93,8 +93,27 @@ export async function executeMigrateRogitate2026(): Promise<MigrationRogitate202
   let updated = 0;
   let skipped = 0;
   const details: MigrationRogitate2026Result["details"] = [];
-
   const brokerShare = filippo.payoutSharePercent ?? 0.35;
+
+  // Pulizia di eventuali voci isolate CQS/prestiti non-mutuo precedentemente importate come rogiti
+  const nonMortgageNames = [
+    "ACCORDI CQS",
+    "IRYNA PRESTITO",
+    "BRIGUGLIO SAMUEL CQS",
+    "CQS ZIDANE",
+  ];
+  for (const nm of nonMortgageNames) {
+    await db
+      .delete(applications)
+      .where(
+        and(
+          ilike(applications.clientName, nm),
+          eq(applications.brokerId, filippo.id),
+          eq(applications.status, "ROGITATA"),
+        ),
+      )
+      .catch(() => {});
+  }
 
   for (const record of records) {
     const clientNameNorm = record.clientName.trim().toUpperCase();
