@@ -6,12 +6,18 @@ export async function setApplicationPipelineError(
   applicationId: string,
   message: string | null,
 ) {
-  await db
-    .update(applications)
-    .set({
-      lastPipelineError: message,
-      lastPipelineErrorAt: message ? new Date() : null,
-      updatedAt: new Date(),
-    })
-    .where(eq(applications.id, applicationId));
+  // Upload errors or duplicate file warnings must strictly be transient client notifications.
+  // They MUST NEVER be written as a permanent application-level error flag in the database.
+  // Only nullifying/clearing is persisted to DB to clean up any legacy stuck errors.
+  try {
+    await db
+      .update(applications)
+      .set({
+        lastPipelineError: null,
+        lastPipelineErrorAt: null,
+      })
+      .where(eq(applications.id, applicationId));
+  } catch (err) {
+    console.error("setApplicationPipelineError clear error", err);
+  }
 }

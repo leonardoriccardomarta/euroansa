@@ -1,5 +1,5 @@
 import crypto from "crypto";
-import { and, asc, desc, eq, inArray, lt, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNull, lt, or, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { applications, documents, systemSettings, users } from "@/db/schema";
 import type { DocumentAnalysisStatus, DocumentType, ExtractedDocumentData } from "@/db/schema";
@@ -23,7 +23,9 @@ import {
   defaultStorageFolders,
   expandMultiSlotTypes,
   FILE_NAME_PREFIX,
+  resolveApplicantFolders,
   SHEET_SECTIONS,
+  splitCoupleNames,
   storageFolderKindForDocument,
   storageSubfolderLabel,
 } from "@/lib/config/documents";
@@ -882,27 +884,13 @@ export function resolveFolderForDocument(params: {
   const folderKind = storageFolderKindForDocument(documentType);
 
   if (isCouple) {
-    const folders =
-      storageFolders && storageFolders.length > 0
-        ? storageFolders
-        : ["Richiedente 1", "Richiedente 2", "Immobile / Pratica"];
-
-    const f1 =
-      folders.find((f) => /richiedente\s*1/i.test(f)) ??
-      folders[0] ??
-      "Richiedente 1";
-    const f2 =
-      folders.find((f) => /richiedente\s*2/i.test(f)) ??
-      folders[1] ??
-      "Richiedente 2";
-    const fImm =
-      folders.find((f) => /immobile/i.test(f)) ??
-      folders[2] ??
-      "Immobile / Pratica";
+    const { applicant1, applicant2 } = splitCoupleNames(clientName, coApplicantName);
+    const { applicant1Folder, applicant2Folder, immobileFolder } =
+      resolveApplicantFolders(storageFolders || [], clientName, coApplicantName);
 
     // 1. Immobile / Pratica
     if (folderKind === "IMMOBILE") {
-      return fImm;
+      return immobileFolder;
     }
 
     // 2. Matching OCR per Codice Fiscale
@@ -912,11 +900,13 @@ export function resolveFolderForDocument(params: {
       applicantFiscalCodes?.[0]?.trim().toUpperCase();
     const cf2 =
       coApplicantFiscalCode?.trim().toUpperCase() ||
-      applicantFiscalCodes?.[1]?.trim().toUpperCase();
+      (applicantFiscalCodes?.[1] && applicantFiscalCodes?.[1] !== cf1
+        ? applicantFiscalCodes[1].trim().toUpperCase()
+        : undefined);
 
     if (extractedCf) {
-      if (cf2 && extractedCf === cf2) return f2;
-      if (cf1 && extractedCf === cf1) return f1;
+      if (cf2 && extractedCf === cf2) return applicant2Folder;
+      if (cf1 && extractedCf === cf1) return applicant1Folder;
     }
 
     // 3. Matching OCR per Nome / Cognome
@@ -930,27 +920,27 @@ export function resolveFolderForDocument(params: {
       .toLowerCase();
 
     if (extractedNames) {
-      if (coApplicantName) {
-        const parts2 = coApplicantName
+      if (applicant2) {
+        const parts2 = applicant2
           .toLowerCase()
           .split(/\s+/)
           .filter((p) => p.length > 2);
         if (parts2.some((part) => extractedNames.includes(part))) {
-          return f2;
+          return applicant2Folder;
         }
       }
-      if (clientName) {
-        const parts1 = clientName
+      if (applicant1) {
+        const parts1 = applicant1
           .toLowerCase()
           .split(/\s+/)
           .filter((p) => p.length > 2);
         if (parts1.some((part) => extractedNames.includes(part))) {
-          return f1;
+          return applicant1Folder;
         }
       }
     }
 
-    return f1;
+    return applicant1Folder;
   }
 
   return storageSubfolderLabel(folderKind, clientName);
@@ -1364,44 +1354,56 @@ export async function processDirectUploads(
   };
 }
 
-/** Una sola cartella "{COGNOME} DOC" per pratica (niente INFOINZAGO/SHEHATA DOC sparsi). */
+/** Assicura le cartelle iniziali senza mai sovrascrivere o unificare le allocazioni dei documenti */
 export async function normalizePracticeDocFolders(applicationId: string) {
   const [app] = await db
-    .select({ id: applications.id, clientName: applications.clientName })
+    .select({
+      id: applications.id,
+      clientName: applications.clientName,
+      isCouple: applications.isCouple,
+      coApplicantName: applications.coApplicantName,
+      storageFolders: applications.storageFolders,
+    })
     .from(applications)
     .where(eq(applications.id, applicationId))
     .limit(1);
   if (!app) return;
 
-  const canonicalDoc = storageSubfolderLabel("DOC", app.clientName);
-  const docs = await db
-    .select({
-      id: documents.id,
-      storageSubfolder: documents.storageSubfolder,
-      documentType: documents.documentType,
-    })
-    .from(documents)
-    .where(eq(documents.applicationId, applicationId));
-
-  for (const doc of docs) {
-    const folder = (doc.storageSubfolder ?? "").trim();
-    const isStrayDocFolder =
-      / DOC$/i.test(folder) &&
-      folder.toUpperCase() !== canonicalDoc.toUpperCase();
-    const kind = storageFolderKindForDocument(doc.documentType);
-    if (kind === "DOC" && (isStrayDocFolder || !folder)) {
+  // Coppia: non toccare mai i file o le cartelle separate di Richiedente 1 e 2
+  if (app.isCouple) {
+    if (!app.storageFolders || app.storageFolders.length === 0) {
+      const folders = defaultStorageFolders(
+        app.clientName,
+        true,
+        app.coApplicantName,
+      );
       await db
-        .update(documents)
-        .set({ storageSubfolder: canonicalDoc })
-        .where(eq(documents.id, doc.id));
+        .update(applications)
+        .set({ storageFolders: folders, updatedAt: new Date() })
+        .where(eq(applications.id, applicationId));
     }
+    return;
   }
 
-  const folders = defaultStorageFolders(app.clientName);
+  // Singola: assegna il fallback canonicalDoc SOLO ai documenti senza cartella
+  const canonicalDoc = storageSubfolderLabel("DOC", app.clientName);
   await db
-    .update(applications)
-    .set({ storageFolders: folders, updatedAt: new Date() })
-    .where(eq(applications.id, applicationId));
+    .update(documents)
+    .set({ storageSubfolder: canonicalDoc })
+    .where(
+      and(
+        eq(documents.applicationId, applicationId),
+        or(isNull(documents.storageSubfolder), eq(documents.storageSubfolder, "")),
+      ),
+    );
+
+  if (!app.storageFolders || app.storageFolders.length === 0) {
+    const folders = defaultStorageFolders(app.clientName);
+    await db
+      .update(applications)
+      .set({ storageFolders: folders, updatedAt: new Date() })
+      .where(eq(applications.id, applicationId));
+  }
 }
 
 export async function refreshApplicationState(applicationId: string) {

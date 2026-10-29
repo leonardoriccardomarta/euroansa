@@ -82,9 +82,6 @@ export function buildPracticeAlerts(
         : "Completa i documenti mancanti";
     }
 
-    if (app.lastPipelineError?.trim()) {
-      nextAction = `Attenzione: ${app.lastPipelineError.slice(0, 80)}`;
-    }
 
     return {
       applicationId: app.id,

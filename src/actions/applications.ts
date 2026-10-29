@@ -18,7 +18,11 @@ import {
   sendApplicationToSecretary,
 } from "@/lib/google/secretary-sender";
 import { evaluateChecklist } from "@/lib/checklist";
-import { COPPIA_DEFAULT_FOLDERS } from "@/lib/config/documents";
+import {
+  COPPIA_DEFAULT_FOLDERS,
+  defaultStorageFolders,
+  splitCoupleNames,
+} from "@/lib/config/documents";
 import { buildSollecitoMessage } from "@/lib/sollecito";
 import { setApplicationPipelineError } from "@/lib/applications/errors";
 import {
@@ -323,14 +327,7 @@ export async function uploadDocumentsAction(
       applicationId,
       brokerId,
     });
-    if (result.errors.length > 0) {
-      await setApplicationPipelineError(
-        applicationId,
-        result.errors.slice(0, 3).join("; "),
-      );
-    } else {
-      await setApplicationPipelineError(applicationId, null);
-    }
+    await setApplicationPipelineError(applicationId, null);
     revalidatePath(`/dashboard/applications/${applicationId}`);
     revalidatePath("/dashboard");
     return {
@@ -341,7 +338,7 @@ export async function uploadDocumentsAction(
   } catch (err) {
     const msg =
       err instanceof Error ? err.message : "Upload o analisi fallita";
-    await setApplicationPipelineError(applicationId, msg);
+    await setApplicationPipelineError(applicationId, null);
     revalidatePath(`/dashboard/applications/${applicationId}`);
     return { error: msg };
   }
@@ -710,37 +707,62 @@ export async function updatePracticeTypeAction(
     updatedAt: new Date(),
   };
 
-  if (params.clientName != null) {
-    patch.clientName = params.clientName.trim();
-  }
-  if (params.clientFiscalCode !== undefined) {
-    patch.clientFiscalCode =
-      params.clientFiscalCode?.trim().toUpperCase() || null;
-  }
-
   if (params.isCouple) {
-    patch.coApplicantName = params.coApplicantName?.trim() || null;
-    patch.coApplicantFiscalCode =
-      params.coApplicantFiscalCode?.trim().toUpperCase() || null;
+    const rawClientName =
+      params.clientName != null ? params.clientName.trim() : app.clientName;
+    const { applicant1, applicant2 } = splitCoupleNames(
+      rawClientName,
+      params.coApplicantName?.trim() || app.coApplicantName,
+    );
+    patch.clientName = applicant1;
+    patch.coApplicantName =
+      applicant2 !== "Richiedente 2" ? applicant2 : (params.coApplicantName?.trim() || null);
 
     const cf1 =
-      (patch.clientFiscalCode as string | null | undefined) ??
-      app.clientFiscalCode;
-    const cf2 = patch.coApplicantFiscalCode as string | null;
+      (params.clientFiscalCode !== undefined
+        ? params.clientFiscalCode?.trim().toUpperCase() || null
+        : app.clientFiscalCode) ?? null;
+    patch.clientFiscalCode = cf1;
+
+    let cf2 =
+      params.coApplicantFiscalCode !== undefined
+        ? params.coApplicantFiscalCode?.trim().toUpperCase() || null
+        : app.coApplicantFiscalCode;
+    // NEVER copy CF1 to CF2 as fallback
+    if (cf2 && cf1 && cf2 === cf1) {
+      cf2 = null;
+    }
+    patch.coApplicantFiscalCode = cf2;
     patch.applicantFiscalCodes = [cf1, cf2].filter(
       (x): x is string => Boolean(x),
     );
 
-    // Inizializza o include le cartelle radice Coppia se mancanti
+    // Inizializza o include le cartelle radice separate Coppia se mancanti
     const currentFolders = app.storageFolders || [];
-    const missingCoppia = COPPIA_DEFAULT_FOLDERS.filter(
-      (req) => !currentFolders.some((f) => f.toLowerCase() === req.toLowerCase()),
+    const defaults = defaultStorageFolders(
+      patch.clientName as string,
+      true,
+      patch.coApplicantName as string,
     );
-    if (missingCoppia.length > 0) {
-      patch.storageFolders = [...currentFolders, ...missingCoppia];
+    if (currentFolders.length === 0) {
+      patch.storageFolders = defaults;
+    } else {
+      const missingCoppia = defaults.filter(
+        (req) => !currentFolders.some((f) => f.toLowerCase() === req.toLowerCase()),
+      );
+      if (missingCoppia.length > 0) {
+        patch.storageFolders = [...currentFolders, ...missingCoppia];
+      }
     }
   } else {
     // Ritorno a Singola: azzera i dati del secondo richiedente
+    if (params.clientName != null) {
+      patch.clientName = params.clientName.trim();
+    }
+    if (params.clientFiscalCode !== undefined) {
+      patch.clientFiscalCode =
+        params.clientFiscalCode?.trim().toUpperCase() || null;
+    }
     patch.coApplicantName = null;
     patch.coApplicantFiscalCode = null;
     const cf1 =

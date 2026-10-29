@@ -3,6 +3,9 @@ import { desc, eq } from "drizzle-orm";
 import {
   CheckCircle2,
   Circle,
+  Folder,
+  User,
+  Users2,
 } from "lucide-react";
 import { getSession } from "@/lib/auth";
 import { db } from "@/db";
@@ -15,6 +18,7 @@ import {
 } from "@/db/schema";
 import {
   evaluateChecklist,
+  evaluateCoupleChecklist,
   inferEmploymentType,
 } from "@/lib/checklist";
 import { displayClientEmail } from "@/lib/client-email";
@@ -22,6 +26,7 @@ import { normalizePracticeDocFolders } from "@/lib/pipeline";
 import {
   EMPLOYMENT_TYPE_LABELS,
   sheetRowsForRequired,
+  splitCoupleNames,
 } from "@/lib/config/documents";
 import { isClientChecklistFolder } from "@/lib/resources/client-doc-folders";
 import { isSecretaryPackageDoc } from "@/lib/google/secretary-sender-draft";
@@ -38,6 +43,7 @@ import { PracticeEconomicsForm } from "@/components/dashboard/practice-economics
 import { PracticeTypeSwitcher } from "@/components/dashboard/practice-type-switcher";
 import { TutorialPracticeBanner } from "@/components/onboarding/tutorial-practice-banner";
 import { syncStorageFoldersForApp } from "@/actions/files";
+import { FolderUploadButton } from "@/components/dashboard/file-browser-actions";
 import {
   DEFAULT_COLLABORATOR_SHARE,
   DEFAULT_PROVENANCE_OPTIONS,
@@ -134,8 +140,85 @@ export default async function ApplicationDetailPage({
     // eslint-disable-next-line react-hooks/purity
     current.packageTokenExpiresAt!.getTime() < Date.now();
 
+  const isCouplePractice = Boolean(current.isCouple);
+  const { applicant1, applicant2 } = splitCoupleNames(
+    current.clientName,
+    current.coApplicantName,
+  );
+  const fixedApp2 =
+    applicant2 !== "Richiedente 2" ? applicant2 : (current.coApplicantName ?? null);
+
+  // Background repair if combined name in database or stuck error
+  if (current.lastPipelineError) {
+    db.update(applications)
+      .set({ lastPipelineError: null, lastPipelineErrorAt: null })
+      .where(eq(applications.id, current.id))
+      .catch(() => {});
+    current.lastPipelineError = null;
+  }
+
+  if (
+    isCouplePractice &&
+    (current.clientName.includes(" & ") || (fixedApp2 && !current.coApplicantName))
+  ) {
+    db.update(applications)
+      .set({ clientName: applicant1, coApplicantName: fixedApp2 })
+      .where(eq(applications.id, current.id))
+      .catch(() => {});
+    current.clientName = applicant1;
+    current.coApplicantName = fixedApp2;
+  }
+
+  const cf1 = current.clientFiscalCode?.trim().toUpperCase();
+  let cf2 =
+    current.coApplicantFiscalCode?.trim().toUpperCase() ||
+    (current.applicantFiscalCodes?.[1] && current.applicantFiscalCodes[1] !== cf1
+      ? current.applicantFiscalCodes[1].trim().toUpperCase()
+      : undefined);
+
+  if (cf2 && cf1 && cf2 === cf1) {
+    db.update(applications)
+      .set({ coApplicantFiscalCode: null })
+      .where(eq(applications.id, current.id))
+      .catch(() => {});
+    cf2 = undefined;
+    current.coApplicantFiscalCode = null;
+    current.applicantFiscalCodes = cf1 ? [cf1] : [];
+  }
+
+  const displayClientName =
+    isCouplePractice && current.coApplicantName
+      ? `${current.clientName} & ${current.coApplicantName}`
+      : current.clientName;
+
+  const displayCf = isCouplePractice
+    ? cf1 && cf2 && cf1 !== cf2
+      ? `CF ${cf1} · CF ${cf2}`
+      : cf1
+        ? `CF ${cf1}`
+        : cf2
+          ? `CF ${cf2}`
+          : "CF non ancora rilevato"
+    : cf1
+      ? `CF ${cf1}`
+      : "CF non ancora rilevato";
+
+  const coupleChecklist = isCouplePractice
+    ? evaluateCoupleChecklist({
+        requiredTypes: current.requiredDocumentTypes,
+        docs,
+        clientName: current.clientName,
+        coApplicantName: current.coApplicantName,
+        clientFiscalCode: cf1,
+        coApplicantFiscalCode: cf2,
+        folders: folders ?? current.storageFolders ?? [],
+      })
+    : null;
+
   const employmentType = inferEmploymentType(docs);
-  const checklist = evaluateChecklist(current.requiredDocumentTypes, docs);
+  const checklist = coupleChecklist
+    ? coupleChecklist.overall
+    : evaluateChecklist(current.requiredDocumentTypes, docs);
   const progressPct =
     checklist.totalRequired > 0
       ? (checklist.completedCount / checklist.totalRequired) * 100
@@ -153,15 +236,10 @@ export default async function ApplicationDetailPage({
       <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
         <div>
           <h1 className="text-3xl font-bold text-slate-900 md:text-4xl">
-            {current.clientName}
+            {displayClientName}
           </h1>
           <p className="mt-2 text-slate-600">
-            {current.isCouple &&
-            (current.applicantFiscalCodes?.length ?? 0) > 0
-              ? `CF ${current.applicantFiscalCodes!.join(" · ")}`
-              : current.clientFiscalCode
-                ? `CF ${current.clientFiscalCode}`
-                : "CF non ancora rilevato"}
+            {displayCf}
             {displayClientEmail(current.clientEmail)
               ? ` · ${displayClientEmail(current.clientEmail)}`
               : ""}
@@ -171,10 +249,10 @@ export default async function ApplicationDetailPage({
             <PracticeTypeSwitcher
               applicationId={current.id}
               clientName={current.clientName}
-              clientFiscalCode={current.clientFiscalCode}
+              clientFiscalCode={cf1 ?? null}
               isCouple={Boolean(current.isCouple)}
               coApplicantName={current.coApplicantName}
-              coApplicantFiscalCode={current.coApplicantFiscalCode}
+              coApplicantFiscalCode={cf2 ?? null}
             />
             {isTutorialPractice(current) ? (
               <Badge
@@ -226,17 +304,6 @@ export default async function ApplicationDetailPage({
         </div>
       </div>
 
-      {current.lastPipelineError ? (
-        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-900">
-          <p className="font-semibold">Operazione fallita   riprova</p>
-          <p className="mt-1">{current.lastPipelineError}</p>
-          {current.lastPipelineErrorAt ? (
-            <p className="mt-1 text-xs text-red-700">
-              {new Date(current.lastPipelineErrorAt).toLocaleString("it-IT")}
-            </p>
-          ) : null}
-        </div>
-      ) : null}
 
       {legacyDocs.length > 0 || missingStorageDocs.length > 0 ? (
         <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
@@ -322,59 +389,285 @@ export default async function ApplicationDetailPage({
                 style={{ width: `${progressPct}%` }}
               />
             </div>
-            <ul className="mt-4 grid gap-2 sm:grid-cols-2">
-              {sheetRowsForRequired(checklist.required).map((row) => {
-                const presentCount = row.types.filter((t) =>
-                  checklist.present.includes(t),
-                ).length;
-                const allPresent = presentCount === row.types.length;
-                const allValid = row.types.every((t) =>
-                  checklist.presentValid.includes(t),
-                );
-                const needsReview = row.types.some((t) =>
-                  checklist.invalid.includes(t),
-                );
-                // Multi-slot: la voce si “segna” appena c’è almeno un pezzo (niente 1/3 qui)
-                const categoryStarted = presentCount > 0;
-                return (
-                  <li
-                    key={`${row.label}-${row.types.join("-")}`}
-                    className="flex items-center gap-2.5 rounded-lg bg-slate-50 px-3 py-2.5 text-xs font-medium uppercase text-slate-700 sm:text-[13px]"
-                  >
-                    {allValid ? (
-                      <CheckCircle2
-                        className="h-4 w-4 shrink-0 text-emerald-600"
-                        aria-label="Presente e valido"
+
+            {isCouplePractice && coupleChecklist ? (
+              <div className="mt-6 space-y-6">
+                {/* Richiedente 1 */}
+                <div className="rounded-xl border border-slate-200 bg-slate-50/50 p-4">
+                  <div className="mb-3 flex flex-wrap items-center justify-between gap-2 border-b border-slate-200/60 pb-3">
+                    <div className="flex items-center gap-2">
+                      <User className="h-4 w-4 text-primary-600" />
+                      <span className="font-semibold text-slate-900 text-sm">
+                        Richiedente 1: {coupleChecklist.applicant1.name}
+                      </span>
+                      <span className="rounded-md bg-white border border-slate-200 px-2 py-0.5 text-[11px] font-mono text-slate-600">
+                        {coupleChecklist.applicant1.folder}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs font-semibold text-slate-700">
+                        {coupleChecklist.applicant1.progressLabel}
+                      </span>
+                      <FolderUploadButton
+                        applicationId={current.id}
+                        folderName={coupleChecklist.applicant1.folder}
+                        label="Carica doc"
                       />
-                    ) : categoryStarted || needsReview ? (
-                      <CheckCircle2
-                        className="h-4 w-4 shrink-0 text-primary-600"
-                        aria-label={
-                          allPresent
-                            ? "Presente da rivedere"
-                            : "Categoria presente (ancora pezzi mancanti sotto)"
-                        }
+                    </div>
+                  </div>
+                  <ul className="grid gap-2 sm:grid-cols-2">
+                    {sheetRowsForRequired(coupleChecklist.applicant1.required).map((row) => {
+                      const presentCount = row.types.filter((t) =>
+                        coupleChecklist.applicant1.present.includes(t),
+                      ).length;
+                      const allPresent = presentCount === row.types.length;
+                      const allValid = row.types.every((t) =>
+                        coupleChecklist.applicant1.presentValid.includes(t),
+                      );
+                      const needsReview = row.types.some((t) =>
+                        coupleChecklist.applicant1.invalid.includes(t),
+                      );
+                      const categoryStarted = presentCount > 0;
+                      return (
+                        <li
+                          key={`req1-${row.label}-${row.types.join("-")}`}
+                          className="flex items-center gap-2.5 rounded-lg bg-white border border-slate-200/70 px-3 py-2 text-xs font-medium uppercase text-slate-700 sm:text-[13px]"
+                        >
+                          {allValid ? (
+                            <CheckCircle2
+                              className="h-4 w-4 shrink-0 text-emerald-600"
+                              aria-label="Presente e valido"
+                            />
+                          ) : categoryStarted || needsReview ? (
+                            <CheckCircle2
+                              className="h-4 w-4 shrink-0 text-primary-600"
+                              aria-label="Incompleto o da rivedere"
+                            />
+                          ) : (
+                            <Circle
+                              className="h-4 w-4 shrink-0 text-slate-300"
+                              aria-label="Mancante"
+                            />
+                          )}
+                          <span
+                            className={
+                              allValid || categoryStarted
+                                ? "text-slate-800"
+                                : "text-slate-500"
+                            }
+                          >
+                            {row.label}
+                            {needsReview && allPresent ? " · da rivedere" : ""}
+                          </span>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+
+                {/* Richiedente 2 */}
+                <div className="rounded-xl border border-sky-200/80 bg-sky-50/30 p-4">
+                  <div className="mb-3 flex flex-wrap items-center justify-between gap-2 border-b border-sky-200/60 pb-3">
+                    <div className="flex items-center gap-2">
+                      <Users2 className="h-4 w-4 text-sky-600" />
+                      <span className="font-semibold text-slate-900 text-sm">
+                        Richiedente 2: {coupleChecklist.applicant2.name}
+                      </span>
+                      <span className="rounded-md bg-white border border-slate-200 px-2 py-0.5 text-[11px] font-mono text-slate-600">
+                        {coupleChecklist.applicant2.folder}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs font-semibold text-slate-700">
+                        {coupleChecklist.applicant2.progressLabel}
+                      </span>
+                      <FolderUploadButton
+                        applicationId={current.id}
+                        folderName={coupleChecklist.applicant2.folder}
+                        label="Carica doc"
                       />
-                    ) : (
-                      <Circle
-                        className="h-4 w-4 shrink-0 text-slate-300"
-                        aria-label="Mancante"
-                      />
-                    )}
-                    <span
-                      className={
-                        allValid || categoryStarted
-                          ? "text-slate-800"
-                          : "text-slate-600"
-                      }
+                    </div>
+                  </div>
+                  <ul className="grid gap-2 sm:grid-cols-2">
+                    {sheetRowsForRequired(coupleChecklist.applicant2.required).map((row) => {
+                      const presentCount = row.types.filter((t) =>
+                        coupleChecklist.applicant2.present.includes(t),
+                      ).length;
+                      const allPresent = presentCount === row.types.length;
+                      const allValid = row.types.every((t) =>
+                        coupleChecklist.applicant2.presentValid.includes(t),
+                      );
+                      const needsReview = row.types.some((t) =>
+                        coupleChecklist.applicant2.invalid.includes(t),
+                      );
+                      const categoryStarted = presentCount > 0;
+                      return (
+                        <li
+                          key={`req2-${row.label}-${row.types.join("-")}`}
+                          className="flex items-center gap-2.5 rounded-lg bg-white border border-slate-200/70 px-3 py-2 text-xs font-medium uppercase text-slate-700 sm:text-[13px]"
+                        >
+                          {allValid ? (
+                            <CheckCircle2
+                              className="h-4 w-4 shrink-0 text-emerald-600"
+                              aria-label="Presente e valido"
+                            />
+                          ) : categoryStarted || needsReview ? (
+                            <CheckCircle2
+                              className="h-4 w-4 shrink-0 text-primary-600"
+                              aria-label="Incompleto o da rivedere"
+                            />
+                          ) : (
+                            <Circle
+                              className="h-4 w-4 shrink-0 text-slate-300"
+                              aria-label="Mancante"
+                            />
+                          )}
+                          <span
+                            className={
+                              allValid || categoryStarted
+                                ? "text-slate-800"
+                                : "text-slate-500"
+                            }
+                          >
+                            {row.label}
+                            {needsReview && allPresent ? " · da rivedere" : ""}
+                          </span>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+
+                {/* Immobile / Pratica */}
+                {coupleChecklist.immobile.required.length > 0 ? (
+                  <div className="rounded-xl border border-slate-200 bg-slate-50/40 p-4">
+                    <div className="mb-3 flex flex-wrap items-center justify-between gap-2 border-b border-slate-200/60 pb-3">
+                      <div className="flex items-center gap-2">
+                        <Folder className="h-4 w-4 text-amber-600" />
+                        <span className="font-semibold text-slate-900 text-sm">
+                          Immobile / Pratica
+                        </span>
+                        <span className="rounded-md bg-white border border-slate-200 px-2 py-0.5 text-[11px] font-mono text-slate-600">
+                          {coupleChecklist.immobile.folder}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="text-xs font-semibold text-slate-700">
+                          {coupleChecklist.immobile.progressLabel}
+                        </span>
+                        <FolderUploadButton
+                          applicationId={current.id}
+                          folderName={coupleChecklist.immobile.folder}
+                          label="Carica doc"
+                        />
+                      </div>
+                    </div>
+                    <ul className="grid gap-2 sm:grid-cols-2">
+                      {sheetRowsForRequired(coupleChecklist.immobile.required).map((row) => {
+                        const presentCount = row.types.filter((t) =>
+                          coupleChecklist.immobile.present.includes(t),
+                        ).length;
+                        const allPresent = presentCount === row.types.length;
+                        const allValid = row.types.every((t) =>
+                          coupleChecklist.immobile.presentValid.includes(t),
+                        );
+                        const needsReview = row.types.some((t) =>
+                          coupleChecklist.immobile.invalid.includes(t),
+                        );
+                        const categoryStarted = presentCount > 0;
+                        return (
+                          <li
+                            key={`imm-${row.label}-${row.types.join("-")}`}
+                            className="flex items-center gap-2.5 rounded-lg bg-white border border-slate-200/70 px-3 py-2 text-xs font-medium uppercase text-slate-700 sm:text-[13px]"
+                          >
+                            {allValid ? (
+                              <CheckCircle2
+                                className="h-4 w-4 shrink-0 text-emerald-600"
+                                aria-label="Presente e valido"
+                              />
+                            ) : categoryStarted || needsReview ? (
+                              <CheckCircle2
+                                className="h-4 w-4 shrink-0 text-primary-600"
+                                aria-label="Incompleto o da rivedere"
+                              />
+                            ) : (
+                              <Circle
+                                className="h-4 w-4 shrink-0 text-slate-300"
+                                aria-label="Mancante"
+                              />
+                            )}
+                            <span
+                              className={
+                                allValid || categoryStarted
+                                  ? "text-slate-800"
+                                  : "text-slate-500"
+                              }
+                            >
+                              {row.label}
+                              {needsReview && allPresent ? " · da rivedere" : ""}
+                            </span>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
+                ) : null}
+              </div>
+            ) : (
+              <ul className="mt-4 grid gap-2 sm:grid-cols-2">
+                {sheetRowsForRequired(checklist.required).map((row) => {
+                  const presentCount = row.types.filter((t) =>
+                    checklist.present.includes(t),
+                  ).length;
+                  const allPresent = presentCount === row.types.length;
+                  const allValid = row.types.every((t) =>
+                    checklist.presentValid.includes(t),
+                  );
+                  const needsReview = row.types.some((t) =>
+                    checklist.invalid.includes(t),
+                  );
+                  // Multi-slot: la voce si “segna” appena c’è almeno un pezzo (niente 1/3 qui)
+                  const categoryStarted = presentCount > 0;
+                  return (
+                    <li
+                      key={`${row.label}-${row.types.join("-")}`}
+                      className="flex items-center gap-2.5 rounded-lg bg-slate-50 px-3 py-2.5 text-xs font-medium uppercase text-slate-700 sm:text-[13px]"
                     >
-                      {row.label}
-                      {needsReview && allPresent ? " · da rivedere" : ""}
-                    </span>
-                  </li>
-                );
-              })}
-            </ul>
+                      {allValid ? (
+                        <CheckCircle2
+                          className="h-4 w-4 shrink-0 text-emerald-600"
+                          aria-label="Presente e valido"
+                        />
+                      ) : categoryStarted || needsReview ? (
+                        <CheckCircle2
+                          className="h-4 w-4 shrink-0 text-primary-600"
+                          aria-label={
+                            allPresent
+                              ? "Presente da rivedere"
+                              : "Categoria presente (ancora pezzi mancanti sotto)"
+                          }
+                        />
+                      ) : (
+                        <Circle
+                          className="h-4 w-4 shrink-0 text-slate-300"
+                          aria-label="Mancante"
+                        />
+                      )}
+                      <span
+                        className={
+                          allValid || categoryStarted
+                            ? "text-slate-800"
+                            : "text-slate-600"
+                        }
+                      >
+                        {row.label}
+                        {needsReview && allPresent ? " · da rivedere" : ""}
+                      </span>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
           </>
         )}
       </div>

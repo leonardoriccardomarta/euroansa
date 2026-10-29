@@ -15,6 +15,7 @@ import {
   defaultStorageFolders,
   normalizeStorageFolderName,
   sanitizeFolderName,
+  splitCoupleNames,
   storageFolderKindForDocument,
   storageSubfolderLabel,
   type StorageFolderKind,
@@ -465,7 +466,7 @@ export async function createClientFolderAction(
   input: CreatePracticeFolderInput,
 ) {
   const session = await requireSession();
-  const isCoppia =
+  let isCoppia =
     typeof input === "object" &&
     (input.practiceType === "Coppia" || Boolean(input.isCouple));
 
@@ -476,26 +477,39 @@ export async function createClientFolderAction(
   let applicantFiscalCodes: string[] = [];
 
   if (typeof input === "string") {
-    clientName = sanitizeFolderName(input);
+    const raw = sanitizeFolderName(input);
+    const { applicant1, applicant2 } = splitCoupleNames(raw);
+    clientName = applicant1;
+    if (applicant2 && applicant2 !== "Richiedente 2") {
+      isCoppia = true;
+      coApplicantName = applicant2;
+    }
   } else {
     const rawA1 = input.clientName || input.applicant1Name || "";
-    const a1 = sanitizeFolderName(rawA1);
+    const rawA2 = input.coApplicantName || input.applicant2Name || "";
+    const { applicant1, applicant2 } = splitCoupleNames(rawA1, rawA2);
+    const a1 = sanitizeFolderName(applicant1);
+    const a2 = applicant2 !== "Richiedente 2" ? sanitizeFolderName(applicant2) : "";
+
     const cf1 =
       input.clientFiscalCode?.trim().toUpperCase() ||
       input.applicant1FiscalCode?.trim().toUpperCase() ||
       null;
     clientFiscalCode = cf1;
 
+    let cf2 =
+      input.coApplicantFiscalCode?.trim().toUpperCase() ||
+      input.applicant2FiscalCode?.trim().toUpperCase() ||
+      null;
+    // Each applicant MUST hold their own distinct Codice Fiscale. NEVER copy CF1 into CF2 as fallback.
+    if (cf2 && cf1 && cf2 === cf1) {
+      cf2 = null;
+    }
+
     if (isCoppia) {
-      const rawA2 = input.coApplicantName || input.applicant2Name || "";
-      const a2 = sanitizeFolderName(rawA2);
-      const cf2 =
-        input.coApplicantFiscalCode?.trim().toUpperCase() ||
-        input.applicant2FiscalCode?.trim().toUpperCase() ||
-        null;
+      clientName = a1;
       coApplicantName = a2 || null;
       coApplicantFiscalCode = cf2;
-      clientName = a2 ? `${a1} & ${a2}` : a1;
       applicantFiscalCodes = [cf1, cf2].filter((x): x is string => Boolean(x));
     } else {
       clientName = a1;
@@ -505,7 +519,7 @@ export async function createClientFolderAction(
 
   if (!clientName) return { error: "Inserisci il nome cliente / richiedente" };
 
-  const folders = defaultStorageFolders(clientName, isCoppia);
+  const folders = defaultStorageFolders(clientName, isCoppia, coApplicantName);
   const email = `cartella.${Date.now()}@prontopratica.local`;
 
   const [created] = await db
@@ -624,7 +638,7 @@ export async function uploadToFolderAction(
       } catch (err) {
         console.error("folder upload", err);
         const msg = err instanceof Error ? err.message : "Upload fallito";
-        await setApplicationPipelineError(applicationId, `Storage: ${msg}`);
+        await setApplicationPipelineError(applicationId, null);
         return { error: msg };
       }
     }
@@ -659,14 +673,7 @@ export async function uploadToFolderAction(
       );
   }
 
-  if (processed.errors.length > 0) {
-    await setApplicationPipelineError(
-      applicationId,
-      processed.errors.slice(0, 3).join("; "),
-    );
-  } else {
-    await setApplicationPipelineError(applicationId, null);
-  }
+  await setApplicationPipelineError(applicationId, null);
 
   revalidateFiles(applicationId);
   return {

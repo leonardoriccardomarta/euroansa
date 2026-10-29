@@ -1,10 +1,13 @@
-import { and, desc, eq, inArray } from "drizzle-orm";
+import { and, desc, eq, inArray, isNotNull } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import { db } from "@/db";
 import { applications, documents, users } from "@/db/schema";
-import { evaluateChecklist } from "@/lib/checklist";
-import { APPLICATION_STATUS_LABELS } from "@/lib/config/documents";
+import { evaluateChecklist, evaluateCoupleChecklist } from "@/lib/checklist";
+import {
+  APPLICATION_STATUS_LABELS,
+  splitCoupleNames,
+} from "@/lib/config/documents";
 import { buildPracticeAlerts } from "@/lib/practice-alerts";
 import { StatusFilter } from "@/components/dashboard/status-filter";
 import { ApplicationCard } from "@/components/dashboard/application-card";
@@ -80,8 +83,12 @@ export default async function DashboardPage({
       clientEmail: applications.clientEmail,
       clientFiscalCode: applications.clientFiscalCode,
       isCouple: applications.isCouple,
+      coApplicantName: applications.coApplicantName,
+      coApplicantFiscalCode: applications.coApplicantFiscalCode,
       applicantFiscalCodes: applications.applicantFiscalCodes,
       employmentType: applications.employmentType,
+      provenance: applications.provenance,
+      storageFolders: applications.storageFolders,
       status: applications.status,
       sentToSecretaryAt: applications.sentToSecretaryAt,
       isTest: applications.isTest,
@@ -108,6 +115,36 @@ export default async function DashboardPage({
       .from(users),
   ]);
 
+  // Reset any stuck pipeline error flag in DB (user requirement: strictly transient)
+  db.update(applications)
+    .set({ lastPipelineError: null, lastPipelineErrorAt: null })
+    .where(isNotNull(applications.lastPipelineError))
+    .catch(() => {});
+
+  // Repair / split couple names and distinct CFs in memory and background
+  for (const a of apps) {
+    if (a.isCouple) {
+      const { applicant1, applicant2 } = splitCoupleNames(a.clientName, a.coApplicantName);
+      if (a.clientName.includes(" & ") || (applicant2 !== "Richiedente 2" && !a.coApplicantName)) {
+        const fixedA2 = applicant2 !== "Richiedente 2" ? applicant2 : a.coApplicantName;
+        db.update(applications)
+          .set({ clientName: applicant1, coApplicantName: fixedA2 })
+          .where(eq(applications.id, a.id))
+          .catch(() => {});
+        a.clientName = applicant1;
+        a.coApplicantName = fixedA2;
+      }
+      if (a.coApplicantFiscalCode && a.clientFiscalCode && a.coApplicantFiscalCode === a.clientFiscalCode) {
+        db.update(applications)
+          .set({ coApplicantFiscalCode: null })
+          .where(eq(applications.id, a.id))
+          .catch(() => {});
+        a.coApplicantFiscalCode = null;
+        a.applicantFiscalCodes = a.clientFiscalCode ? [a.clientFiscalCode] : [];
+      }
+    }
+  }
+
   const appIds = apps.map((a) => a.id);
   const docRows =
     appIds.length === 0
@@ -117,6 +154,9 @@ export default async function DashboardPage({
             applicationId: documents.applicationId,
             documentType: documents.documentType,
             isValid: documents.isValid,
+            storageSubfolder: documents.storageSubfolder,
+            rawFileName: documents.rawFileName,
+            renamedFileName: documents.renamedFileName,
             extractedData: documents.extractedData,
           })
           .from(documents)
@@ -288,14 +328,64 @@ export default async function DashboardPage({
         ) : (
           filtered.map((app) => {
             const docs = docsByApp.get(app.id) ?? [];
-            const checklist = evaluateChecklist(
-              app.requiredDocumentTypes,
-              docs,
-            );
-            const pct =
-              checklist.totalRequired > 0
-                ? (checklist.completedCount / checklist.totalRequired) * 100
-                : 0;
+            let progressLabel = "";
+            let pct = 0;
+            let coupleProgress:
+              | {
+                  app1Label: string;
+                  app1Pct: number;
+                  app1Name: string;
+                  app2Label: string;
+                  app2Pct: number;
+                  app2Name: string;
+                }
+              | undefined = undefined;
+
+            if (app.isCouple) {
+              const coupleChecklist = evaluateCoupleChecklist({
+                requiredTypes: app.requiredDocumentTypes,
+                docs,
+                clientName: app.clientName,
+                coApplicantName: app.coApplicantName,
+                clientFiscalCode: app.clientFiscalCode,
+                coApplicantFiscalCode: app.coApplicantFiscalCode,
+                folders: app.storageFolders ?? [],
+              });
+
+              const app1Req = coupleChecklist.applicant1.totalRequired;
+              const app1Comp = coupleChecklist.applicant1.completedCount;
+              const app1Pct = app1Req > 0 ? (app1Comp / app1Req) * 100 : 0;
+
+              const app2Req = coupleChecklist.applicant2.totalRequired;
+              const app2Comp = coupleChecklist.applicant2.completedCount;
+              const app2Pct = app2Req > 0 ? (app2Comp / app2Req) * 100 : 0;
+
+              coupleProgress = {
+                app1Name: coupleChecklist.applicant1.name,
+                app1Label: `${app1Comp}/${app1Req}${coupleChecklist.applicant1.isComplete ? " Completa" : ""}`,
+                app1Pct,
+                app2Name: coupleChecklist.applicant2.name,
+                app2Label: `${app2Comp}/${app2Req}${coupleChecklist.applicant2.isComplete ? " Completa" : ""}`,
+                app2Pct,
+              };
+              progressLabel = coupleChecklist.overall.progressLabel;
+              pct =
+                coupleChecklist.overall.totalRequired > 0
+                  ? (coupleChecklist.overall.completedCount /
+                      coupleChecklist.overall.totalRequired) *
+                    100
+                  : 0;
+            } else {
+              const checklist = evaluateChecklist(
+                app.requiredDocumentTypes,
+                docs,
+              );
+              progressLabel = checklist.progressLabel;
+              pct =
+                checklist.totalRequired > 0
+                  ? (checklist.completedCount / checklist.totalRequired) * 100
+                  : 0;
+            }
 
             return (
               <ApplicationCard
@@ -305,21 +395,24 @@ export default async function DashboardPage({
                 clientEmail={app.clientEmail}
                 clientFiscalCode={app.clientFiscalCode}
                 isCouple={app.isCouple}
+                coApplicantName={app.coApplicantName}
+                coApplicantFiscalCode={app.coApplicantFiscalCode}
                 applicantFiscalCodes={app.applicantFiscalCodes}
+                provenance={app.provenance}
                 status={app.status}
                 statusLabel={
                   APPLICATION_STATUS_LABELS[app.status] ?? app.status
                 }
                 statusClass={statusBadgeClass(app.status)}
-                progressLabel={checklist.progressLabel}
+                progressLabel={progressLabel}
                 progressPct={pct}
+                coupleProgress={coupleProgress}
                 sentLabel={
                   app.sentToSecretaryAt
                     ? `Segreteria ${new Date(app.sentToSecretaryAt).toLocaleDateString("it-IT")}`
                     : "Non inviata"
                 }
                 isTest={app.isTest}
-                hasPipelineError={Boolean(app.lastPipelineError)}
                 brokerId={app.brokerId}
                 brokers={brokers}
                 canAssignBroker={isAdmin}

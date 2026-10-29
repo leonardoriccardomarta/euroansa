@@ -261,6 +261,10 @@ export const SETUP_STATEMENTS = [
   `ALTER TABLE applications ADD COLUMN IF NOT EXISTS co_applicant_name varchar(255)`,
   `ALTER TABLE applications ADD COLUMN IF NOT EXISTS co_applicant_fiscal_code varchar(16)`,
   `ALTER TABLE applications ADD COLUMN IF NOT EXISTS broker_share_percent real`,
+  // Reset stuck pipeline errors and normalize couple applicant data
+  `UPDATE applications SET last_pipeline_error = NULL, last_pipeline_error_at = NULL WHERE last_pipeline_error IS NOT NULL`,
+  `UPDATE applications SET co_applicant_fiscal_code = NULL WHERE co_applicant_fiscal_code IS NOT NULL AND client_fiscal_code IS NOT NULL AND UPPER(TRIM(co_applicant_fiscal_code)) = UPPER(TRIM(client_fiscal_code))`,
+  `UPDATE applications SET client_name = TRIM(SPLIT_PART(client_name, ' & ', 1)), co_applicant_name = TRIM(SPLIT_PART(client_name, ' & ', 2)) WHERE is_couple = true AND client_name LIKE '% & %' AND (co_applicant_name IS NULL OR TRIM(co_applicant_name) = '')`,
 ];
 
 export const PACKAGE_LINK_TTL_DAYS = 7;

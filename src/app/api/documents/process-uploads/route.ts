@@ -137,10 +137,7 @@ export async function POST(req: Request) {
       const errors = outcomes
         .filter((o): o is { ok: false; error: string } => !o.ok)
         .map((o) => o.error);
-      await setApplicationPipelineError(
-        applicationId,
-        errors.length ? errors.slice(0, 3).join("; ") : null,
-      );
+      await setApplicationPipelineError(applicationId, null);
       revalidatePath(`/dashboard/applications/${applicationId}`);
       revalidatePath(`/dashboard/files/${applicationId}`);
       return NextResponse.json({ ok: true, count, errors });
@@ -159,14 +156,7 @@ export async function POST(req: Request) {
       },
     );
 
-    if (result.errors.length > 0) {
-      await setApplicationPipelineError(
-        applicationId,
-        result.errors.slice(0, 3).join("; "),
-      );
-    } else {
-      await setApplicationPipelineError(applicationId, null);
-    }
+    await setApplicationPipelineError(applicationId, null);
 
     revalidatePath(`/dashboard/applications/${applicationId}`);
     revalidatePath(`/dashboard/files/${applicationId}`);
@@ -179,7 +169,7 @@ export async function POST(req: Request) {
     });
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Elaborazione fallita";
-    await setApplicationPipelineError(applicationId, msg);
+    await setApplicationPipelineError(applicationId, null);
     return NextResponse.json({ error: msg }, { status: 500 });
   }
 }

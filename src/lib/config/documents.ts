@@ -335,22 +335,132 @@ export function normalizeStorageFolderName(name: string): string {
   return t;
 }
 
-/** Cartelle radice separate per pratiche Coppia */
+/** Separa in modo robusto i due nominativi di una coppia evitando stringhe combinate o sovrascritture */
+export function splitCoupleNames(
+  clientName: string,
+  coApplicantName?: string | null,
+): {
+  applicant1: string;
+  applicant2: string;
+} {
+  let app1 = "";
+  let app2 = coApplicantName?.trim() || "";
+
+  const trimmed = (clientName ?? "").trim();
+  if (trimmed.includes(" & ")) {
+    const parts = trimmed.split(" & ");
+    app1 = parts[0]?.trim() || "";
+    if (!app2 && parts[1]?.trim()) {
+      app2 = parts[1].trim();
+    }
+  } else if (trimmed.includes(" and ") || trimmed.includes(" AND ")) {
+    const parts = trimmed.split(/\s+and\s+/i);
+    app1 = parts[0]?.trim() || "";
+    if (!app2 && parts[1]?.trim()) {
+      app2 = parts[1].trim();
+    }
+  } else if (/\s+[eE]\s+/.test(trimmed)) {
+    const parts = trimmed.split(/\s+[eE]\s+/);
+    app1 = parts[0]?.trim() || "";
+    if (!app2 && parts[1]?.trim()) {
+      app2 = parts[1].trim();
+    }
+  } else if (trimmed.includes(" / ")) {
+    const parts = trimmed.split(" / ");
+    app1 = parts[0]?.trim() || "";
+    if (!app2 && parts[1]?.trim()) {
+      app2 = parts[1].trim();
+    }
+  } else {
+    app1 = trimmed;
+  }
+
+  if (!app1) app1 = "Richiedente 1";
+  if (!app2) app2 = "Richiedente 2";
+
+  return { applicant1: app1, applicant2: app2 };
+}
+
+export const getCoupleApplicantNames = splitCoupleNames;
+
+/** Cartelle radice separate per pratiche Coppia (Applicant 1 docs, Applicant 2 docs, BANCA, IMMOBILE, EUROANSA) */
 export const COPPIA_DEFAULT_FOLDERS = [
   "Richiedente 1",
   "Richiedente 2",
-  "Immobile / Pratica",
+  "BANCA",
+  "IMMOBILE",
+  "EUROANSA",
 ] as const;
 
 /** Cartelle iniziali di una pratica */
 export function defaultStorageFolders(
   clientName: string,
   isCouple?: boolean,
+  coApplicantName?: string | null,
 ): string[] {
   if (isCouple) {
-    return [...COPPIA_DEFAULT_FOLDERS];
+    const { applicant1, applicant2 } = splitCoupleNames(clientName, coApplicantName);
+    const sur1 = clientSurnameShort(applicant1);
+    const sur2 = clientSurnameShort(applicant2);
+    let f1 = `${sur1} DOC`;
+    let f2 = `${sur2} DOC`;
+    if (f1 === f2) {
+      f1 = `${sur1} 1 DOC`;
+      f2 = `${sur2} 2 DOC`;
+    }
+    return [f1, f2, "BANCA", "IMMOBILE", "EUROANSA"];
   }
   return STORAGE_FOLDER_KINDS.map((k) => storageSubfolderLabel(k, clientName));
+}
+
+/** Risolve le cartelle assegnate a Richiedente 1, Richiedente 2 e Immobile per una pratica */
+export function resolveApplicantFolders(
+  folders: string[],
+  clientName: string,
+  coApplicantName?: string | null,
+): {
+  applicant1Folder: string;
+  applicant2Folder: string;
+  immobileFolder: string;
+} {
+  const defaults = defaultStorageFolders(clientName, true, coApplicantName);
+  const def1 = defaults[0];
+  const def2 = defaults[1];
+
+  const { applicant1, applicant2 } = splitCoupleNames(clientName, coApplicantName);
+  const sur1 = clientSurnameShort(applicant1).toUpperCase();
+  const sur2 = clientSurnameShort(applicant2).toUpperCase();
+
+  const immobileFolder =
+    folders.find((f) => /immobile/i.test(f)) ?? "IMMOBILE";
+
+  const docFolders = folders.filter(
+    (f) => /DOC$/i.test(f) || /richiedente/i.test(f),
+  );
+
+  let app1Folder = docFolders.find(
+    (f) =>
+      (sur1 && f.toUpperCase().includes(sur1) && !f.toUpperCase().includes(sur2)) ||
+      /richiedente\s*1/i.test(f),
+  );
+  let app2Folder = docFolders.find(
+    (f) =>
+      (sur2 && f.toUpperCase().includes(sur2) && !f.toUpperCase().includes(sur1)) ||
+      /richiedente\s*2/i.test(f),
+  );
+
+  if (!app1Folder) app1Folder = def1;
+  if (!app2Folder) app2Folder = def2;
+  if (app1Folder === app2Folder) {
+    app1Folder = `${sur1} 1 DOC`;
+    app2Folder = `${sur2} 2 DOC`;
+  }
+
+  return {
+    applicant1Folder: app1Folder,
+    applicant2Folder: app2Folder,
+    immobileFolder,
+  };
 }
 
 export function sanitizeFolderName(name: string): string {

@@ -11,7 +11,7 @@ import type { ApplicationStatus } from "@/db/schema";
 import { APPLICATION_STATUS_LABELS } from "@/lib/config/documents";
 import { displayClientEmail } from "@/lib/client-email";
 import { isTutorialPractice } from "@/lib/tutorial";
-import { Pause } from "lucide-react";
+import { Compass, Pause } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -35,15 +35,18 @@ export function ApplicationCard({
   clientEmail,
   clientFiscalCode,
   isCouple,
+  coApplicantName,
+  coApplicantFiscalCode,
   applicantFiscalCodes,
+  provenance,
   status,
   statusLabel,
   statusClass,
   progressLabel,
   progressPct,
+  coupleProgress,
   sentLabel,
   isTest,
-  hasPipelineError,
   brokerId,
   brokers,
   canAssignBroker,
@@ -53,12 +56,23 @@ export function ApplicationCard({
   clientEmail: string;
   clientFiscalCode: string | null;
   isCouple?: boolean;
+  coApplicantName?: string | null;
+  coApplicantFiscalCode?: string | null;
   applicantFiscalCodes?: string[];
+  provenance?: string | null;
   status: ApplicationStatus;
   statusLabel: string;
   statusClass: string;
   progressLabel: string;
   progressPct: number;
+  coupleProgress?: {
+    app1Label: string;
+    app1Pct: number;
+    app1Name: string;
+    app2Label: string;
+    app2Pct: number;
+    app2Name: string;
+  };
   sentLabel: string;
   isTest?: boolean;
   hasPipelineError?: boolean;
@@ -71,6 +85,17 @@ export function ApplicationCard({
   const isGuida = isTutorialPractice({ clientName, clientEmail });
 
   const isFrozen = status === "IN_ATTESA_RISCONTRO_CLIENTE";
+  const displayTitle =
+    isCouple && coApplicantName
+      ? `${clientName} & ${coApplicantName}`
+      : clientName;
+
+  const cf1 = clientFiscalCode?.trim().toUpperCase();
+  const cf2 =
+    coApplicantFiscalCode?.trim().toUpperCase() ||
+    (applicantFiscalCodes?.[1] && applicantFiscalCodes[1] !== cf1
+      ? applicantFiscalCodes[1].trim().toUpperCase()
+      : undefined);
 
   return (
     <div
@@ -89,7 +114,7 @@ export function ApplicationCard({
         >
           <div className="flex flex-wrap items-center gap-2">
             <h3 className="truncate text-base font-semibold text-slate-900">
-              {clientName}
+              {displayTitle}
             </h3>
             {isGuida ? (
               <Badge
@@ -115,12 +140,14 @@ export function ApplicationCard({
                 Coppia
               </Badge>
             ) : null}
-            {hasPipelineError ? (
+            {provenance && provenance.trim() ? (
               <Badge
                 variant="outline"
-                className="border-red-200 bg-red-50 text-red-700"
+                className="border-slate-200/90 bg-slate-100/70 text-slate-700 inline-flex items-center gap-1 font-medium text-xs shadow-none backdrop-blur-xs"
+                title={`Provenienza: ${provenance.trim()}`}
               >
-                Errore   riprova
+                <Compass className="h-3 w-3 text-slate-500" />
+                <span>{provenance.trim()}</span>
               </Badge>
             ) : null}
             <Badge variant="outline" className={statusClass}>
@@ -129,27 +156,81 @@ export function ApplicationCard({
             </Badge>
           </div>
           <p className="mt-1 truncate text-sm text-slate-500">
-            {isCouple && (applicantFiscalCodes?.length ?? 0) > 0
-              ? `CF ${applicantFiscalCodes!.join(" · ")}`
-              : clientFiscalCode
-                ? `CF ${clientFiscalCode}`
-                : "CF non ancora rilevato"}
+            {isCouple ? (
+              cf1 && cf2 && cf1 !== cf2 ? (
+                `CF ${cf1} · CF ${cf2}`
+              ) : cf1 ? (
+                `CF ${cf1}`
+              ) : cf2 ? (
+                `CF ${cf2}`
+              ) : (
+                "CF non ancora rilevato"
+              )
+            ) : cf1 ? (
+              `CF ${cf1}`
+            ) : (
+              "CF non ancora rilevato"
+            )}
             {displayClientEmail(clientEmail)
               ? ` · ${displayClientEmail(clientEmail)}`
               : ""}
           </p>
-          <div className="mt-3 max-w-xs">
-            <div className="mb-1 flex justify-between text-xs text-slate-500">
-              <span>Checklist</span>
-              <span>{progressLabel}</span>
+
+          {coupleProgress && isCouple ? (
+            <div className="mt-3 space-y-2 max-w-sm">
+              <div className="space-y-1">
+                <div className="flex justify-between text-[11px] text-slate-600">
+                  <span
+                    className="font-semibold text-slate-700 truncate max-w-[130px]"
+                    title={coupleProgress.app1Name}
+                  >
+                    {coupleProgress.app1Name}
+                  </span>
+                  <span className="text-slate-500 font-medium">
+                    {coupleProgress.app1Label}
+                  </span>
+                </div>
+                <div className="h-1.5 rounded-full bg-slate-100">
+                  <div
+                    className="h-1.5 rounded-full bg-primary-600 transition-all"
+                    style={{ width: `${coupleProgress.app1Pct}%` }}
+                  />
+                </div>
+              </div>
+              <div className="space-y-1">
+                <div className="flex justify-between text-[11px] text-slate-600">
+                  <span
+                    className="font-semibold text-slate-700 truncate max-w-[130px]"
+                    title={coupleProgress.app2Name}
+                  >
+                    {coupleProgress.app2Name}
+                  </span>
+                  <span className="text-slate-500 font-medium">
+                    {coupleProgress.app2Label}
+                  </span>
+                </div>
+                <div className="h-1.5 rounded-full bg-slate-100">
+                  <div
+                    className="h-1.5 rounded-full bg-sky-600 transition-all"
+                    style={{ width: `${coupleProgress.app2Pct}%` }}
+                  />
+                </div>
+              </div>
             </div>
-            <div className="h-2 rounded-full bg-slate-100">
-              <div
-                className="h-2 rounded-full bg-primary-600"
-                style={{ width: `${progressPct}%` }}
-              />
+          ) : (
+            <div className="mt-3 max-w-xs">
+              <div className="mb-1 flex justify-between text-xs text-slate-500">
+                <span>Checklist</span>
+                <span>{progressLabel}</span>
+              </div>
+              <div className="h-2 rounded-full bg-slate-100">
+                <div
+                  className="h-2 rounded-full bg-primary-600 transition-all"
+                  style={{ width: `${progressPct}%` }}
+                />
+              </div>
             </div>
-          </div>
+          )}
         </Link>
 
         <div className="flex w-full flex-col gap-2 sm:w-[220px] sm:shrink-0">

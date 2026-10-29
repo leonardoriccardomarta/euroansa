@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { updatePracticeTypeAction } from "@/actions/applications";
+import { splitCoupleNames } from "@/lib/config/documents";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -37,34 +38,54 @@ export function PracticeTypeSwitcher({
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
 
+  const initApp = splitCoupleNames(clientName, coApplicantName);
   const [selectedType, setSelectedType] = useState<"Singola" | "Coppia">(
     isCouple ? "Coppia" : "Singola",
   );
-  const [name1, setName1] = useState(clientName);
+  const [name1, setName1] = useState(initApp.applicant1);
   const [cf1, setCf1] = useState(clientFiscalCode ?? "");
-  const [name2, setName2] = useState(coApplicantName ?? "");
-  const [cf2, setCf2] = useState(coApplicantFiscalCode ?? "");
+  const [name2, setName2] = useState(
+    initApp.applicant2 !== "Richiedente 2" ? initApp.applicant2 : (coApplicantName ?? ""),
+  );
+  const initCf2 =
+    coApplicantFiscalCode &&
+    coApplicantFiscalCode.trim().toUpperCase() !==
+      clientFiscalCode?.trim().toUpperCase()
+      ? coApplicantFiscalCode.trim().toUpperCase()
+      : "";
+  const [cf2, setCf2] = useState(initCf2);
 
   const handleOpen = () => {
     setSelectedType(isCouple ? "Coppia" : "Singola");
-    setName1(clientName);
-    setCf1(clientFiscalCode ?? "");
-    setName2(coApplicantName ?? "");
-    setCf2(coApplicantFiscalCode ?? "");
+    const { applicant1, applicant2 } = splitCoupleNames(clientName, coApplicantName);
+    setName1(applicant1);
+    const cleanCf1 = clientFiscalCode?.trim().toUpperCase() ?? "";
+    setCf1(cleanCf1);
+    setName2(applicant2 !== "Richiedente 2" ? applicant2 : (coApplicantName ?? ""));
+    // NEVER copy CF1 into CF2
+    const cleanCf2 =
+      coApplicantFiscalCode &&
+      coApplicantFiscalCode.trim().toUpperCase() !== cleanCf1
+        ? coApplicantFiscalCode.trim().toUpperCase()
+        : "";
+    setCf2(cleanCf2);
     setOpen(true);
   };
 
   const handleSave = () => {
     const isNowCouple = selectedType === "Coppia";
+    const finalCf1 = cf1.trim().toUpperCase() || null;
+    const rawCf2 = cf2.trim().toUpperCase() || null;
+    // NEVER copy CF1 into CF2
+    const finalCf2 = isNowCouple && rawCf2 && rawCf2 !== finalCf1 ? rawCf2 : null;
+
     startTransition(async () => {
       const res = await updatePracticeTypeAction(applicationId, {
         isCouple: isNowCouple,
         clientName: name1.trim(),
-        clientFiscalCode: cf1.trim().toUpperCase() || null,
+        clientFiscalCode: finalCf1,
         coApplicantName: isNowCouple ? name2.trim() || null : null,
-        coApplicantFiscalCode: isNowCouple
-          ? cf2.trim().toUpperCase() || null
-          : null,
+        coApplicantFiscalCode: finalCf2,
       });
 
       if (res && "error" in res && res.error) {
