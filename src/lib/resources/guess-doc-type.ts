@@ -64,7 +64,11 @@ export function guessDocumentTypeFromFileName(fileName: string): DocumentType {
   }
 
   if (/\b730\b|modello.?730/.test(n)) return "MODELLO_730";
-  if (/\bcud\b|modello.?cu\b|(^|[_\s-])cu([_\s-]|$)|cud\d*/.test(n))
+  if (
+    /\bcud\b|modello.?cu\b|(^|[_\s-])cu([_\s-]|$)|cud\d*|certificazione.?unica/i.test(
+      n,
+    )
+  )
     return "MODELLO_CUD";
   if (/contratto.?di.?lavor|contratto.?lavor|unilav|assunzione/.test(n))
     return "CONTRATTO_LAVORO";

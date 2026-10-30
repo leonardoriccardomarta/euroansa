@@ -233,7 +233,9 @@ function DocRow({
                 i,
               );
             const blocking = doc.validationIssues.filter((i) => !isDupNote(i));
-            const discretionary = doc.validationIssues.filter(isDupNote);
+            const discretionary = dupRank
+              ? doc.validationIssues.filter(isDupNote)
+              : [];
             // Solo copie OK da confrontare (discrezione Filip) → giallo; errori veri → rosso
             if (blocking.length === 0 && discretionary.length === 0) return null;
             return (

@@ -34,6 +34,9 @@ export default async function FilesIndexPage({
       clientName: applications.clientName,
       clientEmail: applications.clientEmail,
       clientFiscalCode: applications.clientFiscalCode,
+      isCouple: applications.isCouple,
+      coApplicantName: applications.coApplicantName,
+      coApplicantFiscalCode: applications.coApplicantFiscalCode,
       brokerId: applications.brokerId,
       isTest: applications.isTest,
       status: applications.status,
@@ -132,7 +135,9 @@ export default async function FilesIndexPage({
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
                     <p className="truncate font-semibold text-slate-900">
-                      {app.clientName}
+                      {app.isCouple && app.coApplicantName
+                        ? `${app.clientName} & ${app.coApplicantName}`
+                        : app.clientName}
                     </p>
                     {isTutorialPractice(app) ? (
                       <Badge
@@ -151,9 +156,16 @@ export default async function FilesIndexPage({
                       </Badge>
                     ) : null}
                   </div>
-                  {app.clientFiscalCode ? (
+                  {app.clientFiscalCode || (app.isCouple && app.coApplicantFiscalCode) ? (
                     <p className="truncate text-xs text-slate-500">
-                      CF {app.clientFiscalCode}
+                      {[
+                        app.clientFiscalCode ? `CF ${app.clientFiscalCode}` : null,
+                        app.isCouple && app.coApplicantFiscalCode
+                          ? `CF2 ${app.coApplicantFiscalCode}`
+                          : null,
+                      ]
+                        .filter(Boolean)
+                        .join(" · ")}
                     </p>
                   ) : null}
                   <p className="mt-2 text-xs text-slate-600">

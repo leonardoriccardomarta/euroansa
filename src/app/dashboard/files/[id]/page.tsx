@@ -65,10 +65,15 @@ export default async function ClientFilesPage({
           </Link>
           <h1 className="mt-3 flex items-center gap-2 text-3xl font-bold text-slate-900">
             <Folder className="h-8 w-8 text-amber-600" />
-            {app.clientName}
+            {app.isCouple && app.coApplicantName
+              ? `${app.clientName} & ${app.coApplicantName}`
+              : app.clientName}
           </h1>
           <p className="mt-2 text-slate-600">
             {app.clientFiscalCode ? `CF ${app.clientFiscalCode} · ` : null}
+            {app.isCouple && app.coApplicantFiscalCode
+              ? `CF2 ${app.coApplicantFiscalCode} · `
+              : null}
             <Link
               href={`/dashboard/applications/${app.id}`}
               className="font-medium text-primary-600 hover:underline"

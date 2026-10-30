@@ -67,20 +67,22 @@ export type DuplicateRankInfo = {
   isOldest: boolean;
 };
 
-/** Per ogni tipo con 2+ file, rank per data (1 = più recente). */
+/** Per ogni cartella/intestatario e tipo con 2+ file, rank per data (1 = più recente). */
 export function rankDuplicateDocuments(
   docs: Document[],
 ): Map<string, DuplicateRankInfo> {
-  const byType = new Map<DocumentType, Document[]>();
+  const byFolderAndType = new Map<string, Document[]>();
   for (const d of docs) {
     if (d.documentType === "SCONOSCIUTO") continue;
-    const list = byType.get(d.documentType) ?? [];
+    const folderKey = (d.storageSubfolder?.trim() || "DEFAULT").toUpperCase();
+    const groupKey = `${folderKey}::${d.documentType}`;
+    const list = byFolderAndType.get(groupKey) ?? [];
     list.push(d);
-    byType.set(d.documentType, list);
+    byFolderAndType.set(groupKey, list);
   }
 
   const out = new Map<string, DuplicateRankInfo>();
-  for (const [, group] of byType) {
+  for (const [, group] of byFolderAndType) {
     if (group.length < 2) continue;
     const sorted = [...group].sort(
       (a, b) => documentRecencyScore(b) - documentRecencyScore(a),

@@ -53,7 +53,7 @@ export const SHEET_SECTIONS: SheetSection[] = [
         label: "ULTIME TRE BUSTE PAGA",
         types: ["BUSTA_PAGA_1", "BUSTA_PAGA_2", "BUSTA_PAGA_3"],
       },
-      { label: "MODELLO CU 2024", types: ["MODELLO_CUD"] },
+      { label: "MODELLO CU", types: ["MODELLO_CUD"] },
       { label: "730", types: ["MODELLO_730"] },
       { label: "CONTRATTO DI LAVORO", types: ["CONTRATTO_LAVORO"] },
       {
@@ -104,7 +104,7 @@ export const SHEET_SECTIONS: SheetSection[] = [
     title: "DOCUMENTAZIONE REDDITUALE",
     subtitle: "PENSIONATI",
     items: [
-      { label: "MODELLO CU 2024", types: ["MODELLO_CUD"] },
+      { label: "MODELLO CU", types: ["MODELLO_CUD"] },
       { label: "730", types: ["MODELLO_730"] },
       { label: "ULTIMO ESTRATTO CONTO UFFICIALE", types: ["ESTRATTO_CONTO"] },
       {
@@ -156,9 +156,9 @@ export const DOCUMENT_TYPE_LABELS: Record<DocumentType, string> = {
   BUSTA_PAGA_1: "ULTIME TRE BUSTE PAGA",
   BUSTA_PAGA_2: "ULTIME TRE BUSTE PAGA",
   BUSTA_PAGA_3: "ULTIME TRE BUSTE PAGA",
-  MODELLO_CUD: "MODELLO CU 2024",
+  MODELLO_CUD: "MODELLO CU",
   MODELLO_730: "730",
-  CUD_730: "MODELLO CU 2024",
+  CUD_730: "MODELLO CU",
   CONTRATTO_LAVORO: "CONTRATTO DI LAVORO",
   ESTRATTO_CONTRIBUTIVO_INPS: "ESTRATTO CONTRIBUTIVO INPS",
   ISEE: "ISEE",

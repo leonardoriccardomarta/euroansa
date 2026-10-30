@@ -565,7 +565,7 @@ export function classifyDocumentByName(
       type: "MODELLO_CU",
       dbType: "MODELLO_CUD",
       subfolder: `${surname} DOC`,
-      standardizedName: `${surname}_Modello_CU_2026${safeExt}`,
+      standardizedName: `${surname}_Modello_CU${safeExt}`,
     };
   }
 

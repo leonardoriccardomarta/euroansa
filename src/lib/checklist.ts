@@ -73,16 +73,27 @@ function coveredTypes(
   const valid = new Set<DocumentType>();
   const present = new Set<DocumentType>();
 
+  const registerType = (t: DocumentType, isValid: boolean) => {
+    if (!t || t === "SCONOSCIUTO") return;
+    present.add(t);
+    if (isValid) valid.add(t);
+    // Backward compatibility: MODELLO_CUD and legacy CUD_730 satisfy each other
+    if (t === "MODELLO_CUD") {
+      present.add("CUD_730");
+      if (isValid) valid.add("CUD_730");
+    } else if (t === "CUD_730") {
+      present.add("MODELLO_CUD");
+      if (isValid) valid.add("MODELLO_CUD");
+    }
+  };
+
   for (const d of docs) {
-    if (d.documentType && d.documentType !== "SCONOSCIUTO") {
-      present.add(d.documentType);
-      if (d.isValid) valid.add(d.documentType);
+    if (d.documentType) {
+      registerType(d.documentType, d.isValid);
     }
     const extra = d.extractedData?.alsoCovers ?? [];
     for (const t of extra) {
-      if (!t || t === "SCONOSCIUTO") continue;
-      present.add(t);
-      if (d.isValid) valid.add(t);
+      registerType(t, d.isValid);
     }
   }
   return { valid, present };

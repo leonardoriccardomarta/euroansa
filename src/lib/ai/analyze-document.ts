@@ -215,9 +215,9 @@ export function buildStandardizedFileName(
     return `${surname}_BustaPaga${monthSuffix}${safeExt}`;
   }
 
-  // Certificazione Unica: Map to fiscal year 2026 -> [COGNOME]_Modello_CU_2026.pdf
+  // Certificazione Unica: [COGNOME]_Modello_CU.pdf
   if (documentType === "MODELLO_CUD" || documentType === "CUD_730") {
-    return `${surname}_Modello_CU_2026${safeExt}`;
+    return `${surname}_Modello_CU${safeExt}`;
   }
   if (documentType === "MODELLO_730") return `${surname}_Modello_730${safeExt}`;
   if (documentType === "MODELLO_UNICO" || documentType === "MODELLO_UNICO_1") {

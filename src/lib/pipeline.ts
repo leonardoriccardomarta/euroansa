@@ -2009,23 +2009,46 @@ export async function processPendingDocumentAnalyses(limit = 2) {
           id: documents.id,
           rawFileName: documents.rawFileName,
           documentType: documents.documentType,
+          storageSubfolder: documents.storageSubfolder,
         })
         .from(documents)
         .where(eq(documents.applicationId, targetApp.id));
 
-      const knownTypes = new Set(
-        siblings
-          .filter(
-            (d) =>
-              d.id !== doc.id &&
-              d.documentType !== "SCONOSCIUTO" &&
-              d.documentType,
-          )
-          .map((d) => d.documentType),
-      );
+      const docFolder = resolveFolderForDocument({
+        documentType: analysis.documentType,
+        clientName: targetApp.clientName,
+        isCouple: targetApp.isCouple,
+        clientFiscalCode: targetApp.clientFiscalCode,
+        coApplicantName: (targetApp as { coApplicantName?: string | null })
+          .coApplicantName,
+        coApplicantFiscalCode: (
+          targetApp as { coApplicantFiscalCode?: string | null }
+        ).coApplicantFiscalCode,
+        applicantFiscalCodes: targetApp.applicantFiscalCodes,
+        storageFolders: targetApp.storageFolders,
+        extractedFiscalCode: analysis.extractedData?.fiscalCode,
+        extractedFullName:
+          [
+            analysis.extractedData?.firstName,
+            analysis.extractedData?.lastName,
+          ]
+            .filter(Boolean)
+            .join(" ") || undefined,
+        extractedFirstName: analysis.extractedData?.firstName,
+        extractedLastName: analysis.extractedData?.lastName,
+      });
+
+      const docFolderNorm = (docFolder || "").trim().toUpperCase();
+      const sameFolderSiblings = siblings.filter((d) => {
+        if (d.id === doc.id || !d.documentType || d.documentType === "SCONOSCIUTO") return false;
+        if (!targetApp.isCouple) return true;
+        const sibNorm = (d.storageSubfolder || "").trim().toUpperCase();
+        return !docFolderNorm || !sibNorm || sibNorm === docFolderNorm;
+      });
+
+      const knownTypes = new Set(sameFolderSiblings.map((d) => d.documentType));
       const typeCounts = new Map<string, number>();
-      for (const d of siblings) {
-        if (d.id === doc.id || d.documentType === "SCONOSCIUTO") continue;
+      for (const d of sameFolderSiblings) {
         typeCounts.set(
           d.documentType,
           (typeCounts.get(d.documentType) ?? 0) + 1,
