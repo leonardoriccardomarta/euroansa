@@ -227,9 +227,28 @@ export function buildStandardizedFileName(
     return `${surname}_Modello_Unico_2${safeExt}`;
   }
 
+  // LISTA MOVIMENTI: [COGNOME]_ListaMovimenti_[Banca]_[Periodo/Mese].pdf
+  if (documentType === "LISTA_MOVIMENTI_3_MESI") {
+    const bank = extracted.bankName && extracted.bankName !== "NA"
+      ? sanitizeNamePart(extracted.bankName)
+      : "";
+    const monthRaw = extracted.referenceMonth?.trim();
+    const period = monthRaw ? sanitizeNamePart(monthRaw.replace(/[\/\s-]+/g, "_")) : "";
+    const cleanPeriod = period && period !== "NA" ? period : "";
+
+    if (bank && cleanPeriod) {
+      return `${surname}_ListaMovimenti_${bank}_${cleanPeriod}${safeExt}`;
+    } else if (bank) {
+      return `${surname}_ListaMovimenti_${bank}${safeExt}`;
+    } else if (cleanPeriod) {
+      return `${surname}_ListaMovimenti_${cleanPeriod}${safeExt}`;
+    }
+    return `${surname}_ListaMovimenti${safeExt}`;
+  }
+
   // ESTRATTO CONTO (Bank Statement) Multi-file Rule:
   // Prefix strictly EC, extract bank and period: [COGNOME]_EC_[Banca]_[Periodo/Mese].pdf
-  if (documentType === "ESTRATTO_CONTO" || documentType === "LISTA_MOVIMENTI_3_MESI") {
+  if (documentType === "ESTRATTO_CONTO") {
     const bank = extracted.bankName && extracted.bankName !== "NA"
       ? sanitizeNamePart(extracted.bankName)
       : "";

@@ -46,6 +46,7 @@ import { sendApplicationToSecretary } from "@/lib/google/secretary-sender";
 import { setApplicationPipelineError } from "@/lib/applications/errors";
 import { notifySecretarySendFailed } from "@/lib/notify/broker-mail";
 import { getAppBaseUrl } from "@/lib/app-url";
+import { documentRecencyScore } from "@/lib/documents/duplicate-rank";
 
 export type IncomingFile = {
   buffer: Buffer;
@@ -1354,6 +1355,103 @@ export async function processDirectUploads(
   };
 }
 
+/**
+ * Normalizza e assegna in modo sequenziale e cronologico gli slot multi-slot
+ * (es. BUSTA_PAGA_1, BUSTA_PAGA_2, BUSTA_PAGA_3) separatamente per ogni cartella/richiedente.
+ * In pratiche Coppia, permette sia a Richiedente 1 che a Richiedente 2 di avere
+ * i propri slot 1/3, 2/3, 3/3, rimuovendo falsi avvisi di duplicato o copia vecchia.
+ */
+export async function normalizePracticeSlots(applicationId: string) {
+  const allDocs = await db
+    .select()
+    .from(documents)
+    .where(eq(documents.applicationId, applicationId));
+
+  if (!allDocs.length) return;
+
+  const byFolder = new Map<string, typeof allDocs>();
+  for (const doc of allDocs) {
+    const folder = (doc.storageSubfolder || "DEFAULT").trim().toUpperCase();
+    const list = byFolder.get(folder) ?? [];
+    list.push(doc);
+    byFolder.set(folder, list);
+  }
+
+  for (const [, folderDocs] of byFolder) {
+    // 1. Payslips: ordina per recency score decrescente (più recente = slot 1/3)
+    const payslips = folderDocs.filter(
+      (d) =>
+        PAYSLIP_SLOTS.includes(d.documentType) ||
+        /busta.?paga|cedolino|(^|[_\s-])bp([_\s-]|$)/i.test(
+          d.renamedFileName || d.rawFileName || "",
+        ),
+    );
+
+    if (payslips.length >= 2) {
+      const sorted = [...payslips].sort(
+        (a, b) => documentRecencyScore(b) - documentRecencyScore(a),
+      );
+
+      for (let i = 0; i < sorted.length; i++) {
+        const doc = sorted[i];
+        const targetSlot =
+          i < PAYSLIP_SLOTS.length
+            ? PAYSLIP_SLOTS[i]
+            : PAYSLIP_SLOTS[PAYSLIP_SLOTS.length - 1];
+
+        const cleanIssues = (doc.validationIssues ?? []).filter(
+          (issue) =>
+            !/stesso tipo già in pratica|confronta date e tieni il più recente/i.test(
+              issue,
+            ),
+        );
+
+        const updates: Partial<typeof documents.$inferInsert> = {};
+        if (doc.documentType !== targetSlot) {
+          updates.documentType = targetSlot;
+        }
+        if (cleanIssues.length !== (doc.validationIssues ?? []).length) {
+          updates.validationIssues = cleanIssues;
+        }
+
+        if (Object.keys(updates).length > 0) {
+          await db
+            .update(documents)
+            .set(updates)
+            .where(eq(documents.id, doc.id));
+        }
+      }
+    }
+
+    // 2. Modello Unico
+    const unici = folderDocs.filter(
+      (d) =>
+        d.documentType === "MODELLO_UNICO" ||
+        d.documentType === "MODELLO_UNICO_1" ||
+        d.documentType === "MODELLO_UNICO_2",
+    );
+    if (unici.length >= 2) {
+      const sorted = [...unici].sort(
+        (a, b) => documentRecencyScore(b) - documentRecencyScore(a),
+      );
+      const unicoSlots: DocumentType[] = ["MODELLO_UNICO_1", "MODELLO_UNICO_2"];
+      for (let i = 0; i < sorted.length; i++) {
+        const doc = sorted[i];
+        const targetSlot =
+          i < unicoSlots.length
+            ? unicoSlots[i]
+            : unicoSlots[unicoSlots.length - 1];
+        if (doc.documentType !== targetSlot) {
+          await db
+            .update(documents)
+            .set({ documentType: targetSlot })
+            .where(eq(documents.id, doc.id));
+        }
+      }
+    }
+  }
+}
+
 /** Assicura le cartelle iniziali senza mai sovrascrivere o unificare le allocazioni dei documenti */
 export async function normalizePracticeDocFolders(applicationId: string) {
   const [app] = await db
@@ -1382,6 +1480,7 @@ export async function normalizePracticeDocFolders(applicationId: string) {
         .set({ storageFolders: folders, updatedAt: new Date() })
         .where(eq(applications.id, applicationId));
     }
+    await normalizePracticeSlots(applicationId);
     return;
   }
 
@@ -1404,6 +1503,8 @@ export async function normalizePracticeDocFolders(applicationId: string) {
       .set({ storageFolders: folders, updatedAt: new Date() })
       .where(eq(applications.id, applicationId));
   }
+
+  await normalizePracticeSlots(applicationId);
 }
 
 export async function refreshApplicationState(applicationId: string) {

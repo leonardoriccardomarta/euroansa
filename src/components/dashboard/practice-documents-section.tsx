@@ -11,6 +11,7 @@ import {
   defaultStorageFolders,
   isEuroansaFolder,
   multiSlotGroupFor,
+  PAYSLIP_SLOTS,
   STORAGE_FOLDER_KINDS,
   storageSubfolderLabel,
   type StorageFolderKind,
@@ -32,6 +33,7 @@ import {
 import { RenameDocumentDialog } from "@/components/dashboard/rename-document-dialog";
 import { ZipDownloadButton } from "@/components/dashboard/zip-download-button";
 import {
+  documentRecencyScore,
   rankDuplicateDocuments,
   type DuplicateRankInfo,
 } from "@/lib/documents/duplicate-rank";
@@ -175,6 +177,17 @@ function DocRow({
                 Non in storage
               </Badge>
             ) : null}
+            {doc.isValid &&
+            doc.validationIssues?.some((i) =>
+              /accettato manualmente/i.test(i),
+            ) ? (
+              <Badge
+                variant="outline"
+                className="border-emerald-300 bg-emerald-50 text-emerald-800"
+              >
+                Accettato manualmente
+              </Badge>
+            ) : null}
           </p>
           {also.length > 0 ? (
             <p className="mt-1 text-xs text-primary-700">
@@ -232,7 +245,16 @@ function DocRow({
               /stesso tipo già|copia|secondo file|confronta date|già presente in pratica/i.test(
                 i,
               );
-            const blocking = doc.validationIssues.filter((i) => !isDupNote(i));
+            const isManualAcceptNote = (i: string) =>
+              /accettato manualmente/i.test(i);
+
+            // Se il documento è valido (es. accettato manualmente o approvato),
+            // non mostrare il riquadro rosso bloccante
+            const blocking = doc.isValid
+              ? []
+              : doc.validationIssues.filter(
+                  (i) => !isDupNote(i) && !isManualAcceptNote(i),
+                );
             const discretionary = dupRank
               ? doc.validationIssues.filter(isDupNote)
               : [];
@@ -283,14 +305,64 @@ export function PracticeDocumentsSection({
 }) {
   const defaultDocLabel = storageSubfolderLabel("DOC", clientName);
 
+  const allFolders =
+    folders && folders.length > 0
+      ? folders
+      : defaultStorageFolders(clientName, isCouple);
+
+  const fallbackFolder = allFolders[0] ?? defaultDocLabel;
+
+  // Raggruppa per cartella e normalizza gli slot indipendentemente per ogni richiedente
+  const byFolderRaw = new Map<string, Document[]>();
+  for (const doc of docs) {
+    let key = doc.storageSubfolder?.trim() || fallbackFolder;
+    if (!allFolders.includes(key)) {
+      if (/ DOC$/i.test(key) && allFolders.includes(defaultDocLabel)) {
+        key = defaultDocLabel;
+      } else if (isEuroansaFolder(key) && allFolders.includes("EUROANSA")) {
+        key = "EUROANSA";
+      }
+    }
+    const list = byFolderRaw.get(key) ?? [];
+    list.push({ ...doc });
+    byFolderRaw.set(key, list);
+  }
+
+  const byFolder = new Map<string, Document[]>();
+  const normalizedDocs: Document[] = [];
+
+  for (const [folderKey, folderDocs] of byFolderRaw) {
+    const payslips = folderDocs.filter(
+      (d) =>
+        PAYSLIP_SLOTS.includes(d.documentType) ||
+        /busta.?paga|cedolino|(^|[_\s-])bp([_\s-]|$)/i.test(
+          d.renamedFileName || d.rawFileName || "",
+        ),
+    );
+
+    if (payslips.length >= 2) {
+      const sorted = [...payslips].sort(
+        (a, b) => documentRecencyScore(b) - documentRecencyScore(a),
+      );
+      sorted.forEach((p, sIdx) => {
+        if (sIdx < PAYSLIP_SLOTS.length) {
+          p.documentType = PAYSLIP_SLOTS[sIdx];
+        }
+      });
+    }
+
+    byFolder.set(folderKey, folderDocs);
+    normalizedDocs.push(...folderDocs);
+  }
+
   const presentTypes = new Set(
-    docs
+    normalizedDocs
       .filter((d) => d.isValid && d.documentType !== "SCONOSCIUTO")
       .map((d) => d.documentType),
   );
   /** Per badge multi-slot: conta anche i da rivedere */
   const presentTypesAny = new Set<DocumentType>(
-    docs
+    normalizedDocs
       .filter((d) => d.documentType && d.documentType !== "SCONOSCIUTO")
       .flatMap((d) => {
         const extra =
@@ -312,29 +384,7 @@ export function PracticeDocumentsSection({
     ]),
   ];
 
-  const dupRanks = rankDuplicateDocuments(docs);
-
-  const allFolders =
-    folders && folders.length > 0
-      ? folders
-      : defaultStorageFolders(clientName, isCouple);
-
-  const fallbackFolder = allFolders[0] ?? defaultDocLabel;
-
-  const byFolder = new Map<string, Document[]>();
-  for (const doc of docs) {
-    let key = doc.storageSubfolder?.trim() || fallbackFolder;
-    if (!allFolders.includes(key)) {
-      if (/ DOC$/i.test(key) && allFolders.includes(defaultDocLabel)) {
-        key = defaultDocLabel;
-      } else if (isEuroansaFolder(key) && allFolders.includes("EUROANSA")) {
-        key = "EUROANSA";
-      }
-    }
-    const list = byFolder.get(key) ?? [];
-    list.push(doc);
-    byFolder.set(key, list);
-  }
+  const dupRanks = rankDuplicateDocuments(normalizedDocs);
 
   // Preserve folder order from allFolders, plus any orphan folders that contain documents
   const combinedFolders = [
@@ -418,23 +468,36 @@ export function PracticeDocumentsSection({
               <p className="text-sm text-slate-500">Cartella vuota.</p>
             ) : (
               <div className="space-y-3">
-                {list.map((doc) => (
-                  <DocRow
-                    key={doc.id}
-                    doc={doc}
-                    classifyOptions={classifyOptions}
-                    allowClassify={
-                      /DOC/i.test(label) ||
-                      label === "IMMOBILE" ||
-                      label.startsWith("Richiedente") ||
-                      label.startsWith("Immobile")
-                    }
-                    dupRank={dupRanks.get(doc.id)}
-                    presentTypes={presentTypesAny}
-                    allFolders={combinedFolders}
-                    currentFolder={label}
-                  />
-                ))}
+                {(() => {
+                  const folderPresentTypes = new Set<DocumentType>(
+                    list
+                      .filter((d) => d.documentType && d.documentType !== "SCONOSCIUTO")
+                      .flatMap((d) => {
+                        const extra =
+                          d.extractedData?.alsoCovers?.filter(
+                            (t): t is DocumentType => Boolean(t && t !== "SCONOSCIUTO"),
+                          ) ?? [];
+                        return [d.documentType, ...extra];
+                      }),
+                  );
+                  return list.map((doc) => (
+                    <DocRow
+                      key={doc.id}
+                      doc={doc}
+                      classifyOptions={classifyOptions}
+                      allowClassify={
+                        /DOC/i.test(label) ||
+                        label === "IMMOBILE" ||
+                        label.startsWith("Richiedente") ||
+                        label.startsWith("Immobile")
+                      }
+                      dupRank={dupRanks.get(doc.id)}
+                      presentTypes={folderPresentTypes}
+                      allFolders={combinedFolders}
+                      currentFolder={label}
+                    />
+                  ));
+                })()}
               </div>
             )}
           </div>

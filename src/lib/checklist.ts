@@ -87,6 +87,30 @@ function coveredTypes(
     }
   };
 
+  // Multi-slot payslip handling: se un richiedente ha più buste paga,
+  // soddisfano sequenzialmente BUSTA_PAGA_1, BUSTA_PAGA_2, BUSTA_PAGA_3
+  const payslips = docs.filter(
+    (d) =>
+      d.documentType === "BUSTA_PAGA_1" ||
+      d.documentType === "BUSTA_PAGA_2" ||
+      d.documentType === "BUSTA_PAGA_3" ||
+      /busta.?paga|cedolino|(^|[_\s-])bp([_\s-]|$)/i.test(
+        d.renamedFileName || d.rawFileName || "",
+      ),
+  );
+  if (payslips.length > 1) {
+    const slots: DocumentType[] = [
+      "BUSTA_PAGA_1",
+      "BUSTA_PAGA_2",
+      "BUSTA_PAGA_3",
+    ];
+    payslips.forEach((p, idx) => {
+      if (idx < slots.length) {
+        registerType(slots[idx], p.isValid);
+      }
+    });
+  }
+
   for (const d of docs) {
     if (d.documentType) {
       registerType(d.documentType, d.isValid);

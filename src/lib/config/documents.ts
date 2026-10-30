@@ -200,6 +200,12 @@ export const CHECKLIST_DOCUMENT_TYPES: DocumentType[] = [
 ];
 
 /** Voci foglio con più slot (3 buste, 2 unici…). */
+export const PAYSLIP_SLOTS: DocumentType[] = [
+  "BUSTA_PAGA_1",
+  "BUSTA_PAGA_2",
+  "BUSTA_PAGA_3",
+];
+
 export const MULTI_SLOT_GROUPS: DocumentType[][] = SHEET_SECTIONS.flatMap((s) =>
   s.items.filter((i) => i.types.length > 1).map((i) => i.types),
 );
